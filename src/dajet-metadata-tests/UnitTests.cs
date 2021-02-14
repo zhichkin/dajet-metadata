@@ -3,6 +3,8 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Text;
 
 namespace DaJet.Metadata.Tests
 {
@@ -16,6 +18,35 @@ namespace DaJet.Metadata.Tests
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
             metadata.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+        }
+
+        [TestMethod]
+        public void ParseDBNames()
+        {
+            Console.WriteLine("GetMaxCharCount = " + Encoding.UTF8.GetMaxCharCount(1));
+
+            Stopwatch watch = Stopwatch.StartNew();
+
+            using (Stream stream = metadata.GetDBNamesFromDatabase())
+            {
+                watch.Start();
+
+                //Dictionary<string, DBNameEntry> dbnames = metadata.ParseDBNames(stream);
+                List<string[]> dbnames = metadata.ParseDBNamesOptimized(stream);
+
+                watch.Stop();
+                Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
+
+                if (dbnames != null)
+                {
+                    Console.WriteLine(dbnames.Count + " meta objects loaded.");
+                }
+            }
+
+            //foreach (DBNameEntry entry in dbnames.Values)
+            //{
+            //    Console.WriteLine(entry.ToString());
+            //}
         }
 
         [TestMethod]

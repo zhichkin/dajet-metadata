@@ -18,6 +18,10 @@ namespace DaJet.Metadata
 {
     public interface IMetadataProvider
     {
+        Stream GetDBNamesFromDatabase();
+        Dictionary<string, DBNameEntry> ParseDBNames(Stream stream);
+        List<string[]> ParseDBNamesOptimized(Stream stream);
+
         void LoadDBNames(Dictionary<string, DBNameEntry> dbnames);
         InfoBase LoadInfoBase();
         void UseConnectionString(string connectionString);
@@ -217,6 +221,212 @@ namespace DaJet.Metadata
         }
 
         #region "DBNames"
+
+        public Stream GetDBNamesFromDatabase()
+        {
+            SqlBytes binaryData = SelectDBNamesFromDatabase();
+
+            if (binaryData == null) return null;
+
+            return new DeflateStream(binaryData.Stream, CompressionMode.Decompress);
+        }
+        public Dictionary<string, DBNameEntry> ParseDBNames(Stream stream)
+        {
+            Dictionary<string, DBNameEntry> dbnames = new Dictionary<string, DBNameEntry>();
+
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                string line = reader.ReadLine();
+                if (line != null)
+                {
+                    //int capacity = GetDBNamesCapacity(line);
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        ParseDBNameLine(line, dbnames);
+                    }
+                }
+            }
+
+            return dbnames;
+        }
+        public List<string[]> ParseDBNamesOptimized(Stream stream)
+        {
+            if (stream == null || !stream.CanRead) return null;
+
+            int readBytes = 0;
+            int lineNumber = 0;
+            int position, length, index, commaCount, quoteCount;
+            //char[] buffer = new char[8192];
+            List<string[]> result = new List<string[]>();
+
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8, false))
+            {
+                #region "Version 1"
+
+                //readBytes = reader.Read(buffer, 0, 512);
+
+                //while (readBytes > 0)
+                //{
+                //    length = 0;
+                //    position = 0;
+                //    commaCount = 0;
+                //    quoteCount = 0;
+                //    string[] values = new string[3];
+
+                //    for (index = 0; index < readBytes; index++)
+                //    {
+                //        if (buffer[index] == '{') // beginning of object
+                //        {
+                //            length = 0;
+                //            position = index + 1;
+                //        }
+                //        else if (buffer[index] == '}') // end of object
+                //        {
+                //            if (length > 0)
+                //            {
+                //                values[commaCount] = new string(buffer, position, length);
+                //                length = 0;
+                //                position = index + 1;
+                //            }
+                //        }
+                //        else if (buffer[index] == '"' && quoteCount == 0) // beginning of string value
+                //        {
+                //            quoteCount++;
+                //            length = 0;
+                //            position = index + 1;
+                //        }
+                //        else if (buffer[index] == '"' && quoteCount == 1) // end of string value
+                //        {
+                //            quoteCount = 0;
+                //            if (length > 0)
+                //            {
+                //                values[commaCount] = new string(buffer, position, length);
+                //                length = 0;
+                //                position = index + 1;
+                //            }
+                //        }
+                //        else if (buffer[index] == ',')
+                //        {
+                //            if (length > 0)
+                //            {
+                //                values[commaCount] = new string(buffer, position, length);
+                //                length = 0;
+                //            }
+                //            if (commaCount == 2)
+                //            {
+                //                commaCount = 0;
+                //            }
+                //            else
+                //            {
+                //                commaCount++;
+                //            }
+                //            position = index + 1;
+                //        }
+                //        else if (buffer[index] == '\r')
+                //        {
+                //            // new line
+                //        }
+                //        else if (buffer[index] == '\n')
+                //        {
+                //            // new line
+                //            lineNumber++;
+                //            commaCount = 0;
+                //            //result.Add(values);
+                //            values = new string[3];
+                //        }
+                //        else
+                //        {
+                //            length++;
+                //        }
+                //    }
+
+                //    readBytes = reader.Read(buffer, 0, 512);
+                //}
+
+                #endregion
+
+                #region "Version 2"
+
+                string buffer = reader.ReadToEnd();
+
+                //length = 0;
+                //position = 0;
+                //commaCount = 0;
+                //quoteCount = 0;
+                //string[] values = new string[3];
+
+                //for (index = 0; index < buffer.Length; index++)
+                //{
+                //    if (buffer[index] == '{') // beginning of object
+                //    {
+                //        length = 0;
+                //        position = index + 1;
+                //    }
+                //    else if (buffer[index] == '}') // end of object
+                //    {
+                //        if (length > 0)
+                //        {
+                //            values[commaCount] = buffer.Substring(position, length);
+                //            length = 0;
+                //            position = index + 1;
+                //        }
+                //    }
+                //    else if (buffer[index] == '"' && quoteCount == 0) // beginning of string value
+                //    {
+                //        quoteCount++;
+                //        length = 0;
+                //        position = index + 1;
+                //    }
+                //    else if (buffer[index] == '"' && quoteCount == 1) // end of string value
+                //    {
+                //        quoteCount = 0;
+                //        if (length > 0)
+                //        {
+                //            values[commaCount] = buffer.Substring(position, length);
+                //            length = 0;
+                //            position = index + 1;
+                //        }
+                //    }
+                //    else if (buffer[index] == ',')
+                //    {
+                //        if (length > 0)
+                //        {
+                //            values[commaCount] = buffer.Substring(position, length);
+                //            length = 0;
+                //        }
+                //        if (commaCount == 2)
+                //        {
+                //            commaCount = 0;
+                //        }
+                //        else
+                //        {
+                //            commaCount++;
+                //        }
+                //        position = index + 1;
+                //    }
+                //    else if (buffer[index] == '\r')
+                //    {
+                //        // new line
+                //    }
+                //    else if (buffer[index] == '\n')
+                //    {
+                //        // new line
+                //        lineNumber++;
+                //        commaCount = 0;
+                //        result.Add(values);
+                //        values = new string[3];
+                //    }
+                //    else
+                //    {
+                //        length++;
+                //    }
+                //}
+
+                #endregion
+            }
+
+            return result;
+        }
 
         private SqlBytes SelectDBNamesFromDatabase()
         {
