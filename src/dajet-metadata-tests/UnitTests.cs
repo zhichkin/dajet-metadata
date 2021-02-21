@@ -17,7 +17,7 @@ namespace DaJet.Metadata.Tests
             // my_exchange
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
-            metadata.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+            metadata.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=my_exchange;Integrated Security=True");
         }
 
         [TestMethod]
@@ -132,6 +132,22 @@ namespace DaJet.Metadata.Tests
         public void LoadMetaObjectForDebuging()
         {
             MetaObject metaObject = metadata.LoadMetaObject("Publication", "—инхронизаци€ƒанных„ерез”ниверсальный‘ормат");
+        }
+
+        [TestMethod]
+        public void ReadConfigurationProperties()
+        {
+            ConfigInfo config = metadata.ReadConfigurationProperties();
+            Console.WriteLine("Name = " + config.Name);
+            Console.WriteLine("Alias = " + config.Alias);
+            Console.WriteLine("Comment = " + config.Comment);
+            Console.WriteLine("Version = " + config.Version);
+            Console.WriteLine("ConfigVersion = " + config.ConfigVersion);
+            Console.WriteLine("SyncCallsMode = " + config.SyncCallsMode.ToString());
+            Console.WriteLine("DataLockingMode = " + config.DataLockingMode.ToString());
+            Console.WriteLine("ModalWindowMode = " + config.ModalWindowMode.ToString());
+            Console.WriteLine("AutoNumberingMode = " + config.AutoNumberingMode.ToString());
+            Console.WriteLine("UICompatibilityMode = " + config.UICompatibilityMode.ToString());
         }
     }
 }

@@ -18,6 +18,8 @@ namespace DaJet.Metadata
 {
     public interface IMetadataProvider
     {
+        ConfigInfo ReadConfigurationProperties();
+
         Stream GetDBNamesFromDatabase();
         Dictionary<string, DBNameEntry> ParseDBNames(Stream stream);
         List<string[]> ParseDBNamesOptimized(Stream stream);
@@ -34,6 +36,8 @@ namespace DaJet.Metadata
         private Dictionary<string, DBNameEntry> DBNames = new Dictionary<string, DBNameEntry>();
         private Dictionary<string, DBNameEntry> DBFields = new Dictionary<string, DBNameEntry>();
         private ConcurrentDictionary<string, MetaObject> ReferenceTypes = new ConcurrentDictionary<string, MetaObject>();
+
+        private const string COMMON_MODULES_COLLECTION_UUID = "0fe48980-252d-11d6-a3c7-0050bae0a776";
 
         private string ConnectionString { get; set; }
 
@@ -62,6 +66,178 @@ namespace DaJet.Metadata
             if (command != null) command.Dispose();
             if (connection != null) connection.Dispose();
         }
+
+        #endregion
+
+        #region "Read root file and configuration properties"
+
+        private string ReadConfigFile(string fileName)
+        {
+            string content = string.Empty;
+
+            SqlBytes binaryData = ReadConfigFromDatabase(fileName);
+            if (binaryData == null)
+            {
+                return content;
+            }
+            
+            using (DeflateStream stream = new DeflateStream(binaryData.Stream, CompressionMode.Decompress))
+            using (StreamReader reader = new StreamReader(stream, Encoding.UTF8))
+            {
+                content = reader.ReadToEnd();
+            }
+
+            return content;
+        }
+        private string GetConfigurationFileName()
+        {
+            string rootContent = ReadConfigFile("root");
+            string[] lines = rootContent.Split(',');
+            string uuid = lines[1];
+            return uuid;
+        }
+        public ConfigInfo ReadConfigurationProperties()
+        {
+            ConfigInfo config = new ConfigInfo();
+
+            string fileName = GetConfigurationFileName();
+            string metadata = ReadConfigFile(fileName);
+
+            //string filePath = @"C:\Users\User\Desktop\GitHub\root.txt";
+            //using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+            //{
+            //    writer.Write(metadata);
+            //}
+
+            using (StringReader reader = new StringReader(metadata))
+            {
+                string line = ReadLines(reader, 8); // 8. line
+                config.Name = ParseConfigName(line);
+                line = ReadLines(reader, 1); // 9. line
+                config.Alias = ParseConfigAlias(line);
+                config.Comment = ParseConfigComment(line);
+                line = ReadLines(reader, 6); // 15. line
+                config.ConfigVersion = ParseConfigVersion(line);
+                config.DataLockingMode = ParseDataLockingMode(line);
+                line = ReadLines(reader, 1); // 16. line
+                config.AutoNumberingMode = ParseAutoNumberingMode(line);
+                line = ReadLines(reader, 1); // 17. line
+                config.Version = ParseVersion(line);
+                line = ReadLines(reader, 4); // 21. line
+                config.ModalWindowMode = ParseModalWindowMode(line);
+                config.UICompatibilityMode = ParseUICompatibilityMode(line);
+
+                SkipBasicRolesBlock(reader); // Основные роли конфигурации (будут использоваться, если не вводятся пользователи)
+
+                //{
+                //{"#",e4c53f94-e5f7-4a34-8c10-218bd811cae1,0},
+                //{"B",0}
+                //}
+                SkipUnknownObjectsBlock(reader);
+
+                line = reader.ReadLine();
+                config.SyncCallsMode = ParseSyncCallsMode(line);
+            }
+
+            return config;
+        }
+        private string ReadLines(StringReader reader, int linesToRead)
+        {
+            for (int i = 1; i < linesToRead; i++)
+            {
+                _ = reader.ReadLine();
+            }
+            return reader.ReadLine();
+        }
+        private string ParseConfigName(string line)
+        {
+            string[] lines = line.Split(',');
+            return lines[3].Trim('"');
+        }
+        private string ParseConfigAlias(string line)
+        {
+            string[] lines = line.Split('"');
+            return lines[3];
+        }
+        private string ParseConfigComment(string line)
+        {
+            string[] lines = line.Split('"');
+            return lines[5];
+        }
+        private DataLockingMode ParseDataLockingMode(string line)
+        {
+            return (DataLockingMode)int.Parse(line.Substring(line.Length - 2, 1));
+        }
+        private string ParseConfigVersion(string line)
+        {
+            string[] lines = line.Split(',');
+            return lines[lines.Length - 4].Trim('"');
+        }
+        private AutoNumberingMode ParseAutoNumberingMode(string line)
+        {
+            return (AutoNumberingMode)int.Parse(line.Substring(line.Length - 2, 1));
+        }
+        private string ParseVersion(string line)
+        {
+            return line.Substring(line.Length - 6, 5);
+        }
+        private ModalWindowMode ParseModalWindowMode(string line)
+        {
+            string[] lines = line.Split(',');
+            return (ModalWindowMode)int.Parse(lines[3]);
+        }
+        private UICompatibilityMode ParseUICompatibilityMode(string line)
+        {
+            return (UICompatibilityMode)int.Parse(line.Substring(line.Length - 2, 1));
+        }
+        private SyncCallsMode ParseSyncCallsMode(string line)
+        {
+            string[] lines = line.Split(',');
+            return (SyncCallsMode)int.Parse(lines[1]);
+        }
+        private void SkipBasicRolesBlock(StringReader reader)
+        {
+            string line = reader.ReadLine(); // 22. line
+            string[] lines = line.Split(',');
+            int count = int.Parse(lines[1].TrimEnd('}'));
+            if (count > 0)
+            {
+                count = (count * 3) + 1;
+                _ = ReadLines(reader, count);
+            }
+        }
+        private void SkipUnknownObjectsBlock(StringReader reader)
+        {
+            string line = reader.ReadLine();
+            int count = int.Parse(line.TrimStart('{').TrimEnd(','));
+            if (count > 0)
+            {
+                count = count * 4;
+                _ = ReadLines(reader, count);
+            }
+        }
+
+        //public List<CommonModuleInfo> GetCommonModules()
+        //{
+        //    List<CommonModuleInfo> list = new List<CommonModuleInfo>();
+
+        //    string fileName = GetRootConfigFileName();
+        //    string metadata = ReadConfigFile(fileName);
+        //    using (StringReader reader = new StringReader(metadata))
+        //    {
+        //        string line = reader.ReadLine();
+        //        while (!string.IsNullOrEmpty(line))
+        //        {
+        //            if (line.Substring(1, 36) == COMMON_MODULES_COLLECTION_UUID)
+        //            {
+        //                list = ParseCommonModules(line); break;
+        //            }
+        //            line = reader.ReadLine();
+        //        }
+        //    }
+
+        //    return list;
+        //}
 
         #endregion
 
