@@ -23,3 +23,13 @@ static void Main(string[] args)
     MetaObject metaObject = metadata.LoadMetaObject("Catalog", "Номенклатура");
 }
 ```
+
+*Утилита для чтения метаданных (свойств конфигурации)*
+Требуется установка .NET Core 3.1
+Ссылка для скачивания: 
+
+Помощь по использованию:
+https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png
+
+Пример использования:
+https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png
