@@ -27,6 +27,7 @@ namespace DaJet.Metadata
         void LoadDBNames(Dictionary<string, DBNameEntry> dbnames);
         InfoBase LoadInfoBase();
         void UseConnectionString(string connectionString);
+        void UseConnectionParameters(string server, string database, string username, string password);
         MetaObject LoadMetaObject(string typeName, string objectName);
     }
     internal delegate InfoBase DoWork(out string errorMessage);
@@ -49,6 +50,21 @@ namespace DaJet.Metadata
         public void UseConnectionString(string connectionString)
         {
             ConnectionString = connectionString;
+        }
+        public void UseConnectionParameters(string server, string database, string username, string password)
+        {
+            SqlConnectionStringBuilder connection = new SqlConnectionStringBuilder()
+            {
+                DataSource = server,
+                InitialCatalog = database
+            };
+            if (!string.IsNullOrWhiteSpace(username))
+            {
+                connection.UserID = username;
+                connection.Password = password;
+            }
+            connection.IntegratedSecurity = string.IsNullOrWhiteSpace(username);
+            UseConnectionString(connection.ToString());
         }
 
         #region "Work with SqlConnection"

@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.30804.86
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dajet-metadata", "dajet-metadata\dajet-metadata.csproj", "{12108439-65CD-471E-87F3-FFF0E09DD56F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dajet-metadata-tests", "dajet-metadata-tests\dajet-metadata-tests.csproj", "{C7E0E8B2-B19D-4EB2-BDE7-7095C8AAF41F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "dajet-metadata-tests", "dajet-metadata-tests\dajet-metadata-tests.csproj", "{C7E0E8B2-B19D-4EB2-BDE7-7095C8AAF41F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "dajet-metadata-console", "dajet-metadata-console\dajet-metadata-console.csproj", "{FA340672-33BF-4FF6-BE42-D48C68E29AA3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{C7E0E8B2-B19D-4EB2-BDE7-7095C8AAF41F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C7E0E8B2-B19D-4EB2-BDE7-7095C8AAF41F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C7E0E8B2-B19D-4EB2-BDE7-7095C8AAF41F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FA340672-33BF-4FF6-BE42-D48C68E29AA3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FA340672-33BF-4FF6-BE42-D48C68E29AA3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FA340672-33BF-4FF6-BE42-D48C68E29AA3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FA340672-33BF-4FF6-BE42-D48C68E29AA3}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
