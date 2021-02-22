@@ -31,7 +31,9 @@ static void Main(string[] args)
 ![Ссылка для скачивания]()
 
 Помощь по использованию:
+
 ![Помощь по использованию](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
 
 Пример использования:
+
 ![Пример использования dajet cli](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
