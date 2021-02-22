@@ -24,12 +24,14 @@ static void Main(string[] args)
 }
 ```
 
-*Утилита для чтения метаданных (свойств конфигурации)*
+**Утилита для чтения метаданных (свойств конфигурации)**
 
 Требуется установка .NET Core 3.1
 
 ![Ссылка для скачивания]()
 
-![Помощь по использованию:](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
+Помощь по использованию:
+![Помощь по использованию](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
 
-![Пример использования:](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
+Пример использования:
+![Пример использования dajet cli](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
