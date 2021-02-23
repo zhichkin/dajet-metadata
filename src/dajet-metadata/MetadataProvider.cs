@@ -18,6 +18,8 @@ namespace DaJet.Metadata
 {
     public interface IMetadataProvider
     {
+        int ReadPlatformRequiredVersion();
+        void SaveConfigToFile(string filePath);
         ConfigInfo ReadConfigurationProperties();
 
         Stream GetDBNamesFromDatabase();
@@ -30,6 +32,7 @@ namespace DaJet.Metadata
         void UseConnectionParameters(string server, string database, string username, string password);
         MetaObject LoadMetaObject(string typeName, string objectName);
     }
+
     internal delegate InfoBase DoWork(out string errorMessage);
     public sealed class MetadataProvider : IMetadataProvider
     {
@@ -87,6 +90,25 @@ namespace DaJet.Metadata
 
         #region "Read root file and configuration properties"
 
+        public int ReadPlatformRequiredVersion()
+        {
+            int version = 0;
+            {
+                SqlConnection connection = new SqlConnection(ConnectionString);
+                SqlCommand command = connection.CreateCommand();
+                command.CommandType = CommandType.Text;
+                command.CommandText = "SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];";
+                try
+                {
+                    connection.Open();
+                    version = (int)command.ExecuteScalar();
+                }
+                catch { throw; }
+                finally { DisposeDatabaseResources(connection, command, null); }
+            }
+            return version;
+        }
+
         private string ReadConfigFile(string fileName)
         {
             string content = string.Empty;
@@ -105,6 +127,15 @@ namespace DaJet.Metadata
 
             return content;
         }
+        public void SaveConfigToFile(string filePath)
+        {
+            string fileName = GetConfigurationFileName();
+            string metadata = ReadConfigFile(fileName);
+            using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+            {
+                writer.Write(metadata);
+            }
+        }
         private string GetConfigurationFileName()
         {
             string rootContent = ReadConfigFile("root");
@@ -119,11 +150,7 @@ namespace DaJet.Metadata
             string fileName = GetConfigurationFileName();
             string metadata = ReadConfigFile(fileName);
 
-            //string filePath = @"C:\Users\User\Desktop\GitHub\root.txt";
-            //using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
-            //{
-            //    writer.Write(metadata);
-            //}
+            int version = ReadPlatformRequiredVersion();
 
             using (StringReader reader = new StringReader(metadata))
             {
@@ -138,7 +165,14 @@ namespace DaJet.Metadata
                 line = ReadLines(reader, 1); // 16. line
                 config.AutoNumberingMode = ParseAutoNumberingMode(line);
                 line = ReadLines(reader, 1); // 17. line
-                config.Version = ParseVersion(line);
+                if (version < 80300)
+                {
+                    config.Version = ParseOldVersion(line);
+                }
+                else
+                {
+                    config.Version = ParseVersion(line);
+                }
                 line = ReadLines(reader, 4); // 21. line
                 config.ModalWindowMode = ParseModalWindowMode(line);
                 config.UICompatibilityMode = ParseUICompatibilityMode(line);
@@ -196,6 +230,14 @@ namespace DaJet.Metadata
         private string ParseVersion(string line)
         {
             return line.Substring(line.Length - 6, 5);
+        }
+        private string ParseOldVersion(string line)
+        {
+            int version = int.Parse(line.Substring(line.Length - 2, 1));
+            if (version == 0) return "80216";
+            else if (version == 1) return "80100";
+            else if (version == 2) return "80213";
+            else return version.ToString();
         }
         private ModalWindowMode ParseModalWindowMode(string line)
         {
@@ -880,7 +922,7 @@ namespace DaJet.Metadata
                 SqlCommand command = connection.CreateCommand();
                 SqlDataReader reader = null;
                 command.CommandType = CommandType.Text;
-                command.CommandText = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName ORDER BY [PartNo] ASC";
+                command.CommandText = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
                 command.Parameters.AddWithValue("FileName", fileName);
                 try
                 {

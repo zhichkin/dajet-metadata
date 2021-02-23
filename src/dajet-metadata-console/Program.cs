@@ -2,6 +2,7 @@
 using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
+using System.IO;
 
 namespace DaJet.Metadata.CLI
 {
@@ -17,10 +18,11 @@ namespace DaJet.Metadata.CLI
                 new Option<string>("-s", "SQL Server address or name"),
                 new Option<string>("-d", "Database name"),
                 new Option<string>("-u", "User name (Windows authentication is used if not defined)"),
-                new Option<string>("-p", "User password if SQL Server authentication is used")
+                new Option<string>("-p", "User password if SQL Server authentication is used"),
+                new Option<FileInfo>("-out-root", "File path to save configuration information")
             };
             command.Description = "DaJet (metadata reader utility)";
-            command.Handler = CommandHandler.Create<string, string, string, string>(ShowConfigurationProperties);
+            command.Handler = CommandHandler.Create<string, string, string, string, FileInfo>(ShowConfigurationProperties);
             return command.Invoke(args);
         }
         private static void ShowErrorMessage(string errorText)
@@ -29,7 +31,7 @@ namespace DaJet.Metadata.CLI
             Console.WriteLine(errorText);
             Console.ForegroundColor = ConsoleColor.White;
         }
-        private static void ShowConfigurationProperties(string s, string d, string u, string p)
+        private static void ShowConfigurationProperties(string s, string d, string u, string p, FileInfo outRoot)
         {
             if (string.IsNullOrWhiteSpace(s))
             {
@@ -54,6 +56,11 @@ namespace DaJet.Metadata.CLI
             Console.WriteLine("ModalWindowMode = " + config.ModalWindowMode.ToString());
             Console.WriteLine("AutoNumberingMode = " + config.AutoNumberingMode.ToString());
             Console.WriteLine("UICompatibilityMode = " + config.UICompatibilityMode.ToString());
+
+            if (outRoot != null)
+            {
+                metadata.SaveConfigToFile(outRoot.FullName);
+            }
         }
     }
 }
