@@ -28,7 +28,7 @@ static void Main(string[] args)
 
 Требуется установка .NET Core 3.1
 
-[Ссылка для скачивания](https://github.com/zhichkin/dajet-metadata/releases/tag/v0.1)
+[Ссылка для скачивания](https://github.com/zhichkin/dajet-metadata/releases/)
 
 Помощь по использованию:
 
