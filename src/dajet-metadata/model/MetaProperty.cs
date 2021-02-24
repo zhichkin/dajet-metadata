@@ -1,10 +1,12 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
     public sealed class MetaProperty
     {
+        public Guid UUID { get; set; }
         public string Name { get; set; }
         public string Field { get; set; }
         public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Property;

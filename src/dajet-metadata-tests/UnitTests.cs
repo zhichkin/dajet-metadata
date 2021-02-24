@@ -11,13 +11,17 @@ namespace DaJet.Metadata.Tests
     [TestClass]
     public class UnitTests
     {
+        private const string DBNAMES_FILE_NAME = "DBNames";
+
+        private string ConnectionString { get; set; }
         private readonly IMetadataProvider metadata = new MetadataProvider();
         public UnitTests()
         {
             // my_exchange
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
-            metadata.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=my_exchange;Integrated Security=True");
+            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True";
+            metadata.UseConnectionString(ConnectionString);
         }
 
         [TestMethod]
@@ -135,9 +139,10 @@ namespace DaJet.Metadata.Tests
         }
 
         [TestMethod]
-        public void ReadConfigurationProperties()
+        public void NewReadConfigurationProperties()
         {
             ConfigInfo config = metadata.ReadConfigurationProperties();
+
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
             Console.WriteLine("Comment = " + config.Comment);
@@ -148,6 +153,25 @@ namespace DaJet.Metadata.Tests
             Console.WriteLine("ModalWindowMode = " + config.ModalWindowMode.ToString());
             Console.WriteLine("AutoNumberingMode = " + config.AutoNumberingMode.ToString());
             Console.WriteLine("UICompatibilityMode = " + config.UICompatibilityMode.ToString());
+        }
+        [TestMethod]
+        public void NewReadDBNames()
+        {
+            Stopwatch watch = Stopwatch.StartNew();
+            watch.Start();
+
+            DBNamesCash cash;
+            IMetadataFileReader reader = new MetadataFileReader();
+            reader.UseConnectionString(ConnectionString);
+            byte[] fileData = reader.ReadBytes(DBNAMES_FILE_NAME);
+            using (StreamReader stream = reader.CreateReader(fileData))
+            {
+                IDBNamesFileParser parser = new DBNamesFileParser();
+                cash = parser.Parse(stream);
+            }
+
+            watch.Stop();
+            Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
         }
     }
 }

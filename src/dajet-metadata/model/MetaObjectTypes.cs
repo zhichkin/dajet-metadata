@@ -11,6 +11,8 @@
         public static string Document { get; } = "Document";
         /// <summary> Константа </summary>
         public static string Constant { get; } = "Constant";
+        /// <summary> Табличная часть </summary>
+        public static string TablePart { get; } = "TablePart";
         /// <summary> Перечисление </summary>
         public static string Enumeration { get; } = "Enumeration";
         /// <summary> План обмена </summary>

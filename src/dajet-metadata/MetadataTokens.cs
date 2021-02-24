@@ -53,23 +53,40 @@
         internal const string SentNo = "SentNo";
         internal const string ReceivedNo = "ReceivedNo";
 
-        internal const string VT = "VT"; // /Табличная часть
-        internal const string Enum = "Enum"; // Перечисление
-        internal const string Chrc = "Chrc"; // План видов характеристик
-        internal const string Const = "Const"; // Константа
-        internal const string InfoRg = "InfoRg"; // Регистр сведений
-        internal const string Acc = "Acc"; // План счетов
-        internal const string AccRg = "AccRg"; // Регистр бухгалтерии
-        internal const string AccRgED = "AccRgED"; // Операции регистра бухгалтерии (журнал проводок)
-        internal const string AccumRg = "AccumRg"; // Регистр накопления
-        internal const string AccumRgT = "AccumRgT"; // Таблица итогов регистра накопления
-        internal const string AccumRgOpt = "AccumRgOpt"; // Таблица настроек регистра накопления
-        internal const string AccumRgChngR = "AccumRgChngR"; // Таблица изменений регистра накопления
-        internal const string Document = "Document"; // Документ
-        internal const string Reference = "Reference"; // Справочник
-        internal const string Node = "Node"; // План обмена
-        internal const string ChngR = "ChngR"; // Таблица изменений планов обмена (одна на каждый объект метаданных)
-        internal const string Config = "Config"; // Хранилище метаданных конфигурации 1С
+        ///<summary>Табличная часть (вложенный значимый тип данных)</summary>
+        internal const string VT = "VT";
+        ///<summary>Перечисление (ссылочный тип данных)</summary>
+        internal const string Enum = "Enum";
+        ///<summary>План видов характеристик (ссылочный тип данных)</summary>
+        internal const string Chrc = "Chrc";
+        ///<summary>Константа (значимый тип данных)</summary>
+        internal const string Const = "Const";
+        ///<summary>Регистр сведений (значимый тип данных)</summary>
+        internal const string InfoRg = "InfoRg";
+        ///<summary>План счетов (ссылочный тип данных)</summary>
+        internal const string Acc = "Acc";
+        ///<summary>Регистр бухгалтерии (значимый тип данных)</summary>
+        internal const string AccRg = "AccRg";
+        ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
+        internal const string AccRgED = "AccRgED";
+        ///<summary>Регистр накопления (значимый тип данных)</summary>
+        internal const string AccumRg = "AccumRg";
+        ///<summary>Таблица итогов регистра накопления (зависимый значимый тип данных)</summary>
+        internal const string AccumRgT = "AccumRgT";
+        ///<summary>Таблица настроек регистра накопления (зависимый значимый тип данных)</summary>
+        internal const string AccumRgOpt = "AccumRgOpt";
+        ///<summary>Таблица изменений регистра накопления (зависимый значимый тип данных)</summary>
+        internal const string AccumRgChngR = "AccumRgChngR";
+        ///<summary>Документ (ссылочный тип данных)</summary>
+        internal const string Document = "Document";
+        ///<summary>Справочник (ссылочный тип данных)</summary>
+        internal const string Reference = "Reference";
+        ///<summary>План обмена (ссылочный тип данных)</summary>
+        internal const string Node = "Node";
+        ///<summary>Таблица изменений планов обмена (одна на каждый объект метаданных)</summary>
+        internal const string ChngR = "ChngR";
+        ///<summary>Хранилище метаданных конфигурации 1С</summary>
+        internal const string Config = "Config";
 
         internal const string Splitter = "Splitter";
         internal const string NodeTRef = "NodeTRef";
