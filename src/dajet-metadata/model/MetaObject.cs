@@ -5,7 +5,10 @@ namespace DaJet.Metadata.Model
 {
     public sealed class MetaObject
     {
-        public Guid UUID { get; set; }
+        ///<summary>Имя файла объекта метаданных в таблице Config и DBNames</summary>
+        public Guid UUID { get; set; } // TODO: change property name to FileName
+        ///<summary>Идентификатор объекта метаданных из файла объекта метаданных</summary>
+        public Guid MetaUuid { get; set; } // TODO: change property name to Uuid ?
         public string TypeName { get; set; }
         public int TypeCode { get; set; }
         public string Name { get; set; }

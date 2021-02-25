@@ -1,17 +1,9 @@
 ﻿using DaJet.Metadata.Model;
 using System;
-using System.Collections.Generic;
 using System.IO;
 
 namespace DaJet.Metadata
 {
-    public sealed class DBNamesCash
-    {
-        public Dictionary<Guid, MetaObject> ValueTypes { get; } = new Dictionary<Guid, MetaObject>();
-        public Dictionary<Guid, MetaObject> ReferenceTypes { get; } = new Dictionary<Guid, MetaObject>();
-        public Dictionary<Guid, MetaObject> TableParts { get; } = new Dictionary<Guid, MetaObject>();
-        public Dictionary<Guid, MetaProperty> Properties { get; } = new Dictionary<Guid, MetaProperty>();
-    }
     public interface IDBNamesFileParser
     {
         DBNamesCash Parse(StreamReader stream);
