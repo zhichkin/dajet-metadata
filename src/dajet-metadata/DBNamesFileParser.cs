@@ -1,44 +1,27 @@
 ﻿using DaJet.Metadata.Model;
 using System;
+using System.Collections.Generic;
 using System.IO;
 
 namespace DaJet.Metadata
 {
     public interface IDBNamesFileParser
     {
-        DBNamesCash Parse(StreamReader stream);
+        void Parse(StreamReader stream, InfoBase infoBase);
     }
     public sealed class DBNamesFileParser : IDBNamesFileParser
     {
-        public DBNamesCash Parse(StreamReader stream)
+        public void Parse(StreamReader stream, InfoBase infoBase)
         {
-            DBNamesCash cash = new DBNamesCash();
             string line = stream.ReadLine(); // 1. line
             if (line != null)
             {
                 int capacity = ParseCapacity(line);
                 while ((line = stream.ReadLine()) != null)
                 {
-                    ParseEntry(line, cash);
+                    ParseEntry(line, infoBase);
                 }
             }
-            return cash;
-        }
-        private bool IsValueType(string token)
-        {
-            return token == MetadataTokens.Const
-                || token == MetadataTokens.AccRg
-                || token == MetadataTokens.InfoRg
-                || token == MetadataTokens.AccumRg;
-        }
-        private bool IsReferenceType(string token)
-        {
-            return token == MetadataTokens.Acc
-                || token == MetadataTokens.Enum
-                || token == MetadataTokens.Chrc
-                || token == MetadataTokens.Node
-                || token == MetadataTokens.Document
-                || token == MetadataTokens.Reference;
         }
         private string MapTokenToTypeName(string token)
         {
@@ -73,7 +56,7 @@ namespace DaJet.Metadata
         {
             return new MetaProperty()
             {
-                UUID = uuid,
+                FileName = uuid,
                 Field = CreateDBName(token, code)
             };
         }
@@ -82,7 +65,7 @@ namespace DaJet.Metadata
         {
             return int.Parse(line.Replace("{", string.Empty).Replace(",", string.Empty));
         }
-        private void ParseEntry(string line, DBNamesCash cash)
+        private void ParseEntry(string line, InfoBase infoBase)
         {
             string[] items = line.Split(',');
             if (items.Length < 3) return;
@@ -95,35 +78,83 @@ namespace DaJet.Metadata
 
             if (token == MetadataTokens.Fld)
             {
-                _ = cash.Properties.TryAdd(uuid, CreateMetaProperty(uuid, token, code));
-            }
-            else if (IsValueType(token))
-            {
-                _ = cash.ValueTypes.TryAdd(uuid, CreateMetaObject(uuid, token, code));
-            }
-            else if (IsReferenceType(token))
-            {
-                _ = cash.ReferenceTypes.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Properties.TryAdd(uuid, CreateMetaProperty(uuid, token, code));
             }
             else if (token == MetadataTokens.VT)
             {
-                _ = cash.TableParts.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.TableParts.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Acc)
+            {
+                _ = infoBase.Accounts.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Reference)
+            {
+                _ = infoBase.Catalogs.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Document)
+            {
+                _ = infoBase.Documents.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Enum)
+            {
+                _ = infoBase.Enumerations.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Node)
+            {
+                _ = infoBase.Publications.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Chrc)
+            {
+                _ = infoBase.Characteristics.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.Const)
+            {
+                _ = infoBase.Constants.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.AccRg)
+            {
+                _ = infoBase.AccountingRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.InfoRg)
+            {
+                _ = infoBase.InformationRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+            }
+            else if (token == MetadataTokens.AccumRg)
+            {
+                _ = infoBase.AccumulationRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
             }
             else if (token.EndsWith(MetadataTokens.ChngR) && !token.StartsWith(MetadataTokens.Config))
             {
-                MetaObject owner;
-                if (cash.ValueTypes.TryGetValue(uuid, out owner))
-                {
-                    owner.MetaObjects.Add(CreateMetaObject(uuid, token, code));
-                }
-                else if (cash.ReferenceTypes.TryGetValue(uuid, out owner))
-                {
-                    owner.MetaObjects.Add(CreateMetaObject(uuid, token, code));
-                }
+                AttachChangeTrackingTable(infoBase, uuid, token, code);
             }
             else
             {
                 //TODO: другие объекты метаданных, в том числе различные зависимые значимые типы (таблицы итогов и т.п.)
+            }
+        }
+        private void AttachChangeTrackingTable(InfoBase infoBase, Guid uuid, string token, string code)
+        {
+            List<Dictionary<Guid, MetaObject>> list = new List<Dictionary<Guid, MetaObject>>()
+            {
+                infoBase.Accounts,
+                infoBase.Catalogs,
+                infoBase.Documents,
+                infoBase.Enumerations,
+                infoBase.Characteristics,
+                infoBase.Constants,
+                infoBase.AccountingRegisters,
+                infoBase.InformationRegisters,
+                infoBase.AccumulationRegisters
+            };
+            MetaObject owner;
+            foreach (var item in list)
+            {
+                if (item.TryGetValue(uuid, out owner))
+                {
+                    owner.MetaObjects.Add(CreateMetaObject(uuid, token, code));
+                    break;
+                }
             }
         }
     }

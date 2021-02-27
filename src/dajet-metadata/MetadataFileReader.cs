@@ -16,6 +16,13 @@ namespace DaJet.Metadata
         ///<param name="connectionString">Строка подключения к базе данных 1С</param>
         void UseConnectionString(string connectionString);
 
+        ///<summary>Формирует строку подключения к базе данных 1С по параметрам</summary>
+        ///<param name="server">Имя или сетевой адрес сервера SQL Server</param>
+        ///<param name="database">Имя базы данных SQL Server</param>
+        ///<param name="userName">Имя пользователя (если не указано, используется Windows аутентификация)</param>
+        ///<param name="password">Пароль пользователя SQL Server (используется только в случае SQL Server аутентификации)</param>
+        void ConfigureConnectionString(string server, string database, string userName, string password);
+
         ///<summary>Получает требуемую версию платформы 1С для работы с базой данных</summary>
         ///<returns>Требуемая версия платформы 1С</returns>
         int GetPlatformRequiredVersion();
@@ -113,10 +120,25 @@ namespace DaJet.Metadata
             if (command != null) command.Dispose();
             if (connection != null) connection.Dispose();
         }
-        
+
         public void UseConnectionString(string connectionString)
         {
             ConnectionString = connectionString;
+        }
+        public void ConfigureConnectionString(string server, string database, string userName, string password)
+        {
+            SqlConnectionStringBuilder connectionString = new SqlConnectionStringBuilder()
+            {
+                DataSource = server,
+                InitialCatalog = database
+            };
+            if (!string.IsNullOrWhiteSpace(userName))
+            {
+                connectionString.UserID = userName;
+                connectionString.Password = password;
+            }
+            connectionString.IntegratedSecurity = string.IsNullOrWhiteSpace(userName);
+            ConnectionString = connectionString.ToString();
         }
         public int GetPlatformRequiredVersion()
         {

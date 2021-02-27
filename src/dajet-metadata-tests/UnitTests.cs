@@ -12,20 +12,25 @@ namespace DaJet.Metadata.Tests
         private const string DBNAMES_FILE_NAME = "DBNames";
 
         private string ConnectionString { get; set; }
-        private readonly IMetadataProvider metadata = new MetadataProvider();
+        private readonly IMetadataReader metadata;
+        private readonly IMetadataFileReader fileReader;
+        private readonly IConfigurationFileParser configReader;
         public UnitTests()
         {
-            // my_exchange
+            // dajet-metadata
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
-            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True";
-            metadata.UseConnectionString(ConnectionString);
+            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
+            fileReader = new MetadataFileReader();
+            fileReader.UseConnectionString(ConnectionString);
+            metadata = new MetadataReader(fileReader);
+            configReader = new ConfigurationFileParser(fileReader);
         }
 
        [TestMethod]
         public void ReadConfigurationProperties()
         {
-            ConfigInfo config = metadata.ReadConfigurationProperties();
+            ConfigInfo config = configReader.ReadConfigurationProperties();
 
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
@@ -44,14 +49,12 @@ namespace DaJet.Metadata.Tests
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            DBNamesCash cash;
-            IMetadataFileReader reader = new MetadataFileReader();
-            reader.UseConnectionString(ConnectionString);
-            byte[] fileData = reader.ReadBytes(DBNAMES_FILE_NAME);
-            using (StreamReader stream = reader.CreateReader(fileData))
+            InfoBase infoBase = new InfoBase();
+            byte[] fileData = fileReader.ReadBytes(DBNAMES_FILE_NAME);
+            using (StreamReader stream = fileReader.CreateReader(fileData))
             {
                 IDBNamesFileParser parser = new DBNamesFileParser();
-                cash = parser.Parse(stream);
+                parser.Parse(stream, infoBase);
             }
 
             watch.Stop();
@@ -63,11 +66,7 @@ namespace DaJet.Metadata.Tests
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            IMetadataFileReader reader = new MetadataFileReader();
-            reader.UseConnectionString(ConnectionString);
-            
-            IMetadataReader mdr = new MetadataReader(reader);
-            _ = mdr.LoadInfoBase();
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             watch.Stop();
             Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");

@@ -1,6 +1,5 @@
 ﻿using DaJet.Metadata.Model;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -21,13 +20,17 @@ namespace DaJet.Metadata
     /// </summary>
     public sealed class MetadataReader : IMetadataReader
     {
+        private sealed class ReadMetaUuidParameters
+        {
+            internal InfoBase InfoBase { get; set; }
+            internal MetaObject MetaObject { get; set; }
+        }
+
         private const string DBNAMES_FILE_NAME = "DBNames";
 
         private readonly IMetadataFileReader MetadataFileReader;
         private readonly IDBNamesFileParser DBNamesFileParser = new DBNamesFileParser();
         private readonly IMetaObjectFileParser MetaObjectFileParser = new MetaObjectFileParser();
-
-        private DBNamesCash DBNamesCash;
 
         public MetadataReader(IMetadataFileReader metadataFileReader)
         {
@@ -37,139 +40,152 @@ namespace DaJet.Metadata
         public InfoBase LoadInfoBase()
         {
             InfoBase infoBase = new InfoBase();
-
-            ReadDBNames();
-            MetaObjectFileParser.UseCash(DBNamesCash);
-            ReadMetaUuids();
-            ReadMetaObjects();
-
+            ReadDBNames(infoBase);
+            MetaObjectFileParser.UseInfoBase(infoBase);
+            ReadMetaUuids(infoBase);
+            ReadMetaObjects(infoBase);
             return infoBase;
         }
 
-        private void ReadDBNames()
+        private void ReadDBNames(InfoBase infoBase)
         {
             byte[] fileData = MetadataFileReader.ReadBytes(DBNAMES_FILE_NAME);
             using (StreamReader reader = MetadataFileReader.CreateReader(fileData))
             {
-                DBNamesCash = DBNamesFileParser.Parse(reader);
+                DBNamesFileParser.Parse(reader, infoBase);
             }
         }
-        private void ReadMetaUuids()
+        private void ReadMetaUuids(InfoBase infoBase)
         {
-            int i = 0;
-            Task[] tasks = new Task[DBNamesCash.ReferenceTypes.Count];
-            foreach (var item in DBNamesCash.ReferenceTypes)
+            foreach (var collection in infoBase.ReferenceTypes)
             {
-                tasks[i] = Task.Factory.StartNew(
-                    ReadMetaUuid,
-                    item.Value,
-                    CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach,
-                    TaskScheduler.Default);
-                ++i;
-            }
-
-            try
-            {
-                Task.WaitAll(tasks);
-            }
-            catch (AggregateException ex)
-            {
-                foreach (Exception ie in ex.InnerExceptions)
+                int i = 0;
+                Task[] tasks = new Task[collection.Count];
+                foreach (var item in collection)
                 {
-                    if (ie is OperationCanceledException)
+                    ReadMetaUuidParameters parameters = new ReadMetaUuidParameters()
                     {
-                        //TODO: log exception
-                        //break;
-                    }
-                    else
+                        InfoBase = infoBase,
+                        MetaObject = item.Value
+                    };
+                    tasks[i] = Task.Factory.StartNew(
+                        ReadMetaUuid,
+                        parameters,
+                        CancellationToken.None,
+                        TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Default);
+                    ++i;
+                }
+
+                try
+                {
+                    Task.WaitAll(tasks);
+                }
+                catch (AggregateException ex)
+                {
+                    foreach (Exception ie in ex.InnerExceptions)
                     {
-                        //TODO: log exception
+                        if (ie is OperationCanceledException)
+                        {
+                            //TODO: log exception
+                            //break;
+                        }
+                        else
+                        {
+                            //TODO: log exception
+                        }
                     }
                 }
             }
         }
-        private void ReadMetaUuid(object metaObject)
+        private void ReadMetaUuid(object parameters)
         {
-            MetaObject obj = (MetaObject)metaObject;
-            byte[] fileData = MetadataFileReader.ReadBytes(obj.UUID.ToString());
+            if (!(parameters is ReadMetaUuidParameters input)) return;
+
+            byte[] fileData = MetadataFileReader.ReadBytes(input.MetaObject.UUID.ToString());
             using (StreamReader stream = MetadataFileReader.CreateReader(fileData))
             {
-                MetaObjectFileParser.ParseMetaUuid(stream, obj);
+                MetaObjectFileParser.ParseMetaUuid(stream, input.MetaObject);
             }
-            DBNamesCash.MetaReferenceTypes.TryAdd(obj.MetaUuid, (MetaObject)metaObject);
+            input.InfoBase.MetaReferenceTypes.TryAdd(input.MetaObject.MetaUuid, input.MetaObject);
         }
-        private void ReadMetaObjects()
+        private void ReadMetaObjects(InfoBase infoBase)
         {
-            ReadValueTypes();
-            ReadReferenceTypes();
+            ReadValueTypes(infoBase);
+            ReadReferenceTypes(infoBase);
         }
-        private void ReadValueTypes()
+        private void ReadValueTypes(InfoBase infoBase)
         {
-            int i = 0;
-            Task[] tasks = new Task[DBNamesCash.ValueTypes.Count];
-            foreach (var item in DBNamesCash.ValueTypes)
+            foreach (var collection in infoBase.ValueTypes)
             {
-                tasks[i] = Task.Factory.StartNew(
-                    ReadMetaObject,
-                    item.Value,
-                    CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach,
-                    TaskScheduler.Default);
-                ++i;
-            }
-
-            try
-            {
-                Task.WaitAll(tasks);
-            }
-            catch (AggregateException ex)
-            {
-                foreach (Exception ie in ex.InnerExceptions)
+                int i = 0;
+                Task[] tasks = new Task[collection.Count];
+                foreach (var item in collection)
                 {
-                    if (ie is OperationCanceledException)
+                    tasks[i] = Task.Factory.StartNew(
+                        ReadMetaObject,
+                        item.Value,
+                        CancellationToken.None,
+                        TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Default);
+                    ++i;
+                }
+
+                try
+                {
+                    Task.WaitAll(tasks);
+                }
+                catch (AggregateException ex)
+                {
+                    foreach (Exception ie in ex.InnerExceptions)
                     {
-                        //TODO: log exception
-                        //break;
-                    }
-                    else
-                    {
-                        //TODO: log exception
+                        if (ie is OperationCanceledException)
+                        {
+                            //TODO: log exception
+                            //break;
+                        }
+                        else
+                        {
+                            //TODO: log exception
+                        }
                     }
                 }
             }
         }
-        private void ReadReferenceTypes()
+        private void ReadReferenceTypes(InfoBase infoBase)
         {
-            int i = 0;
-            Task[] tasks = new Task[DBNamesCash.ReferenceTypes.Count];
-            foreach (var item in DBNamesCash.ReferenceTypes)
+            foreach (var collection in infoBase.ReferenceTypes)
             {
-                tasks[i] = Task.Factory.StartNew(
-                    ReadMetaObject,
-                    item.Value,
-                    CancellationToken.None,
-                    TaskCreationOptions.DenyChildAttach,
-                    TaskScheduler.Default);
-                ++i;
-            }
-
-            try
-            {
-                Task.WaitAll(tasks);
-            }
-            catch (AggregateException ex)
-            {
-                foreach (Exception ie in ex.InnerExceptions)
+                int i = 0;
+                Task[] tasks = new Task[collection.Count];
+                foreach (var item in collection)
                 {
-                    if (ie is OperationCanceledException)
+                    tasks[i] = Task.Factory.StartNew(
+                        ReadMetaObject,
+                        item.Value,
+                        CancellationToken.None,
+                        TaskCreationOptions.DenyChildAttach,
+                        TaskScheduler.Default);
+                    ++i;
+                }
+
+                try
+                {
+                    Task.WaitAll(tasks);
+                }
+                catch (AggregateException ex)
+                {
+                    foreach (Exception ie in ex.InnerExceptions)
                     {
-                        //TODO: log exception
-                        //break;
-                    }
-                    else
-                    {
-                        //TODO: log exception
+                        if (ie is OperationCanceledException)
+                        {
+                            //TODO: log exception
+                            //break;
+                        }
+                        else
+                        {
+                            //TODO: log exception
+                        }
                     }
                 }
             }

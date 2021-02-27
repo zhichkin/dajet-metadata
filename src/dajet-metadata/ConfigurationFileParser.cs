@@ -9,6 +9,10 @@ namespace DaJet.Metadata
     /// </summary>
     public interface IConfigurationFileParser
     {
+        ///<summary>Получает имя основного файла метаданных конфигурации 1С из файла "root"</summary>
+        ///<returns>Имя основного файла метаданных конфигурации 1С (UUID)</returns>
+        string GetConfigurationFileName();
+
         ///<summary>Выполняет чтение свойств конфигурации 1С</summary>
         ///<returns>Значения свойств конфигурации ConfigInfo</returns>
         ConfigInfo ReadConfigurationProperties();
@@ -31,7 +35,7 @@ namespace DaJet.Metadata
             string uuid = lines[1];
             return uuid;
         }
-        private string GetConfigurationFileName()
+        public string GetConfigurationFileName()
         {
             string fileName = null;
             byte[] fileData = MetadataFileReader.ReadBytes(ROOT_FILE_NAME);

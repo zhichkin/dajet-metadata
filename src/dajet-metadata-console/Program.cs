@@ -3,11 +3,13 @@ using System;
 using System.CommandLine;
 using System.CommandLine.Invocation;
 using System.IO;
+using System.Text;
 
 namespace DaJet.Metadata.CLI
 {
     public static class Program
     {
+        private const string ROOT_FILE_NAME = "root";
         private const string SERVER_IS_NOT_DEFINED_ERROR = "Server address is not defined.";
         private const string DATABASE_IS_NOT_DEFINED_ERROR = "Database name is not defined.";
 
@@ -42,9 +44,10 @@ namespace DaJet.Metadata.CLI
                 ShowErrorMessage(DATABASE_IS_NOT_DEFINED_ERROR); return;
             }
 
-            IMetadataProvider metadata = new MetadataProvider();
-            metadata.UseConnectionParameters(s, d, u, p);
-            ConfigInfo config = metadata.ReadConfigurationProperties();
+            IMetadataFileReader fileReader = new MetadataFileReader();
+            fileReader.ConfigureConnectionString(s, d, u, p);
+            IConfigurationFileParser configParser = new ConfigurationFileParser(fileReader);
+            ConfigInfo config = configParser.ReadConfigurationProperties();
 
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
@@ -59,7 +62,17 @@ namespace DaJet.Metadata.CLI
 
             if (outRoot != null)
             {
-                metadata.SaveConfigToFile(outRoot.FullName);
+                SaveConfigToFile(outRoot.FullName, fileReader, configParser);
+            }
+        }
+        private static void SaveConfigToFile(string filePath, IMetadataFileReader fileReader, IConfigurationFileParser configParser)
+        {
+            string fileName = configParser.GetConfigurationFileName();
+            byte[] fileData = fileReader.ReadBytes(fileName);
+            using (StreamReader reader = fileReader.CreateReader(fileData))
+            using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+            {
+                writer.Write(reader.ReadToEnd());
             }
         }
     }

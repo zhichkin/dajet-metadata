@@ -207,7 +207,7 @@ namespace DaJet.Metadata
                 if (!found)
                 {
                     string propertyName = string.Empty;
-                    int propertyType = (int)DataTypes.NULL;
+                    DataTypeInfo propertyType = new DataTypeInfo();
 
                     if (metaObject.Owner != null // таблица итогов регистра накопления
                         && metaObject.TypeName == MetaObjectTypes.AccumulationRegister
@@ -219,9 +219,10 @@ namespace DaJet.Metadata
                             if (ownerProperty.Fields.Where(f => f.Name == info.COLUMN_NAME).FirstOrDefault() != null)
                             {
                                 propertyName = ownerProperty.Name;
-                                if (ownerProperty.PropertyType == (int)DataTypes.Multiple)
+                                if (ownerProperty.PropertyType.IsMultipleType)
                                 {
-                                    propertyType = (int)DataTypes.Multiple;
+                                    // ничего не делаем, так как DataTypeInfo является по умолчанию
+                                    // многозначным типом (составным типом данных) для ссылочных типов (например, "Регистратор")
                                 }
                                 break;
                             }
@@ -238,12 +239,13 @@ namespace DaJet.Metadata
                         };
                         metaObject.Properties.Add(property);
                         
-                        MatchFieldToProperty(info, property);
+                        MatchFieldToProperty(info, metaObject, property);
 
-                        if (property.PropertyType == (int)DataTypes.NULL)
-                        {
-                            property.PropertyType = propertyType;
-                        }
+                        //TODO: нужно провести рефакторинг этого кода
+                        //if (property.PropertyType == (int)DataTypes.NULL)
+                        //{
+                        //    property.PropertyType = propertyType;
+                        //}
                     }
 
                     field = new MetaField()
@@ -270,70 +272,86 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void MatchFieldToProperty(FieldSqlInfo field, MetaProperty property)
+        private void MatchFieldToProperty(FieldSqlInfo field, MetaObject metaObject, MetaProperty property)
         {
             string columnName = field.COLUMN_NAME.TrimStart('_');
             if (columnName.StartsWith(MetadataTokens.IDRRef))
             {
                 property.Name = "Ссылка";
                 property.Field = MetadataTokens.IDRRef;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
+                property.PropertyType.ReferenceTypeCode = metaObject.TypeCode;
             }
             else if (columnName.StartsWith(MetadataTokens.Version))
             {
                 property.Name = "ВерсияДанных";
                 property.Field = MetadataTokens.Version;
-                property.PropertyType = (int)DataTypes.Binary;
+                property.PropertyType.IsBinary = true;
             }
             else if (columnName.StartsWith(MetadataTokens.Marked))
             {
                 property.Name = "ПометкаУдаления";
                 property.Field = MetadataTokens.Marked;
-                property.PropertyType = (int)DataTypes.Boolean;
+                property.PropertyType.CanBeBoolean = true;
             }
             else if (columnName.StartsWith(MetadataTokens.PredefinedID))
             {
                 property.Name = "ИмяПредопределённыхДанных";
                 property.Field = MetadataTokens.PredefinedID;
-                property.PropertyType = (int)DataTypes.UUID;
+                property.PropertyType.IsUuid = true;
             }
             else if (columnName.StartsWith(MetadataTokens.Code))
             {
                 property.Name = "Код";
                 property.Field = MetadataTokens.Code;
-                // TODO: find out field data type: string or numeric
-                //property.PropertyTypes.Add((int)DataTypes.String);
+                if (field.DATA_TYPE.Contains("char"))
+                {
+                    property.PropertyType.CanBeString = true;
+                }
+                else
+                {
+                    property.PropertyType.CanBeNumeric = true;
+                }
             }
             else if (columnName.StartsWith(MetadataTokens.Description))
             {
                 property.Name = "Наименование";
                 property.Field = MetadataTokens.Description;
-                property.PropertyType = (int)DataTypes.String;
+                property.PropertyType.CanBeString = true;
             }
             else if (columnName.StartsWith(MetadataTokens.Folder))
             {
                 property.Name = "ЭтоГруппа";
                 property.Field = MetadataTokens.Folder;
-                property.PropertyType = (int)DataTypes.Boolean;
+                property.PropertyType.CanBeBoolean = true;
             }
             else if (columnName.StartsWith(MetadataTokens.ParentIDRRef))
             {
                 property.Name = "Родитель";
                 property.Field = MetadataTokens.ParentIDRRef;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
+                property.PropertyType.ReferenceTypeCode = metaObject.TypeCode;
             }
             else if (columnName.StartsWith(MetadataTokens.OwnerID))
             {
                 property.Name = "Владелец";
                 property.Field = MetadataTokens.OwnerID;
-                // TODO: apply object or multiple data type
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
+                if (field.COLUMN_NAME.Contains(MetadataTokens.TRef)
+                    || field.COLUMN_NAME.Contains(MetadataTokens.TYPE))
+                {
+                    property.PropertyType.ReferenceTypeCode = 0; // multiple type
+                }
+                else
+                {
+                    //TODO: рефакторинг логики этого кода
+                }
             }
             else if (columnName.StartsWith(MetadataTokens.DateTime))
             {
                 property.Name = "Дата";
                 property.Field = MetadataTokens.DateTime;
-                property.PropertyType = (int)DataTypes.DateTime;
+                property.PropertyType.CanBeDateTime = true;
             }
             else if (columnName == MetadataTokens.Number)
             {
@@ -346,7 +364,7 @@ namespace DaJet.Metadata
             {
                 property.Name = "Проведён";
                 property.Field = MetadataTokens.Posted;
-                property.PropertyType = (int)DataTypes.Boolean;
+                property.PropertyType.CanBeBoolean = true;
             }
             else if (columnName == MetadataTokens.NumberPrefix)
             {
@@ -373,13 +391,13 @@ namespace DaJet.Metadata
                 property.Name = "Регистратор";
                 property.Field = MetadataTokens.Recorder;
                 // TODO: apply object or multiple data type
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
             }
             else if (columnName.StartsWith(MetadataTokens.Active))
             {
                 property.Name = "Активность";
                 property.Field = MetadataTokens.Active;
-                property.PropertyType = (int)DataTypes.Boolean;
+                property.PropertyType.CanBeBoolean = true;
             }
             else if (columnName.StartsWith(MetadataTokens.LineNo))
             {
@@ -400,7 +418,11 @@ namespace DaJet.Metadata
             {
                 property.Name = "Ссылка";
                 property.Field = MetadataTokens.IDRRef;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
+                if (metaObject.Owner != null)
+                {
+                    property.PropertyType.ReferenceTypeCode = metaObject.Owner.TypeCode;
+                }
             }
             else if (columnName == MetadataTokens.EnumOrder)
             {
@@ -421,13 +443,14 @@ namespace DaJet.Metadata
             {
                 property.Name = "Узел";
                 property.Field = MetadataTokens.Node;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
+                // TODO: это код типа плана обмена
             }
             else if (columnName == MetadataTokens.NodeRRef)
             {
                 property.Name = "Узел";
                 property.Field = MetadataTokens.Node;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
             }
             else if (columnName == MetadataTokens.MessageNo)
             {
@@ -463,55 +486,55 @@ namespace DaJet.Metadata
             {
                 property.Name = "ТипСчёта";
                 property.Field = MetadataTokens.Kind;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
             }
             else if (columnName == MetadataTokens.OrderField)
             {
                 property.Name = "Порядок";
                 property.Field = MetadataTokens.OrderField;
-                property.PropertyType = (int)DataTypes.String;
+                property.PropertyType.CanBeString = true;
             }
             else if (columnName == MetadataTokens.OffBalance)
             {
                 property.Name = "Забалансовый";
                 property.Field = MetadataTokens.OffBalance;
-                property.PropertyType = (int)DataTypes.Boolean;
+                property.PropertyType.CanBeBoolean = true;
             }
             else if (columnName == MetadataTokens.AccountDtRRef)
             {
                 property.Name = "СчётДебет";
                 property.Field = MetadataTokens.AccountDtRRef;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
             }
             else if (columnName == MetadataTokens.AccountCtRRef)
             {
                 property.Name = "СчётКредит";
                 property.Field = MetadataTokens.AccountCtRRef;
-                property.PropertyType = (int)DataTypes.Object;
+                property.PropertyType.CanBeReference = true;
             }
             else if (columnName == MetadataTokens.EDHashDt)
             {
                 property.Name = "ХешДебет";
                 property.Field = MetadataTokens.EDHashDt;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
             }
             else if (columnName == MetadataTokens.EDHashCt)
             {
                 property.Name = "ХэшКредит";
                 property.Field = MetadataTokens.EDHashCt;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
             }
             else if (columnName == MetadataTokens.SentNo)
             {
                 property.Name = "НомерОтправленного";
                 property.Field = MetadataTokens.SentNo;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
             }
             else if (columnName == MetadataTokens.ReceivedNo)
             {
                 property.Name = "НомерПринятого";
                 property.Field = MetadataTokens.ReceivedNo;
-                property.PropertyType = (int)DataTypes.Numeric;
+                property.PropertyType.CanBeNumeric = true;
             }
         }
     }

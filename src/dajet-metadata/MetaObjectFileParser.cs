@@ -8,7 +8,7 @@ namespace DaJet.Metadata
 {
     public interface IMetaObjectFileParser
     {
-        void UseCash(DBNamesCash cash);
+        void UseInfoBase(InfoBase infoBase);
         void ParseMetaUuid(StreamReader reader, MetaObject metaObject);
         void ParseMetaObject(StreamReader reader, MetaObject metaObject);
     }
@@ -22,8 +22,8 @@ namespace DaJet.Metadata
         private readonly Regex rxDbType = new Regex("^{\"[#BSDN]\""); // Example: {"#",1aaea747-a4ba-4fb2-9473-075b1ced620c}, | {"B"}, | {"S",10,0}, | {"D","T"}, | {"N",10,0,1}
         private readonly Regex rxNestedProperties = new Regex("^{888744e1-b616-11d4-9436-004095e12fc7,\\d+[},]$"); // Коллекция реквизитов табличной части любого объекта метаданных look rxSpecialUUID
 
-        // Структура ссылки на объект метаданных
-        // {"#",157fa490-4ce9-11d4-9415-008048da11f9, - идентификатор класса объекта метаданных
+        // Структура блока описания ссылки на объект метаданных
+        // {"#",157fa490-4ce9-11d4-9415-008048da11f9, - идентификатор класса объекта метаданных "ОбъектМетаданных"
         // {1,fd8fe814-97e6-42d3-a042-b1e429cfb067}   - внутренний идентификатор объекта метаданных
         // }
 
@@ -32,7 +32,7 @@ namespace DaJet.Metadata
         internal delegate void SpecialParser(StreamReader reader, string line, MetaObject metaObject);
         private readonly Dictionary<string, SpecialParser> _SpecialParsers = new Dictionary<string, SpecialParser>();
 
-        private DBNamesCash Cash;
+        private InfoBase InfoBase;
 
         public MetaObjectFileParser()
         {
@@ -70,9 +70,9 @@ namespace DaJet.Metadata
             _SpecialParsers.Add("9d28ee33-9c7e-4a1b-8f13-50aa9b36607b", ParseMetaObjectProperties); // Коллекция реквизитов регистра бухгалтерского учёта
         }
 
-        public void UseCash(DBNamesCash cash)
+        public void UseInfoBase(InfoBase infoBase)
         {
-            Cash = cash;
+            InfoBase = infoBase;
         }
         public void ParseMetaUuid(StreamReader reader, MetaObject metaObject)
         {
@@ -200,9 +200,14 @@ namespace DaJet.Metadata
                 match = rxUUID.Match(line);
                 if (match.Success)
                 {
-                    if (Cash.ReferenceTypes.TryGetValue(new Guid(match.Value), out MetaObject owner))
+                    Guid uuid = new Guid(match.Value);
+                    foreach (var collection in InfoBase.ReferenceTypes)
                     {
-                        owners.Add(owner.TypeCode);
+                        if (collection.TryGetValue(uuid, out MetaObject owner))
+                        {
+                            owners.Add(owner.TypeCode);
+                            break;
+                        }
                     }
                 }
                 _ = reader.ReadLine();
@@ -212,11 +217,19 @@ namespace DaJet.Metadata
             {
                 MetaProperty property = new MetaProperty
                 {
-                    PropertyType = (owners.Count == 1) ? owners[0] : (int)DataTypes.Multiple,
                     Name = "Владелец",
                     Field = "OwnerID" // [_OwnerIDRRef] | [_OwnerID_TYPE] + [_OwnerID_RTRef] + [_OwnerID_RRRef]
                     // TODO: add DbField[s] at once ?
                 };
+                property.PropertyType.CanBeReference = true;
+                if (owners.Count == 1)
+                {
+                    property.PropertyType.ReferenceTypeCode = owners[0];
+                }
+                else
+                {
+                    property.PropertyType.ReferenceTypeCode = 0; // multiple type
+                }
                 metaObject.Properties.Add(property);
             }
         }
@@ -262,7 +275,7 @@ namespace DaJet.Metadata
             string fileName = lines[2].Replace("}", string.Empty);
             string objectName = lines[3].Replace("\"", string.Empty);
 
-            if (Cash.Properties.TryGetValue(new Guid(fileName), out MetaProperty property))
+            if (InfoBase.Properties.TryGetValue(new Guid(fileName), out MetaProperty property))
             {
                 property.Name = objectName;
                 property.Purpose = purpose;
@@ -275,65 +288,79 @@ namespace DaJet.Metadata
             string line = reader.ReadLine();
             if (line == null) return;
 
+            // Ищем начало описания типа данных свойства
             while (line != "{\"Pattern\",")
             {
                 line = reader.ReadLine();
                 if (line == null) return;
             }
-
             Match match;
             List<int> typeCodes = new List<int>();
+            DataTypeInfo typeInfo = new DataTypeInfo();
+            // Читаем все допустимые для значения данного свойства типы данных
+            // до тех пор, пока не закончатся описания типов данных
             while ((line = reader.ReadLine()) != null)
             {
                 match = rxDbType.Match(line);
                 if (!match.Success) break;
 
-                int typeCode = (int)DataTypes.NULL;
-                string typeName = string.Empty;
                 string token = match.Value.Replace("{", string.Empty).Replace("\"", string.Empty);
-                switch (token)
-                {
-                    case MetadataTokens.S: { typeCode = (int)DataTypes.String; break; }
-                    case MetadataTokens.B: { typeCode = (int)DataTypes.Boolean; break; }
-                    case MetadataTokens.N: { typeCode = (int)DataTypes.Numeric; break; }
-                    case MetadataTokens.D: { typeCode = (int)DataTypes.DateTime; break; }
-                }
-                if (typeCode != (int)DataTypes.NULL)
-                {
-                    typeCodes.Add(typeCode);
-                }
-                else
+                if (token == MetadataTokens.S) typeInfo.CanBeString = true;
+                else if (token == MetadataTokens.B) typeInfo.CanBeBoolean = true;
+                else if (token == MetadataTokens.N) typeInfo.CanBeNumeric = true;
+                else if (token == MetadataTokens.D) typeInfo.CanBeDateTime = true;
+                else if (token == MetadataTokens.R)
                 {
                     string[] lines = line.Split(',');
                     string uuid = lines[1].Replace("}", string.Empty);
-
-                    if (uuid == "e199ca70-93cf-46ce-a54b-6edc88c3a296")
+                    if (uuid == "e199ca70-93cf-46ce-a54b-6edc88c3a296") // ХранилищеЗначения - varbinary(max)
                     {
-                        // ХранилищеЗначения - varbinary(max)
-                        typeCodes.Add((int)DataTypes.Binary);
+                        typeInfo.IsValueStorage = true;
                     }
-                    else if (uuid == "fc01b5df-97fe-449b-83d4-218a090e681e")
+                    else if (uuid == "fc01b5df-97fe-449b-83d4-218a090e681e") // УникальныйИдентификатор - binary(16)
                     {
-                        // УникальныйИдентификатор - binary(16)
-                        typeCodes.Add((int)DataTypes.UUID);
+                        typeInfo.IsUuid = true;
                     }
-                    else if (Cash.MetaReferenceTypes.TryGetValue(new Guid(uuid), out MetaObject type))
+                    else if (InfoBase.MetaReferenceTypes.TryGetValue(new Guid(uuid), out MetaObject type))
                     {
-                        typeCodes.Add(type.TypeCode);
+                        typeInfo.CanBeReference = true;
+                        typeCodes.Add(type.TypeCode); // требуется для определения многозначности типа данных (см. комментарий ниже)
                     }
-                    else // metaobject reference type file is not parsed yet ?
+                    else
                     {
-                        typeCodes.Add((int)DataTypes.Object);
+                        //TODO: log warning - unexpected token
                     }
                 }
-
-                if (typeCodes.Count > 1) break;
+                else
+                {
+                    //TODO: log warning - unexpected token
+                }
             }
-
-            if (typeCodes.Count == 1) property.PropertyType = typeCodes[0];
-            else if (typeCodes.Count > 1) property.PropertyType = (int)DataTypes.Multiple;
-            else property.PropertyType = (int)DataTypes.NULL;
+            if (typeCodes.Count == 1)
+            {
+                // В целях оптимизации в DataTypeInfo не хранятся все допустимые для данного свойства коды ссылочных типов.
+                // В случае составного типа код типа конкретного значения можно получить в базе данных в поле {имя поля}_TRef.
+                // В случае же сохранения кода типа в базу данных код типа можно получить из свойства MetaObject.TypeCode.
+                // У не составных типов данных такого поля в базе данных нет, поэтому необходимо сохранить код типа в DataTypeInfo.
+                typeInfo.ReferenceTypeCode = typeCodes[0];
+            }
+            property.PropertyType = typeInfo;
         }
+
+        // Описание типов данных свойств объектов метаданных (реквизитов, измерений или ресурсов)
+        // {"Pattern", начало блока описания типов данных свойства, если описаний несколько, то это составной тип данных
+        // {"B"} Булево - binary(1)
+        // {"D","D"} Дата(Дата) - datetime2
+        // {"D","T"} Дата(Время) - datetime2
+        // {"D"} Дата(ДатаВремя) - datetime2
+        // {"S",10,0} Строка(10) фиксированная - nchar(10)
+        // {"S",10,1} Строка(10) переменная - nvarchar(10)
+        // {"S"} Строка(неограниченная) всегда переменная - nvarchar(max)
+        // {"N",10,2,0} Число(10,2) Отрицательное или положительное - numeric(10,2)
+        // {"N",10,2,1} Число(10,2) Неотрицательное - numeric(10, 2)
+        // {"#",e199ca70-93cf-46ce-a54b-6edc88c3a296} ХранилищеЗначения - varbinary(max)
+        // {"#",fc01b5df-97fe-449b-83d4-218a090e681e} УникальныйИдентификатор - binary(16)
+        // {"#",70497451-981e-43b8-af46-fae8d65d16f2} Ссылка (идентификатор объекта метаданных) - binary(16)
 
         #endregion
 
@@ -364,13 +391,10 @@ namespace DaJet.Metadata
             string fileName = lines[2].Replace("}", string.Empty);
             string objectName = lines[3].Replace("\"", string.Empty);
 
-            if (Cash.TableParts.TryGetValue(new Guid(fileName), out MetaObject nested))
+            if (InfoBase.TableParts.TryGetValue(new Guid(fileName), out MetaObject nested))
             {
                 nested.Owner = owner;
                 nested.Name = objectName;
-                //TODO: check what to do here
-                //nested.TypeName = dbname.Token;
-                //nested.TypeCode = dbname.TypeCode;
                 nested.TableName = owner.TableName + nested.TableName;
                 owner.MetaObjects.Add(nested);
             }
@@ -408,7 +432,7 @@ namespace DaJet.Metadata
             string uuid = lines[2].TrimEnd('}');
             metaObject.Name = lines[3].Trim('"');
 
-            if (Cash.Properties.TryGetValue(new Guid(uuid), out MetaProperty property))
+            if (InfoBase.Properties.TryGetValue(new Guid(uuid), out MetaProperty property))
             {
                 metaObject.Properties.Add(property);
             }

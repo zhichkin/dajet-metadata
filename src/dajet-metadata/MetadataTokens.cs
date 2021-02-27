@@ -1,101 +1,109 @@
 ﻿namespace DaJet.Metadata
 {
-    internal static class MetadataTokens
+    public static class MetadataTokens
     {
-        internal const string L = "L"; // Boolean (SQL table fields postfix)
-        internal const string B = "B"; // Boolean (config metadata)
-        internal const string N = "N"; // Numeric
-        internal const string S = "S"; // String
-        internal const string D = "D"; // DateTime (config metadata)
-        internal const string T = "T"; // DateTime (SQL table fields postfix)
+        ///<summary>Boolean (SQL table fields postfix)</summary>
+        public const string L = "L";
+        ///<summary>Boolean (config file metadata)</summary>
+        public const string B = "B";
+        ///<summary>Numeric</summary>
+        public const string N = "N";
+        ///<summary>String</summary>
+        public const string S = "S";
+        ///<summary>DateTime (config file metadata)</summary>
+        public const string D = "D";
+        ///<summary>DateTime (SQL table fields postfix)</summary>
+        public const string T = "T";
+        ///<summary>Reference type, УникальныйИдентификатор или ХранилищеЗначения</summary>
+        public const string R = "#";
 
-        internal const string RRef = "RRef";
-        internal const string TRef = "TRef";
-        internal const string RRRef = "RRRef";
-        internal const string RTRef = "RTRef";
-        internal const string TYPE = "TYPE"; // 0x08 - reference data type
+        public const string RRef = "RRef";
+        public const string TRef = "TRef";
+        public const string RRRef = "RRRef";
+        public const string RTRef = "RTRef";
+        public const string TYPE = "TYPE"; // 0x08 - reference data type
 
-        internal const string Fld = "Fld";
-        internal const string IDRRef = "IDRRef";
-        internal const string Version = "Version";
-        internal const string Marked = "Marked";
-        internal const string DateTime = "Date_Time";
-        internal const string NumberPrefix = "NumberPrefix";
-        internal const string Number = "Number";
-        internal const string Posted = "Posted";
-        internal const string PredefinedID = "PredefinedID";
-        internal const string Description = "Description";
-        internal const string Code = "Code";
-        internal const string OwnerID = "OwnerID";
-        internal const string Folder = "Folder";
-        internal const string ParentIDRRef = "ParentIDRRef";
+        public const string Fld = "Fld";
+        public const string IDRRef = "IDRRef";
+        public const string Version = "Version";
+        public const string Marked = "Marked";
+        public const string DateTime = "Date_Time";
+        public const string NumberPrefix = "NumberPrefix";
+        public const string Number = "Number";
+        public const string Posted = "Posted";
+        public const string PredefinedID = "PredefinedID";
+        public const string Description = "Description";
+        public const string Code = "Code";
+        public const string OwnerID = "OwnerID";
+        public const string Folder = "Folder";
+        public const string ParentIDRRef = "ParentIDRRef";
 
-        internal const string KeyField = "KeyField";
-        internal const string LineNo = "LineNo";
-        internal const string EnumOrder = "EnumOrder";
-        internal const string Type = "Type"; // ТипЗначения (ПланВидовХарактеристик)
+        public const string KeyField = "KeyField";
+        public const string LineNo = "LineNo";
+        public const string EnumOrder = "EnumOrder";
+        public const string Type = "Type"; // ТипЗначения (ПланВидовХарактеристик)
 
-        internal const string Kind = "Kind"; // Тип счёта плана счетов (активный, пассивный, активно-пассивный)
-        internal const string OrderField = "OrderField"; // Порядок счёта в плане счетов
-        internal const string OffBalance = "OffBalance"; // Признак забалансового счёта плана счетов
-        internal const string AccountDtRRef = "AccountDtRRef"; // Cчёт по дебету проводки регистра бухгалтерского учёта
-        internal const string AccountCtRRef = "AccountCtRRef"; // Cчёт по кредиту проводки регистра бухгалтерского учёта
-        internal const string EDHashDt = "EDHashDt"; // Хэш проводки по дебету регистра бухгалтерского учёта
-        internal const string EDHashCt = "EDHashCt"; // Хэш проводки по кредиту регистра бухгалтерского учёта
-        internal const string Period = "Period";
-        internal const string Periodicity = "Periodicity";
-        internal const string ActualPeriod = "ActualPeriod";
-        internal const string Recorder = "Recorder";
-        internal const string RecorderRRef = "RecorderRRef";
-        internal const string RecorderTRef = "RecorderTRef";
-        internal const string Active = "Active";
-        internal const string RecordKind = "RecordKind";
-        internal const string SentNo = "SentNo";
-        internal const string ReceivedNo = "ReceivedNo";
+        public const string Kind = "Kind"; // Тип счёта плана счетов (активный, пассивный, активно-пассивный)
+        public const string OrderField = "OrderField"; // Порядок счёта в плане счетов
+        public const string OffBalance = "OffBalance"; // Признак забалансового счёта плана счетов
+        public const string AccountDtRRef = "AccountDtRRef"; // Cчёт по дебету проводки регистра бухгалтерского учёта
+        public const string AccountCtRRef = "AccountCtRRef"; // Cчёт по кредиту проводки регистра бухгалтерского учёта
+        public const string EDHashDt = "EDHashDt"; // Хэш проводки по дебету регистра бухгалтерского учёта
+        public const string EDHashCt = "EDHashCt"; // Хэш проводки по кредиту регистра бухгалтерского учёта
+        public const string Period = "Period";
+        public const string Periodicity = "Periodicity";
+        public const string ActualPeriod = "ActualPeriod";
+        public const string Recorder = "Recorder";
+        public const string RecorderRRef = "RecorderRRef";
+        public const string RecorderTRef = "RecorderTRef";
+        public const string Active = "Active";
+        public const string RecordKind = "RecordKind";
+        public const string SentNo = "SentNo";
+        public const string ReceivedNo = "ReceivedNo";
 
         ///<summary>Табличная часть (вложенный значимый тип данных)</summary>
-        internal const string VT = "VT";
+        public const string VT = "VT";
         ///<summary>Перечисление (ссылочный тип данных)</summary>
-        internal const string Enum = "Enum";
+        public const string Enum = "Enum";
         ///<summary>План видов характеристик (ссылочный тип данных)</summary>
-        internal const string Chrc = "Chrc";
+        public const string Chrc = "Chrc";
         ///<summary>Константа (значимый тип данных)</summary>
-        internal const string Const = "Const";
+        public const string Const = "Const";
         ///<summary>Регистр сведений (значимый тип данных)</summary>
-        internal const string InfoRg = "InfoRg";
+        public const string InfoRg = "InfoRg";
         ///<summary>План счетов (ссылочный тип данных)</summary>
-        internal const string Acc = "Acc";
+        public const string Acc = "Acc";
         ///<summary>Регистр бухгалтерии (значимый тип данных)</summary>
-        internal const string AccRg = "AccRg";
+        public const string AccRg = "AccRg";
         ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
-        internal const string AccRgED = "AccRgED";
+        public const string AccRgED = "AccRgED";
         ///<summary>Регистр накопления (значимый тип данных)</summary>
-        internal const string AccumRg = "AccumRg";
+        public const string AccumRg = "AccumRg";
         ///<summary>Таблица итогов регистра накопления (зависимый значимый тип данных)</summary>
-        internal const string AccumRgT = "AccumRgT";
+        public const string AccumRgT = "AccumRgT";
         ///<summary>Таблица настроек регистра накопления (зависимый значимый тип данных)</summary>
-        internal const string AccumRgOpt = "AccumRgOpt";
+        public const string AccumRgOpt = "AccumRgOpt";
         ///<summary>Таблица изменений регистра накопления (зависимый значимый тип данных)</summary>
-        internal const string AccumRgChngR = "AccumRgChngR";
+        public const string AccumRgChngR = "AccumRgChngR";
         ///<summary>Документ (ссылочный тип данных)</summary>
-        internal const string Document = "Document";
+        public const string Document = "Document";
         ///<summary>Справочник (ссылочный тип данных)</summary>
-        internal const string Reference = "Reference";
+        public const string Reference = "Reference";
         ///<summary>План обмена (ссылочный тип данных)</summary>
-        internal const string Node = "Node";
+        public const string Node = "Node";
         ///<summary>Таблица изменений планов обмена (одна на каждый объект метаданных)</summary>
-        internal const string ChngR = "ChngR";
+        public const string ChngR = "ChngR";
         ///<summary>Хранилище метаданных конфигурации 1С</summary>
-        internal const string Config = "Config";
+        public const string Config = "Config";
 
-        internal const string Splitter = "Splitter";
-        internal const string NodeTRef = "NodeTRef";
-        internal const string NodeRRef = "NodeRRef";
-        internal const string MessageNo = "MessageNo";
-        internal const string UseTotals = "UseTotals";
-        internal const string UseSplitter = "UseSplitter";
-        internal const string MinPeriod = "MinPeriod";
-        internal const string MinCalculatedPeriod = "MinCalculatedPeriod";
-        internal const string RepetitionFactor = "RepetitionFactor";
+        public const string Splitter = "Splitter";
+        public const string NodeTRef = "NodeTRef";
+        public const string NodeRRef = "NodeRRef";
+        public const string MessageNo = "MessageNo";
+        public const string UseTotals = "UseTotals";
+        public const string UseSplitter = "UseSplitter";
+        public const string MinPeriod = "MinPeriod";
+        public const string MinCalculatedPeriod = "MinCalculatedPeriod";
+        public const string RepetitionFactor = "RepetitionFactor";
     }
 }
