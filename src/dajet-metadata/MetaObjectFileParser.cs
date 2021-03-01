@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace DaJet.Metadata
@@ -91,7 +92,10 @@ namespace DaJet.Metadata
             {
                 ParseConstant(reader, metaObject); return;
             }
-
+            else if (metaObject.TypeName == MetaObjectTypes.Catalog)
+            {
+                // TODO: AddCatalogBasicProperties(metaObject); ?
+            }
             string line = reader.ReadLine(); // 1. line
 
             line = reader.ReadLine(); // 2. line
@@ -156,6 +160,97 @@ namespace DaJet.Metadata
 
         #region "Basic properties"
 
+        private void AddCatalogBasicProperties(MetaObject metaObject)
+        {
+            AddCatalogPropertyСсылка(metaObject);
+            AddCatalogPropertyВерсияДанных(metaObject);
+            AddCatalogPropertyПометкаУдаления(metaObject);
+            AddCatalogPropertyПредопределённый(metaObject);
+        }
+        private void AddCatalogPropertyСсылка(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "Ссылка").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "Ссылка",
+                Field = "_IDRRef",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_IDRRef",
+                Length = 16,
+                TypeName = "binary",
+                IsNullable = false,
+                KeyOrdinal = 1,
+                IsPrimaryKey = true
+            });
+            metaObject.Properties.Add(property);
+        }
+        private void AddCatalogPropertyВерсияДанных(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "ВерсияДанных").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "ВерсияДанных",
+                Field = "_Version",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsBinary = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_Version",
+                Length = 8,
+                TypeName = "timestamp"
+            });
+            metaObject.Properties.Add(property);
+        }
+        private void AddCatalogPropertyПометкаУдаления(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "ПометкаУдаления").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "ПометкаУдаления",
+                Field = "_Marked",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.CanBeBoolean = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_Marked",
+                Length = 1,
+                TypeName = "binary"
+            });
+            metaObject.Properties.Add(property);
+        }
+        private void AddCatalogPropertyПредопределённый(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "Предопределённый").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "Предопределённый",
+                Field = "_PredefinedID",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_PredefinedID",
+                Length = 16,
+                TypeName = "binary"
+            });
+            metaObject.Properties.Add(property);
+        }
+        
         private string ParseMetaObjectUuid(string line, MetaObject metaObject)
         {
             if (!metaObject.IsReferenceType) return string.Empty;
@@ -218,17 +313,65 @@ namespace DaJet.Metadata
                 MetaProperty property = new MetaProperty
                 {
                     Name = "Владелец",
-                    Field = "OwnerID" // [_OwnerIDRRef] | [_OwnerID_TYPE] + [_OwnerID_RTRef] + [_OwnerID_RRRef]
-                    // TODO: add DbField[s] at once ?
+                    FileName = Guid.Empty,
+                    Purpose = PropertyPurpose.System, // PropertyPurpose.Hierarchy - ?
+                    Field = "OwnerID" // [_OwnerIDRRef] or [_OwnerID_TYPE]+[_OwnerID_RTRef]+[_OwnerID_RRRef]
                 };
                 property.PropertyType.CanBeReference = true;
-                if (owners.Count == 1)
+                property.PropertyType.ReferenceTypeCode = (owners.Count == 1) ? owners[0] : 0; // single or multiple type
+                if (property.PropertyType.IsMultipleType)
                 {
-                    property.PropertyType.ReferenceTypeCode = owners[0];
+                    property.Fields.Add(new MetaField()
+                    {
+                        Name = "_OwnerID_TYPE",
+                        Length = 1,
+                        TypeName = "binary",
+                        Scale = 0,
+                        Precision = 0,
+                        IsNullable = false,
+                        KeyOrdinal = 0,
+                        IsPrimaryKey = false,
+                        Purpose = FieldPurpose.Discriminator
+                    });
+                    property.Fields.Add(new MetaField()
+                    {
+                        Name = "_OwnerID_RTRef",
+                        Length = 4,
+                        TypeName = "binary",
+                        Scale = 0,
+                        Precision = 0,
+                        IsNullable = false,
+                        KeyOrdinal = 0,
+                        IsPrimaryKey = false,
+                        Purpose = FieldPurpose.TypeCode
+                    });
+                    property.Fields.Add(new MetaField()
+                    {
+                        Name = "_OwnerID_RRRef",
+                        Length = 16,
+                        TypeName = "binary",
+                        Scale = 0,
+                        Precision = 0,
+                        IsNullable = false,
+                        KeyOrdinal = 0,
+                        IsPrimaryKey = false,
+                        Purpose = FieldPurpose.Object
+                    });
                 }
                 else
                 {
-                    property.PropertyType.ReferenceTypeCode = 0; // multiple type
+                    property.Fields.Add(new MetaField()
+                    {
+                        Name = "_OwnerIDRRef",
+                        Length = 16,
+                        TypeName = "binary",
+                        Scale = 0,
+                        Precision = 0,
+                        IsNullable = false,
+                        KeyOrdinal = 0,
+                        IsPrimaryKey = false,
+                        Purpose = FieldPurpose.Value
+                    });
                 }
                 metaObject.Properties.Add(property);
             }

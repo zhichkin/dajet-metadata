@@ -6,55 +6,17 @@ using System.Linq;
 
 namespace DaJet.Metadata.Tests
 {
-    [TestClass]
-    public class TestSimpleCatalog
+    [TestClass] public class SimpleCatalog : TestClassBase
     {
-        private string ConnectionString { get; set; }
-        private readonly IMetadataReader metadata;
-        private readonly IMetadataFileReader fileReader;
-        private readonly IConfigurationFileParser configReader;
-
-        private InfoBase InfoBase { get; set; }
         private MetaObject Catalog { get; set; }
-
-        public TestSimpleCatalog()
-        {
-            // dajet-metadata
-            // trade_11_2_3_159_demo
-            // accounting_3_0_72_72_demo
-            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-            fileReader = new MetadataFileReader();
-            fileReader.UseConnectionString(ConnectionString);
-            metadata = new MetadataReader(fileReader);
-            configReader = new ConfigurationFileParser(fileReader);
-        }
-        private void SetupInfoBase()
-        {
-            if (InfoBase != null) return;
-            InfoBase = metadata.LoadInfoBase();
-            Assert.IsNotNull(InfoBase);
-        }
+        public SimpleCatalog() : base() { }
         private void SetupMetaObject()
         {
             if (Catalog != null) return;
-            if (InfoBase == null) SetupInfoBase();
+            SetupInfoBase();
             Catalog = InfoBase.Catalogs.Values.Where(i => i.Name == "ПростойСправочник").FirstOrDefault();
             Assert.IsNotNull(Catalog);
             //TODO: проверить наличие таблицы в базе данных Catalog.TableName
-        }
-        [TestMethod("Загрузка InfoBase")] public void LoadInfoBase()
-        {
-            Stopwatch watch = Stopwatch.StartNew();
-            watch.Start();
-
-            SetupInfoBase();
-
-            watch.Stop();
-            Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
-        }
-        [TestMethod("Загрузка справочника")] public void LoadMetaObject()
-        {
-            SetupMetaObject();
         }
         [TestMethod("Основные свойства")] public void TestCatalogBasicProperties()
         {
@@ -64,6 +26,8 @@ namespace DaJet.Metadata.Tests
             Assert.AreEqual(Catalog.Alias, "Простой справочник");
             Assert.AreEqual(Catalog.TypeName, MetaObjectTypes.Catalog);
             Assert.AreEqual(Catalog.TableName, string.Format("_Reference{0}", Catalog.TypeCode));
+
+            TestPropertyNotExists(Catalog, "Владелец");
 
             // TODO: Выполнить проверку на правильность загрузки/создания стандартных реквизитов.
             //
@@ -85,24 +49,96 @@ namespace DaJet.Metadata.Tests
             // 8. Свойство "ЭтоГруппа" (только если есть иерархия групп) _Folder - binary(1) 0x00 = Истина 0x01 = Ложь (инвертированное значение)
             // 9. Свойство "Родитель" (группа или элемент) _ParentIDRRef - binary(16)
         }
-        private MetaProperty TestPropertyExists(string name)
+        [TestMethod("Ссылка")] public void TestPropertyСсылка()
         {
-            MetaProperty property = Catalog.Properties.Where(p => p.Name == name).FirstOrDefault();
-            Assert.IsNotNull(property);
-            return property;
-            //TODO: проверить наличие полей в базе данных
+            SetupMetaObject();
+            MetaProperty property = TestPropertyExists(Catalog, "Ссылка");
+
+            Assert.AreEqual(property.Purpose, PropertyPurpose.System);
+            Assert.IsTrue(property.PropertyType.IsUuid);
+            Assert.IsFalse(property.PropertyType.IsBinary);
+            Assert.IsFalse(property.PropertyType.IsValueStorage);
+            Assert.IsFalse(property.PropertyType.IsMultipleType);
+            Assert.IsFalse(property.PropertyType.CanBeString);
+            Assert.IsFalse(property.PropertyType.CanBeBoolean);
+            Assert.IsFalse(property.PropertyType.CanBeNumeric);
+            Assert.IsFalse(property.PropertyType.CanBeDateTime);
+            Assert.IsFalse(property.PropertyType.CanBeReference);
+            Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
+            
+            MetaField field = TestFieldExists(property, "_IDRRef");
+            Assert.AreEqual(field.Length, 16);
+            Assert.AreEqual(field.TypeName, "binary");
+            Assert.AreEqual(field.KeyOrdinal, 1);
+            Assert.AreEqual(field.IsPrimaryKey, true);
         }
-        private MetaObject TestTablePartExists(string name)
+        [TestMethod("ВерсияДанных")] public void TestPropertyВерсияДанных()
         {
-            MetaObject tablePart = Catalog.MetaObjects.Where(t => t.Name == name).FirstOrDefault();
-            Assert.IsNotNull(tablePart);
-            return tablePart;
-            //TODO: проверить наличие таблицы в базе данных tablePart.TableName
+            SetupMetaObject();
+            MetaProperty property = TestPropertyExists(Catalog, "ВерсияДанных");
+
+            Assert.AreEqual(property.Purpose, PropertyPurpose.System);
+            Assert.IsFalse(property.PropertyType.IsUuid);
+            Assert.IsTrue(property.PropertyType.IsBinary);
+            Assert.IsFalse(property.PropertyType.IsValueStorage);
+            Assert.IsFalse(property.PropertyType.IsMultipleType);
+            Assert.IsFalse(property.PropertyType.CanBeString);
+            Assert.IsFalse(property.PropertyType.CanBeBoolean);
+            Assert.IsFalse(property.PropertyType.CanBeNumeric);
+            Assert.IsFalse(property.PropertyType.CanBeDateTime);
+            Assert.IsFalse(property.PropertyType.CanBeReference);
+            Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
+
+            MetaField field = TestFieldExists(property, "_Version");
+            Assert.AreEqual(field.Length, 8);
+            Assert.AreEqual(field.TypeName, "timestamp");
+        }
+        [TestMethod("ПометкаУдаления")] public void TestPropertyПометкаУдаления()
+        {
+            SetupMetaObject();
+            MetaProperty property = TestPropertyExists(Catalog, "ПометкаУдаления");
+
+            Assert.AreEqual(property.Purpose, PropertyPurpose.System);
+            Assert.IsFalse(property.PropertyType.IsUuid);
+            Assert.IsFalse(property.PropertyType.IsBinary);
+            Assert.IsFalse(property.PropertyType.IsValueStorage);
+            Assert.IsFalse(property.PropertyType.IsMultipleType);
+            Assert.IsFalse(property.PropertyType.CanBeString);
+            Assert.IsTrue(property.PropertyType.CanBeBoolean);
+            Assert.IsFalse(property.PropertyType.CanBeNumeric);
+            Assert.IsFalse(property.PropertyType.CanBeDateTime);
+            Assert.IsFalse(property.PropertyType.CanBeReference);
+            Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
+
+            MetaField field = TestFieldExists(property, "_Marked");
+            Assert.AreEqual(field.Length, 1);
+            Assert.AreEqual(field.TypeName, "binary");
+        }
+        [TestMethod("Предопределённый")] public void TestPropertyПредопределённый()
+        {
+            SetupMetaObject();
+            MetaProperty property = TestPropertyExists(Catalog, "Предопределённый");
+
+            Assert.AreEqual(property.Purpose, PropertyPurpose.System);
+            Assert.IsTrue(property.PropertyType.IsUuid);
+            Assert.IsFalse(property.PropertyType.IsBinary);
+            Assert.IsFalse(property.PropertyType.IsValueStorage);
+            Assert.IsFalse(property.PropertyType.IsMultipleType);
+            Assert.IsFalse(property.PropertyType.CanBeString);
+            Assert.IsFalse(property.PropertyType.CanBeBoolean);
+            Assert.IsFalse(property.PropertyType.CanBeNumeric);
+            Assert.IsFalse(property.PropertyType.CanBeDateTime);
+            Assert.IsFalse(property.PropertyType.CanBeReference);
+            Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
+
+            MetaField field = TestFieldExists(property, "_PredefinedID");
+            Assert.AreEqual(field.Length, 16);
+            Assert.AreEqual(field.TypeName, "binary");
         }
         [TestMethod("РеквизитБулево")] public void TestPropertyРеквизитБулево()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитБулево");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитБулево");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -119,7 +155,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитДата")] public void TestPropertyРеквизитДата()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитДата");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитДата");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -140,7 +176,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитВремя")] public void TestPropertyРеквизитВремя()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитВремя");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитВремя");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -157,7 +193,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитДатаВремя")] public void TestPropertyРеквизитДатаВремя()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитДатаВремя");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитДатаВремя");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -174,7 +210,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСтрокаФикс")] public void TestPropertyРеквизитСтрокаФикс()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСтрокаФикс");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСтрокаФикс");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -191,7 +227,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСтрокаПерем")] public void TestPropertyРеквизитСтрокаПерем()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСтрокаПерем");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСтрокаПерем");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -208,7 +244,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСтрокаМакс")] public void TestPropertyРеквизитСтрокаМакс()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСтрокаМакс");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСтрокаМакс");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -225,7 +261,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитЧисло")] public void TestPropertyРеквизитЧисло()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитЧисло");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитЧисло");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -242,7 +278,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитЧислоНеотрицательное")] public void TestPropertyРеквизитЧислоНеотрицательное()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитЧислоНеотрицательное");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитЧислоНеотрицательное");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -259,7 +295,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитUUID")] public void TestPropertyРеквизитUUID()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитUUID");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитUUID");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsTrue(property.PropertyType.IsUuid);
@@ -276,7 +312,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитХранилищеЗначения")] public void TestPropertyРеквизитХранилищеЗначения()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитХранилищеЗначения");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитХранилищеЗначения");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -293,7 +329,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСправочник")] public void TestPropertyРеквизитСправочник()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСправочник");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСправочник");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -310,7 +346,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСоставной")] public void TestPropertyРеквизитСоставной()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСоставной");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСоставной");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -327,7 +363,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСоставнойСсылки")] public void TestPropertyРеквизитСоставнойСсылки()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСоставнойСсылки");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСоставнойСсылки");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -344,7 +380,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("РеквизитСоставнойПростые")] public void TestPropertyРеквизитСоставнойПростые()
         {
             SetupMetaObject();
-            MetaProperty property = TestPropertyExists("РеквизитСоставнойПростые");
+            MetaProperty property = TestPropertyExists(Catalog, "РеквизитСоставнойПростые");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.Property);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -375,7 +411,7 @@ namespace DaJet.Metadata.Tests
         }
         private void TestTablePart(string name, int propertiesCount)
         {
-            MetaObject tablePart = TestTablePartExists(name);
+            MetaObject tablePart = TestTablePartExists(Catalog, name);
 
             Assert.AreEqual(Catalog, tablePart.Owner);
             Assert.AreEqual(tablePart.TableName, string.Format("{0}_VT{1}", Catalog.TableName, tablePart.TypeCode));

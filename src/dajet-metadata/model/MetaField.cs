@@ -3,7 +3,7 @@
     public sealed class MetaField
     {
         public string Name { get; set; }
-        public FieldPurpose Purpose { get; set; }
+        public FieldPurpose Purpose { get; set; } = FieldPurpose.Value;
         public string TypeName { get; set; }
         public int Length { get; set; }
         public int Precision { get; set; }

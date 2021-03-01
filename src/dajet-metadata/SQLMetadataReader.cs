@@ -6,23 +6,28 @@ using System.Text;
 
 namespace DaJet.Metadata
 {
-    public sealed class SQLMetadataReader
+    public sealed class SqlFieldInfo
     {
-        private sealed class FieldSqlInfo
+        public SqlFieldInfo() { }
+        public int ORDINAL_POSITION;
+        public string COLUMN_NAME;
+        public string DATA_TYPE;
+        public int CHARACTER_MAXIMUM_LENGTH;
+        public byte NUMERIC_PRECISION;
+        public int NUMERIC_SCALE;
+        public bool IS_NULLABLE;
+        public override string ToString()
         {
-            public FieldSqlInfo() { }
-            public int ORDINAL_POSITION;
-            public string COLUMN_NAME;
-            public string DATA_TYPE;
-            public int CHARACTER_MAXIMUM_LENGTH;
-            public byte NUMERIC_PRECISION;
-            public int NUMERIC_SCALE;
-            public bool IS_NULLABLE;
-            public override string ToString()
-            {
-                return COLUMN_NAME + " (" + DATA_TYPE + ")";
-            }
+            return COLUMN_NAME + " (" + DATA_TYPE + ")";
         }
+    }
+    public interface ISqlMetadataReader
+    {
+        void UseConnectionString(string connectionString);
+        List<SqlFieldInfo> GetSqlFieldsOrderedByName(string tableName);
+    }
+    public sealed class SqlMetadataReader : ISqlMetadataReader
+    {        
         private sealed class ClusteredIndexInfo
         {
             public ClusteredIndexInfo() { }
@@ -72,7 +77,7 @@ namespace DaJet.Metadata
                 ReadSQLMetadata(nested);
             }
         }
-        private List<FieldSqlInfo> GetSqlFields(string tableName)
+        private List<SqlFieldInfo> GetSqlFields(string tableName)
         {
             StringBuilder sb = new StringBuilder();
             sb.AppendLine(@"SELECT");
@@ -90,7 +95,7 @@ namespace DaJet.Metadata
 
             string sql = string.Format(sb.ToString(), tableName);
 
-            List<FieldSqlInfo> list = new List<FieldSqlInfo>();
+            List<SqlFieldInfo> list = new List<SqlFieldInfo>();
             using (SqlConnection connection = new SqlConnection(this.ConnectionString))
             {
                 using (SqlCommand command = new SqlCommand(sql, connection))
@@ -100,7 +105,7 @@ namespace DaJet.Metadata
                     {
                         while (reader.Read())
                         {
-                            FieldSqlInfo item = new FieldSqlInfo()
+                            SqlFieldInfo item = new SqlFieldInfo()
                             {
                                 ORDINAL_POSITION = reader.GetInt32(0),
                                 COLUMN_NAME = reader.GetString(1),
@@ -179,11 +184,11 @@ namespace DaJet.Metadata
         {
             if (string.IsNullOrWhiteSpace(metaObject.TableName)) return;
 
-            List<FieldSqlInfo> sql_fields = GetSqlFields(metaObject.TableName);
+            List<SqlFieldInfo> sql_fields = GetSqlFields(metaObject.TableName);
 
             ClusteredIndexInfo indexInfo = GetClusteredIndexInfo(metaObject.TableName);
 
-            foreach (FieldSqlInfo info in sql_fields)
+            foreach (SqlFieldInfo info in sql_fields)
             {
                 bool found = false; MetaField field = null;
                 foreach (MetaProperty p in metaObject.Properties)
@@ -272,7 +277,7 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void MatchFieldToProperty(FieldSqlInfo field, MetaObject metaObject, MetaProperty property)
+        private void MatchFieldToProperty(SqlFieldInfo field, MetaObject metaObject, MetaProperty property)
         {
             string columnName = field.COLUMN_NAME.TrimStart('_');
             if (columnName.StartsWith(MetadataTokens.IDRRef))
@@ -536,6 +541,59 @@ namespace DaJet.Metadata
                 property.Field = MetadataTokens.ReceivedNo;
                 property.PropertyType.CanBeNumeric = true;
             }
+        }
+
+
+        public void UseConnectionString(string connectionString)
+        {
+            ConnectionString = connectionString;
+        }
+        private string SelectSqlFieldsOrderedByNameScript()
+        {
+            StringBuilder script = new StringBuilder();
+            script.AppendLine("SELECT");
+            script.AppendLine("\tORDINAL_POSITION,");
+            script.AppendLine("\tCOLUMN_NAME,");
+            script.AppendLine("\tDATA_TYPE,");
+            script.AppendLine("\tISNULL(CHARACTER_MAXIMUM_LENGTH, 0) AS CHARACTER_MAXIMUM_LENGTH,");
+            script.AppendLine("\tISNULL(NUMERIC_PRECISION, 0) AS NUMERIC_PRECISION,");
+            script.AppendLine("\tISNULL(NUMERIC_SCALE, 0) AS NUMERIC_SCALE,");
+            script.AppendLine("\tCASE WHEN IS_NULLABLE = 'NO' THEN CAST(0x00 AS bit) ELSE CAST(0x01 AS bit) END AS IS_NULLABLE");
+            script.AppendLine("FROM");
+            script.AppendLine("\tINFORMATION_SCHEMA.COLUMNS");
+            script.AppendLine("WHERE");
+            script.AppendLine("\tTABLE_NAME = @tableName");
+            script.AppendLine("ORDER BY");
+            script.AppendLine("\tCOLUMN_NAME ASC;");
+            return script.ToString();
+        }
+        public List<SqlFieldInfo> GetSqlFieldsOrderedByName(string tableName)
+        {
+            List<SqlFieldInfo> list = new List<SqlFieldInfo>();
+            using (SqlConnection connection = new SqlConnection(ConnectionString))
+            using (SqlCommand command = new SqlCommand(SelectSqlFieldsOrderedByNameScript(), connection))
+            {
+                command.Parameters.AddWithValue("tableName", tableName);
+                connection.Open();
+                using (SqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        SqlFieldInfo item = new SqlFieldInfo()
+                        {
+                            ORDINAL_POSITION = reader.GetInt32(0),
+                            COLUMN_NAME = reader.GetString(1),
+                            DATA_TYPE = reader.GetString(2),
+                            CHARACTER_MAXIMUM_LENGTH = reader.GetInt32(3),
+                            NUMERIC_PRECISION = reader.GetByte(4),
+                            NUMERIC_SCALE = reader.GetInt32(5),
+                            IS_NULLABLE = reader.GetBoolean(6)
+                        };
+                        list.Add(item);
+                    }
+                }
+            }
+            return list;
         }
     }
 }
