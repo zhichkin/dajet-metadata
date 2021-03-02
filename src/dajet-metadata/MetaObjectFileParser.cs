@@ -425,6 +425,7 @@ namespace DaJet.Metadata
                 metaObject.Properties.Add(property);
             }
             ParseMetaPropertyTypes(reader, property);
+            CreateDatabaseFields(property);
         }
         private void ParseMetaPropertyTypes(StreamReader reader, MetaProperty property)
         {
@@ -489,7 +490,88 @@ namespace DaJet.Metadata
             }
             property.PropertyType = typeInfo;
         }
-
+        private void CreateDatabaseFields(MetaProperty property)
+        {
+            if (property.PropertyType.IsMultipleType)
+            {
+                CreateDatabaseFieldsForMultipleType(property);
+            }
+            else
+            {
+                CreateDatabaseFieldsForSingleType(property);
+            }
+        }
+        private void CreateDatabaseFieldsForSingleType(MetaProperty property)
+        {
+            if (property.PropertyType.IsUuid)
+            {
+                property.Fields.Add(new MetaField(property.Field, "binary", 16));
+            }
+            else if (property.PropertyType.IsBinary)
+            {
+                // is used only for system properties of system types
+                // TODO: log if it eventually happens
+            }
+            else if (property.PropertyType.IsValueStorage)
+            {
+                property.Fields.Add(new MetaField(property.Field, "varbinary", -1));
+            }
+            else if (property.PropertyType.CanBeString)
+            {
+                // should be updated from database
+                property.Fields.Add(new MetaField(property.Field, "nvarchar", 10));
+            }
+            else if (property.PropertyType.CanBeNumeric)
+            {
+                // should be updated from database
+                property.Fields.Add(new MetaField(property.Field, "numeric", 9, 10, 0));
+            }
+            else if (property.PropertyType.CanBeBoolean)
+            {
+                property.Fields.Add(new MetaField(property.Field, "binary", 1));
+            }
+            else if (property.PropertyType.CanBeDateTime)
+            {
+                // can be updated from database
+                property.Fields.Add(new MetaField(property.Field, "datetime2", 6, 19, 0));
+            }
+            else if (property.PropertyType.CanBeReference)
+            {
+                property.Fields.Add(new MetaField(property.Field + MetadataTokens.RRef, "binary", 16));
+            }
+        }
+        private void CreateDatabaseFieldsForMultipleType(MetaProperty property)
+        {
+            property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.TYPE, "binary", 1));
+            if (property.PropertyType.CanBeString)
+            {
+                // should be updated from database
+                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.S, "nvarchar", 10));
+            }
+            if (property.PropertyType.CanBeNumeric)
+            {
+                // should be updated from database
+                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
+            }
+            if (property.PropertyType.CanBeBoolean)
+            {
+                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.L, "binary", 1));
+            }
+            if (property.PropertyType.CanBeDateTime)
+            {
+                // can be updated from database
+                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+            }
+            if (property.PropertyType.CanBeReference)
+            {
+                if (property.PropertyType.ReferenceTypeCode == 0) // miltiple refrence type
+                {
+                    property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.RTRef, "binary", 4));
+                }
+                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.RRRef, "binary", 16));
+            }
+        }
+        
         // Описание типов данных свойств объектов метаданных (реквизитов, измерений или ресурсов)
         // {"Pattern", начало блока описания типов данных свойства, если описаний несколько, то это составной тип данных
         // {"B"} Булево - binary(1)

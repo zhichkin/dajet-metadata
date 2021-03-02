@@ -1,4 +1,7 @@
-﻿namespace DaJet.Metadata
+﻿using DaJet.Metadata.Model;
+using System.Collections.Generic;
+
+namespace DaJet.Metadata
 {
     public static class MetadataTokens
     {
@@ -105,5 +108,18 @@
         public const string MinPeriod = "MinPeriod";
         public const string MinCalculatedPeriod = "MinCalculatedPeriod";
         public const string RepetitionFactor = "RepetitionFactor";
+
+        public static readonly Dictionary<string, string> PropertyLookup = new Dictionary<string, string>()
+        {
+            { "_Code", "Код" },
+            { "_Description", "Наименование" },
+            { "_IDRRef", "Ссылка" },
+            { "_Marked", "ПометкаУдаления" },
+            { "_PredefinedID", "Предопределённый" },
+            { "_Version", "ВерсияДанных" },
+            { "_Folder", "ЭтоГруппа" },
+            { "_ParentIDRRef", "Родитель" }
+            // TODO: добавить свойства для документов, табличных частей и т.д.
+        };
     }
 }

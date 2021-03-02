@@ -12,9 +12,10 @@ namespace DaJet.Metadata
         public int ORDINAL_POSITION;
         public string COLUMN_NAME;
         public string DATA_TYPE;
+        public int CHARACTER_OCTET_LENGTH;
         public int CHARACTER_MAXIMUM_LENGTH;
         public byte NUMERIC_PRECISION;
-        public int NUMERIC_SCALE;
+        public byte NUMERIC_SCALE;
         public bool IS_NULLABLE;
         public override string ToString()
         {
@@ -112,7 +113,7 @@ namespace DaJet.Metadata
                                 DATA_TYPE = reader.GetString(2),
                                 CHARACTER_MAXIMUM_LENGTH = reader.GetInt32(3),
                                 NUMERIC_PRECISION = reader.GetByte(4),
-                                NUMERIC_SCALE = reader.GetInt32(5),
+                                NUMERIC_SCALE = reader.GetByte(5),
                                 IS_NULLABLE = reader.GetBoolean(6)
                             };
                             list.Add(item);
@@ -552,19 +553,19 @@ namespace DaJet.Metadata
         {
             StringBuilder script = new StringBuilder();
             script.AppendLine("SELECT");
-            script.AppendLine("\tORDINAL_POSITION,");
-            script.AppendLine("\tCOLUMN_NAME,");
-            script.AppendLine("\tDATA_TYPE,");
-            script.AppendLine("\tISNULL(CHARACTER_MAXIMUM_LENGTH, 0) AS CHARACTER_MAXIMUM_LENGTH,");
-            script.AppendLine("\tISNULL(NUMERIC_PRECISION, 0) AS NUMERIC_PRECISION,");
-            script.AppendLine("\tISNULL(NUMERIC_SCALE, 0) AS NUMERIC_SCALE,");
-            script.AppendLine("\tCASE WHEN IS_NULLABLE = 'NO' THEN CAST(0x00 AS bit) ELSE CAST(0x01 AS bit) END AS IS_NULLABLE");
-            script.AppendLine("FROM");
-            script.AppendLine("\tINFORMATION_SCHEMA.COLUMNS");
-            script.AppendLine("WHERE");
-            script.AppendLine("\tTABLE_NAME = @tableName");
-            script.AppendLine("ORDER BY");
-            script.AppendLine("\tCOLUMN_NAME ASC;");
+            script.AppendLine("c.column_id AS ORDINAL_POSITION,");
+            script.AppendLine("c.name AS COLUMN_NAME,");
+            script.AppendLine("s.name AS DATA_TYPE,");
+            script.AppendLine("c.max_length AS CHARACTER_OCTET_LENGTH,");
+            script.AppendLine("c.max_length AS CHARACTER_MAXIMUM_LENGTH,"); // TODO: for nchar and nvarchar devide by 2
+            script.AppendLine("c.precision AS NUMERIC_PRECISION,");
+            script.AppendLine("c.scale AS NUMERIC_SCALE,");
+            script.AppendLine("c.is_nullable AS IS_NULLABLE");
+            script.AppendLine("FROM sys.tables AS t");
+            script.AppendLine("INNER JOIN sys.columns AS c ON c.object_id = t.object_id");
+            script.AppendLine("INNER JOIN sys.types AS s ON c.user_type_id = s.user_type_id");
+            script.AppendLine("WHERE t.object_id = OBJECT_ID(@tableName)");
+            script.AppendLine("ORDER BY c.name ASC;");
             return script.ToString();
         }
         public List<SqlFieldInfo> GetSqlFieldsOrderedByName(string tableName)
@@ -579,16 +580,15 @@ namespace DaJet.Metadata
                 {
                     while (reader.Read())
                     {
-                        SqlFieldInfo item = new SqlFieldInfo()
-                        {
-                            ORDINAL_POSITION = reader.GetInt32(0),
-                            COLUMN_NAME = reader.GetString(1),
-                            DATA_TYPE = reader.GetString(2),
-                            CHARACTER_MAXIMUM_LENGTH = reader.GetInt32(3),
-                            NUMERIC_PRECISION = reader.GetByte(4),
-                            NUMERIC_SCALE = reader.GetInt32(5),
-                            IS_NULLABLE = reader.GetBoolean(6)
-                        };
+                        SqlFieldInfo item = new SqlFieldInfo();
+                        item.ORDINAL_POSITION = reader.GetInt32(0);
+                        item.COLUMN_NAME = reader.GetString(1);
+                        item.DATA_TYPE = reader.GetString(2);
+                        item.CHARACTER_OCTET_LENGTH = reader.GetInt16(3);
+                        item.CHARACTER_MAXIMUM_LENGTH = reader.GetInt16(4);
+                        item.NUMERIC_PRECISION = reader.GetByte(5);
+                        item.NUMERIC_SCALE = reader.GetByte(6);
+                        item.IS_NULLABLE = reader.GetBoolean(7);
                         list.Add(item);
                     }
                 }

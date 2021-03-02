@@ -2,6 +2,18 @@
 {
     public sealed class MetaField
     {
+        public MetaField() { }
+        public MetaField(string name, string typeName, int length)
+        {
+            Name = name;
+            Length = length;
+            TypeName = typeName;
+        }
+        public MetaField(string name, string typeName, int length, int precision, int scale) : this(name, typeName, length)
+        {
+            Scale = scale;
+            Precision = precision;
+        }
         public string Name { get; set; }
         public FieldPurpose Purpose { get; set; } = FieldPurpose.Value;
         public string TypeName { get; set; }

@@ -23,7 +23,7 @@ namespace DaJet.Metadata.Tests
             // dajet-metadata
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
-            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True";
+            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
             fileReader = new MetadataFileReader();
             fileReader.UseConnectionString(ConnectionString);
             metadata = new MetadataReader(fileReader);
@@ -73,7 +73,7 @@ namespace DaJet.Metadata.Tests
 
         [TestMethod] public void MergeFields()
         {
-            string metadataName = "Справочник.ПростойСправочник";
+            string metadataName = "Справочник.СправочникПодчинённыйСоставной"; //"Справочник.ПростойСправочник";"Справочник.СправочникПодчинённый";
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return;
             string typeName = names[0];
@@ -99,13 +99,13 @@ namespace DaJet.Metadata.Tests
             List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(metaObject.TableName);
             if (sqlFields.Count == 0) return;
 
-            Merger merger = new Merger();
-            List<string> targetFields = merger.PrepareForMerge(metaObject);
-            List<string> sourceFields = merger.PrepareForMerge(sqlFields);
+            MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
+            List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
+            List<string> sourceFields = merger.PrepareComparison(sqlFields);
 
             List<string> delete_list;
             List<string> insert_list;
-            merger.Merge(targetFields, sourceFields, out delete_list, out insert_list);
+            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
 
             watch.Stop();
             Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
@@ -134,10 +134,9 @@ namespace DaJet.Metadata.Tests
         }
 
 
-        private readonly Merger merger = new Merger();
+        private readonly MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
         private readonly ISqlMetadataReader sqlReader = new SqlMetadataReader();
-        [TestMethod]
-        public void MergePerformance()
+        [TestMethod] public void MergePerformance()
         {
             sqlReader.UseConnectionString(ConnectionString);
 
@@ -189,11 +188,75 @@ namespace DaJet.Metadata.Tests
         {
             MetaObject metaObject = (MetaObject)parameters;
             List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(metaObject.TableName);
-            List<string> targetFields = merger.PrepareForMerge(metaObject);
-            List<string> sourceFields = merger.PrepareForMerge(sqlFields);
+            List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
+            List<string> sourceFields = merger.PrepareComparison(sqlFields);
             List<string> delete_list;
             List<string> insert_list;
-            merger.Merge(targetFields, sourceFields, out delete_list, out insert_list);
+            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
+        }
+
+
+
+        private MetaObject GetMetaObjectByName(string metadataName)
+        {
+            string[] names = metadataName.Split('.');
+            if (names.Length != 2) return null;
+            string typeName = names[0];
+            string objectName = names[1];
+
+            MetaObject metaObject = null;
+            Dictionary<Guid, MetaObject> collection = null;
+            InfoBase infoBase = metadata.LoadInfoBase();
+            if (typeName == "Справочник") collection = infoBase.Catalogs;
+            else if (typeName == "Документ") collection = infoBase.Documents;
+            else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
+            else if (typeName == "РегистрНакопления") collection = infoBase.AccumulationRegisters;
+            if (collection == null) return null;
+
+            return collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
+        }
+        [TestMethod] public void MergeProperties()
+        {
+            string[] metadataName = { "Справочник.ПростойСправочник", "Справочник.СправочникПодчинённый", "Справочник.СправочникПодчинённыйСоставной" };
+            MetaObject metaObject = GetMetaObjectByName(metadataName[0]);
+
+            Stopwatch watch = Stopwatch.StartNew();
+            watch.Start();
+
+            ISqlMetadataReader sqlReader = new SqlMetadataReader();
+            sqlReader.UseConnectionString(ConnectionString);
+            List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(metaObject.TableName);
+            if (sqlFields.Count == 0)
+            {
+                Console.WriteLine("SQL fields are not found.");
+                return;
+            }
+
+            MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
+            merger.MergeProperties(metaObject, sqlFields);
+
+            List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
+            List<string> sourceFields = merger.PrepareComparison(sqlFields);
+            List<string> delete_list;
+            List<string> insert_list;
+            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
+
+            watch.Stop();
+            Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
+            Console.WriteLine();
+
+            int match = targetFields.Count - delete_list.Count;
+            int unmatch = sourceFields.Count - match;
+            Console.WriteLine("Всё сходится = " + (insert_list.Count == unmatch).ToString());
+            Console.WriteLine();
+
+            ShowList("delete", delete_list);
+            Console.WriteLine();
+            ShowList("insert", insert_list);
+            Console.WriteLine();
+            ShowList("target", targetFields);
+            Console.WriteLine();
+            ShowList("source", sourceFields);
         }
     }
 }
