@@ -104,7 +104,7 @@ namespace DaJet.Metadata
             List<string> list = new List<string>(fields.Count);
             for (int i = 0; i < fields.Count; i++)
             {
-                list.Add(fields[i].COLUMN_NAME);
+                list.Add(fields[i].COLUMN_NAME.ToLowerInvariant());
             }
             return list;
         }
@@ -115,7 +115,7 @@ namespace DaJet.Metadata
             {
                 foreach (var field in properties[i].Fields)
                 {
-                    list.Add(field.Name);
+                    list.Add(field.Name.ToLowerInvariant());
                 }
             }
             list.Sort();
@@ -128,7 +128,7 @@ namespace DaJet.Metadata
             {
                 for (var f = 0; f < properties[p].Fields.Count; f++)
                 {
-                    fields.Add(properties[p].Fields[f].Name, properties[p]);
+                    fields.Add(properties[p].Fields[f].Name.ToLowerInvariant(), properties[p]);
                 }
             }
             return fields;
@@ -151,7 +151,7 @@ namespace DaJet.Metadata
             {
                 if (source_index < source_count)
                 {
-                    compareResult = target_list[target_index].CompareTo(fields[source_index].COLUMN_NAME);
+                    compareResult = target_list[target_index].CompareTo(fields[source_index].COLUMN_NAME.ToLowerInvariant());
                     if (compareResult < 0) // target меньше source = delete
                     {
                         DeletePropertyField(metaObject.Properties, lookup[target_list[target_index]], target_list[target_index]);
@@ -159,7 +159,7 @@ namespace DaJet.Metadata
                     }
                     else if (compareResult == 0) // target равен source = update
                     {
-                        UpdatePropertyField(lookup[fields[source_index].COLUMN_NAME], fields[source_index]);
+                        UpdatePropertyField(lookup[fields[source_index].COLUMN_NAME.ToLowerInvariant()], fields[source_index]);
                         target_index++;
                         source_index++;
                     }

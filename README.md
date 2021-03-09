@@ -1,10 +1,12 @@
 # dajet-metadata
 
-Library to read 1C:Enterprise 8 metadata directly from SQL Server database.
+Library to read 1C:Enterprise 8 metadata directly from Microsoft SQL Server or PostgreSQL database.
 
-Библиотека для чтения метаданных 1С:Предприятие 8 напрямую из базы данных SQL Server.
+Библиотека для чтения метаданных 1С:Предприятие 8 напрямую из базы данных СУБД.
 
-Кроме метаданных 1С дополнительно выполняется чтение метаданных SQL Server.
+Поддерживаются Microsoft SQL Server и PostgreSQL.
+
+Кроме метаданных 1С дополнительно выполняется чтение метаданных СУБД.
 
 Использование:
 ```C#
@@ -32,8 +34,14 @@ static void Main(string[] args)
 
 Помощь по использованию:
 
-![Помощь по использованию](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
+![Помощь по использованию](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-help.png)
 
-Пример использования:
+Пример использования для Microsoft SQL Server:
 
-![Пример использования dajet cli](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage.png)
+![Пример использования dajet cli для Microsoft SQL Server](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage-ms.png)
+
+Пример использования для PostgreSQL:
+
+![Пример использования dajet cli для PostgreSQL](https://github.com/zhichkin/dajet-metadata/blob/main/doc/dajet-usage-pg.png)
+
+**Примечание:** в случае необходимости указать порт для **PostgreSQL** адрес сервера можно указать, например, так: **127.0.0.1:5432**

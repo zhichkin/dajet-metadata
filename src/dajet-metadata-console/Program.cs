@@ -18,16 +18,17 @@ namespace DaJet.Metadata.CLI
         {
             RootCommand command = new RootCommand()
             {
-                new Option<string>("-s", "SQL Server address or name"),
-                new Option<string>("-d", "Database name"),
-                new Option<string>("-u", "User name (Windows authentication is used if not defined)"),
-                new Option<string>("-p", "User password if SQL Server authentication is used"),
-                new Option<string>("-m", "MetaObject name (example: \"Справочник.Номенклатура\")"),
-                new Option<FileInfo>("-out-file", "File path to save metaobject information"),
-                new Option<FileInfo>("-out-root", "File path to save configuration information")
+                new Option<string>("--ms", "Microsoft SQL Server address or name"),
+                new Option<string>("--pg", "PostgresSQL server address or name"),
+                new Option<string>("--d", "Database name"),
+                new Option<string>("--u", "User name (Windows authentication is used if not defined)"),
+                new Option<string>("--p", "User password if SQL Server authentication is used"),
+                new Option<string>("--m", "MetaObject name (example: \"Справочник.Номенклатура\")"),
+                new Option<FileInfo>("--out-file", "File path to save metaobject information"),
+                new Option<FileInfo>("--out-root", "File path to save configuration information")
             };
             command.Description = "DaJet (metadata reader utility)";
-            command.Handler = CommandHandler.Create<string, string, string, string, FileInfo, string, FileInfo>(ExecuteCommand);
+            command.Handler = CommandHandler.Create<string, string, string, string, string, FileInfo, string, FileInfo>(ExecuteCommand);
             return command.Invoke(args);
         }
         private static void ShowErrorMessage(string errorText)
@@ -36,9 +37,9 @@ namespace DaJet.Metadata.CLI
             Console.WriteLine(errorText);
             Console.ForegroundColor = ConsoleColor.White;
         }
-        private static void ExecuteCommand(string s, string d, string u, string p, FileInfo outRoot, string m, FileInfo outFile)
+        private static void ExecuteCommand(string ms, string pg, string d, string u, string p, FileInfo outRoot, string m, FileInfo outFile)
         {
-            if (string.IsNullOrWhiteSpace(s))
+            if (string.IsNullOrWhiteSpace(ms) && string.IsNullOrWhiteSpace(pg))
             {
                 ShowErrorMessage(SERVER_IS_NOT_DEFINED_ERROR); return;
             }
@@ -47,8 +48,18 @@ namespace DaJet.Metadata.CLI
                 ShowErrorMessage(DATABASE_IS_NOT_DEFINED_ERROR); return;
             }
 
-            IMetadataFileReader fileReader = new MetadataFileReader();
-            fileReader.ConfigureConnectionString(s, d, u, p);
+            IMetadataFileReader fileReader = null;
+            if (!string.IsNullOrWhiteSpace(ms))
+            {
+                fileReader = new MetadataFileReader();
+                fileReader.ConfigureConnectionString(ms, d, u, p);
+            }
+            else if (!string.IsNullOrWhiteSpace(pg))
+            {
+                fileReader = new PostgresMetadataFileReader();
+                fileReader.ConfigureConnectionString(pg, d, u, p);
+            }
+
             IConfigurationFileParser configParser = new ConfigurationFileParser(fileReader);
             ConfigInfo config = configParser.ReadConfigurationProperties();
 

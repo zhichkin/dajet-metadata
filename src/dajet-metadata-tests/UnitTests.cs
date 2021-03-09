@@ -73,7 +73,7 @@ namespace DaJet.Metadata.Tests
 
         [TestMethod] public void MergeFields()
         {
-            string metadataName = "Справочник.СправочникПодчинённыйСоставной"; //"Справочник.ПростойСправочник";"Справочник.СправочникПодчинённый";
+            string metadataName = "Справочник.ПростойСправочник"; //"Справочник.СправочникПодчинённый";"Справочник.СправочникПодчинённыйСоставной";
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return;
             string typeName = names[0];
