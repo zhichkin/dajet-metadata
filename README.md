@@ -1,10 +1,12 @@
 # dajet-metadata
 
-Library to read 1C:Enterprise 8 metadata directly from Microsoft SQL Server or PostgreSQL database.
+Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.
 
 Библиотека для чтения метаданных 1С:Предприятие 8 напрямую из базы данных СУБД.
 
 Поддерживаются Microsoft SQL Server и PostgreSQL.
+
+[NuGet package](https://www.nuget.org/packages/DaJet.Metadata/)
 
 Кроме метаданных 1С дополнительно выполняется чтение метаданных СУБД.
 
