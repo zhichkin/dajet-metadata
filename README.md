@@ -20,32 +20,15 @@ static void Main(string[] args)
     fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
 
     // Для информационной базы на PostgreSQL
-    // IMetadataFileReader fileReader = new PostgresMetadataFileReader(); //
+    // IMetadataFileReader fileReader = new PostgresMetadataFileReader();
     // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
 
+    // 1. Пример чтения метаданных конфигурации 1С (для всех СУБД)
     IMetadataReader metadata = new MetadataReader(fileReader);
-
     InfoBase infoBase = metadata.LoadInfoBase();
-}
-```
 
-**Пример чтения свойств конфигурации:**
-```C#
-using DaJet.Metadata;
-using DaJet.Metadata.Model;
-
-static void Main(string[] args)
-{
-    // Для информационной базы на Microsoft SQL Server
-    IMetadataFileReader fileReader = new MetadataFileReader();
-    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
-
-    // Для информационной базы на PostgreSQL
-    // IMetadataFileReader fileReader = new PostgresMetadataFileReader(); //
-    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
-
+    // 2. Пример чтения свойств конфигурации 1С (для всех СУБД)
     IConfigurationFileParser configReader = new ConfigurationFileParser(fileReader);
-
     ConfigInfo config = configReader.ReadConfigurationProperties();
 }
 ```
