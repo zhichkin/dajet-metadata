@@ -8,23 +8,48 @@ Library to read 1C:Enterprise 8 metadata directly from Microsoft SQL Server or P
 
 Кроме метаданных 1С дополнительно выполняется чтение метаданных СУБД.
 
-Использование:
+**Пример чтения метаданных:**
 ```C#
 using DaJet.Metadata;
 using DaJet.Metadata.Model;
 
 static void Main(string[] args)
 {
-    IMetadataProvider metadata = new MetadataProvider();
-    metadata.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
+    // Для информационной базы на Microsoft SQL Server
+    IMetadataFileReader fileReader = new MetadataFileReader();
+    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
 
-    // 1. Прочитать всю конфигурацию информационной базы 1С
+    // Для информационной базы на PostgreSQL
+    // IMetadataFileReader fileReader = new PostgresMetadataFileReader(); //
+    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
+
+    IMetadataReader metadata = new MetadataReader(fileReader);
+
     InfoBase infoBase = metadata.LoadInfoBase();
-
-    // 2. Прочитать метаданные одного объекта по его типу и имени
-    MetaObject metaObject = metadata.LoadMetaObject("Catalog", "Номенклатура");
 }
 ```
+
+**Пример чтения свойств конфигурации:**
+```C#
+using DaJet.Metadata;
+using DaJet.Metadata.Model;
+
+static void Main(string[] args)
+{
+    // Для информационной базы на Microsoft SQL Server
+    IMetadataFileReader fileReader = new MetadataFileReader();
+    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
+
+    // Для информационной базы на PostgreSQL
+    // IMetadataFileReader fileReader = new PostgresMetadataFileReader(); //
+    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
+
+    IConfigurationFileParser configReader = new ConfigurationFileParser(fileReader);
+
+    ConfigInfo config = configReader.ReadConfigurationProperties();
+}
+```
+
 
 **Утилита для чтения метаданных (свойств конфигурации)**
 
