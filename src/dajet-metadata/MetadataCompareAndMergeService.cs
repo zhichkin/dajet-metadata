@@ -217,9 +217,15 @@ namespace DaJet.Metadata
         }
         private void InsertPropertyField(MetaObject metaObject, SqlFieldInfo field)
         {
+            string propertyName = string.Empty;
+            if (!MetadataTokens.PropertyNameLookup.TryGetValue(field.COLUMN_NAME.ToLowerInvariant(), out propertyName))
+            {
+                propertyName = field.COLUMN_NAME;
+            }
+
             MetaProperty property = new MetaProperty()
             {
-                Name = MetadataTokens.PropertyLookup[field.COLUMN_NAME],
+                Name = propertyName,
                 Field = field.COLUMN_NAME,
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System

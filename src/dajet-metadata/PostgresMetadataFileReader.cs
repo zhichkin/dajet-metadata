@@ -16,7 +16,7 @@ namespace DaJet.Metadata
         private const string PARAMS_QUERY_SCRIPT = "SELECT binarydata FROM params WHERE filename = '{filename}';";
         private const string CONFIG_QUERY_SCRIPT = "SELECT binarydata FROM config WHERE filename = '{filename}';"; // Version 8.3 ORDER BY [PartNo] ASC";
 
-        private string ConnectionString { get; set; }
+        public string ConnectionString { get; private set; }
         private byte[] CombineArrays(byte[] a1, byte[] a2)
         {
             if (a1 == null) return a2;

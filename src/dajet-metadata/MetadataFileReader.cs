@@ -12,6 +12,9 @@ namespace DaJet.Metadata
     /// </summary>
     public interface IMetadataFileReader
     {
+        ///<summary>Возвращает установленную ранее строку подключения к базе данных 1С</summary>
+        string ConnectionString { get; }
+
         ///<summary>Устанавливает строку подключения к базе данных 1С</summary>
         ///<param name="connectionString">Строка подключения к базе данных 1С</param>
         void UseConnectionString(string connectionString);
@@ -49,7 +52,7 @@ namespace DaJet.Metadata
         private const string PARAMS_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Params] WHERE [FileName] = @FileName;";
         private const string CONFIG_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
 
-        private string ConnectionString { get; set; }
+        public string ConnectionString { get; private set; }
         private byte[] CombineArrays(byte[] a1, byte[] a2)
         {
             if (a1 == null) return a2;

@@ -197,6 +197,14 @@ namespace DaJet.Metadata.Tests
 
 
 
+        private void ShowProperties(MetaObject metaObject)
+        {
+            Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
+            foreach (MetaProperty property in metaObject.Properties)
+            {
+                Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
+            }
+        }
         private MetaObject GetMetaObjectByName(string metadataName)
         {
             string[] names = metadataName.Split('.');
@@ -204,7 +212,6 @@ namespace DaJet.Metadata.Tests
             string typeName = names[0];
             string objectName = names[1];
 
-            MetaObject metaObject = null;
             Dictionary<Guid, MetaObject> collection = null;
             InfoBase infoBase = metadata.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
@@ -219,6 +226,19 @@ namespace DaJet.Metadata.Tests
         {
             string[] metadataName = { "Справочник.ПростойСправочник", "Справочник.СправочникПодчинённый", "Справочник.СправочникПодчинённыйСоставной" };
             MetaObject metaObject = GetMetaObjectByName(metadataName[0]);
+            if (metaObject == null)
+            {
+                Console.WriteLine($"Metaobject \"{metadataName[0]}\" is not found.");
+                return;
+            }
+
+            if (metaObject != null)
+            {
+                ShowProperties(metaObject);
+                Console.WriteLine();
+                Console.WriteLine("************");
+                Console.WriteLine();
+            }
 
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
@@ -234,6 +254,11 @@ namespace DaJet.Metadata.Tests
 
             MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
             merger.MergeProperties(metaObject, sqlFields);
+
+            ShowProperties(metaObject);
+            Console.WriteLine();
+            Console.WriteLine("************");
+            Console.WriteLine();
 
             List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
             List<string> sourceFields = merger.PrepareComparison(sqlFields);

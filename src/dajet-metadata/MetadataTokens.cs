@@ -109,16 +109,16 @@ namespace DaJet.Metadata
         public const string MinCalculatedPeriod = "MinCalculatedPeriod";
         public const string RepetitionFactor = "RepetitionFactor";
 
-        public static readonly Dictionary<string, string> PropertyLookup = new Dictionary<string, string>()
+        public static readonly Dictionary<string, string> PropertyNameLookup = new Dictionary<string, string>()
         {
-            { "_Code", "Код" },
-            { "_Description", "Наименование" },
-            { "_IDRRef", "Ссылка" },
-            { "_Marked", "ПометкаУдаления" },
-            { "_PredefinedID", "Предопределённый" },
-            { "_Version", "ВерсияДанных" },
-            { "_Folder", "ЭтоГруппа" },
-            { "_ParentIDRRef", "Родитель" }
+            { "_Code".ToLowerInvariant(), "Код" },
+            { "_Description".ToLowerInvariant(), "Наименование" },
+            { "_IDRRef".ToLowerInvariant(), "Ссылка" },
+            { "_Marked".ToLowerInvariant(), "ПометкаУдаления" },
+            { "_PredefinedID".ToLowerInvariant(), "Предопределённый" },
+            { "_Version".ToLowerInvariant(), "ВерсияДанных" },
+            { "_Folder".ToLowerInvariant(), "ЭтоГруппа" },
+            { "_ParentIDRRef".ToLowerInvariant(), "Родитель" }
             // TODO: добавить свойства для документов, табличных частей и т.д.
         };
     }
