@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -141,7 +142,7 @@ namespace DaJet.Metadata.Tests
             sqlReader.UseConnectionString(ConnectionString);
 
             //InfoBase infoBase = metadata.LoadInfoBase();
-            
+
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
@@ -282,6 +283,24 @@ namespace DaJet.Metadata.Tests
             ShowList("target", targetFields);
             Console.WriteLine();
             ShowList("source", sourceFields);
+        }
+
+
+        [TestMethod] public void TestPublication()
+        {
+            // 1b2faf29-5ed0-44fd-90c4-329ff3d3ad74
+            // 1012b779-cd67-4122-a2ae-18ef014297f3
+            // 1012b779-cd67-4122-a2ae-18ef014297f3.1
+            //
+            // e1f1df1a-5f4b-4269-9f67-4a5fa61df942
+            // e1f1df1a-5f4b-4269-9f67-4a5fa61df942
+            string fileName = "1012b779-cd67-4122-a2ae-18ef014297f3.1";
+            byte[] fileData = fileReader.ReadBytes(fileName);
+            using (StreamReader reader = fileReader.CreateReader(fileData))
+            using (StreamWriter writer = new StreamWriter(@"C:\temp\metadata-test\publication.txt", false, Encoding.UTF8))
+            {
+                writer.Write(reader.ReadToEnd());
+            }
         }
     }
 }

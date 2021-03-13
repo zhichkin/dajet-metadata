@@ -118,7 +118,11 @@ namespace DaJet.Metadata
             }
 
             line = reader.ReadLine(); // 6. line
-            if (metaObject.TypeName != MetaObjectTypes.Publication)
+            if (metaObject.TypeName == MetaObjectTypes.Publication)
+            {
+                ParseIsDistributed(line, metaObject);
+            }
+            else
             {
                 ParseMetaObjectAlias(line, metaObject); // metaobject's alias
             }
@@ -159,6 +163,8 @@ namespace DaJet.Metadata
         }
 
         #region "Basic properties"
+
+        #region "Catalogs"
 
         private void AddCatalogBasicProperties(MetaObject metaObject)
         {
@@ -250,7 +256,71 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        
+
+        #endregion
+
+        #region "Publications"
+
+        private void PublicationAddPropertyНомерПринятого(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "НомерПринятого",
+                Field = "_ReceivedNo",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_ReceivedNo",
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric",
+                IsNullable = false
+            });
+            metaObject.Properties.Add(property);
+        }
+        private void PublicationAddPropertyНомерОтправленного(MetaObject metaObject)
+        {
+            MetaProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
+            if (property != null) return;
+            property = new MetaProperty()
+            {
+                Name = "НомерОтправленного",
+                Field = "_SentNo",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new MetaField()
+            {
+                Name = "_SentNo",
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric",
+                IsNullable = false
+            });
+            metaObject.Properties.Add(property);
+        }
+
+        private void ParseIsDistributed(string line, MetaObject metaObject)
+        {
+            if (!(metaObject is Publication publication)) return;
+            int value = 0;
+            if (line.Length > 1)
+            {
+                _ = int.TryParse(line.Substring(line.Length - 2, 1), out value);
+            }
+            publication.IsDistributed = (value == 1);
+        }
+
+        #endregion
+
         private string ParseMetaObjectUuid(string line, MetaObject metaObject)
         {
             if (!metaObject.IsReferenceType) return string.Empty;

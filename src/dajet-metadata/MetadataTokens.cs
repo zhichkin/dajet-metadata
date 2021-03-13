@@ -118,7 +118,11 @@ namespace DaJet.Metadata
             { "_PredefinedID".ToLowerInvariant(), "Предопределённый" },
             { "_Version".ToLowerInvariant(), "ВерсияДанных" },
             { "_Folder".ToLowerInvariant(), "ЭтоГруппа" },
-            { "_ParentIDRRef".ToLowerInvariant(), "Родитель" }
+            { "_ParentIDRRef".ToLowerInvariant(), "Родитель" },
+            // + ПланОбмена
+            { "_SentNo".ToLowerInvariant(), "НомерОтправленного" },
+            { "_ReceivedNo".ToLowerInvariant(), "НомерПринятого" }
+            // - ПланОбмена
             // TODO: добавить свойства для документов, табличных частей и т.д.
         };
     }

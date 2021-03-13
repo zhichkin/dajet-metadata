@@ -27,6 +27,11 @@ namespace DaJet.Metadata.Tests
             Assert.AreEqual(Catalog.TypeName, MetaObjectTypes.Catalog);
             Assert.AreEqual(Catalog.TableName, string.Format("_Reference{0}", Catalog.TypeCode));
 
+            Console.WriteLine("Name: " + Catalog.Name);
+            Console.WriteLine("Alias: " + Catalog.Alias);
+            Console.WriteLine("TypeName: " + Catalog.TypeName);
+            Console.WriteLine("TableName: " + Catalog.TableName);
+
             TestPropertyNotExists(Catalog, "Владелец");
 
             // TODO: Выполнить проверку на правильность загрузки/создания стандартных реквизитов.

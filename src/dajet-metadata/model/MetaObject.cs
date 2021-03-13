@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DaJet.Metadata.Model
 {
-    public sealed class MetaObject
+    public class MetaObject
     {
         ///<summary>Имя файла объекта метаданных в таблице Config и DBNames</summary>
         public Guid UUID { get; set; } // TODO: change property name to FileName

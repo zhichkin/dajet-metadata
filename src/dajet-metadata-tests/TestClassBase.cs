@@ -9,7 +9,7 @@ namespace DaJet.Metadata.Tests
         // dajet-metadata
         // trade_11_2_3_159_demo
         // accounting_3_0_72_72_demo
-        private string ConnectionString { get; set; } = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
+        public string ConnectionString { get; set; } = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
 #pragma warning disable IDE0052 // Remove unread private members
         private readonly IMetadataReader metadata;
 #pragma warning restore IDE0052 // Remove unread private members
@@ -27,7 +27,7 @@ namespace DaJet.Metadata.Tests
             metadata = new MetadataReader(fileReader);
             configReader = new ConfigurationFileParser(fileReader);
         }
-        protected void SetupInfoBase()
+        protected virtual void SetupInfoBase()
         {
             if (InfoBase != null) return;
             InfoBase = metadata.LoadInfoBase();

@@ -107,6 +107,7 @@ namespace DaJet.Metadata.CLI
             InfoBase infoBase = metadata.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
+            else if (typeName == "ПланОбмена") collection = infoBase.Publications;
             else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
             else if (typeName == "РегистрНакопления") collection = infoBase.AccumulationRegisters;
             if (collection == null) return;

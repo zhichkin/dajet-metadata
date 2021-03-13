@@ -44,6 +44,16 @@ namespace DaJet.Metadata
         }
         private MetaObject CreateMetaObject(Guid uuid, string token, string code)
         {
+            if (token == MetadataTokens.Node)
+            {
+                return new Publication()
+                {
+                    UUID = uuid,
+                    TypeCode = int.Parse(code),
+                    TypeName = MapTokenToTypeName(token),
+                    TableName = CreateDBName(token, code)
+                };
+            }
             return new MetaObject()
             {
                 UUID = uuid,
