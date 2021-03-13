@@ -6,6 +6,8 @@ Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL
 
 Поддерживаются Microsoft SQL Server и PostgreSQL.
 
+Требуется установка [.NET Core 3.1](https://dotnet.microsoft.com/download/).
+
 [NuGet package](https://www.nuget.org/packages/DaJet.Metadata/)
 
 Кроме метаданных 1С дополнительно выполняется чтение метаданных СУБД.
@@ -89,9 +91,55 @@ static void Main(string[] args)
 }
 ```
 
-**Утилита для чтения метаданных (свойств конфигурации)**
+<details>
+<summary>Пример загрузки метаданных СУБД для объекта метаданных 1С</summary>
 
-Требуется установка .NET Core 3.1
+```C#
+using DaJet.Metadata;
+using DaJet.Metadata.Model;
+
+static void Main(string[] args)
+{
+    // Для информационной базы на Microsoft SQL Server
+    IMetadataFileReader fileReader = new MetadataFileReader();
+    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
+
+    // Для информационной базы на PostgreSQL
+    // IMetadataFileReader fileReader = new PostgresMetadataFileReader();
+    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
+
+    // Загружаем все метаданные конфигурации 1С
+    IMetadataReader metadata = new MetadataReader(fileReader);
+    InfoBase infoBase = metadata.LoadInfoBase();
+
+    // Находим объект метаданных 1С для загрузки его метаданных СУБД
+    Publication publication = infoBase.Publications.Values
+        .Where(i => i.Name == "ТестовыйПланОбмена").FirstOrDefault();
+
+    // Получаем метаданные СУБД для полей таблицы объекта метаданных 1С
+    List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(Publication.TableName);
+    if (sqlFields.Count == 0)
+    {
+        Console.WriteLine("SQL fields are not found.");
+        return;
+    }
+
+    // Дополняем свойства объекта метаданных 1С по метаданным СУБД
+    MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
+    merger.MergeProperties(Publication, sqlFields);
+
+    // Выводим результат
+    Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
+    foreach (MetaProperty property in metaObject.Properties)
+    {
+        Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
+    }
+}
+```
+
+</details>
+
+**Утилита для чтения метаданных (свойств конфигурации)**
 
 [Ссылка для скачивания](https://github.com/zhichkin/dajet-metadata/releases/)
 
