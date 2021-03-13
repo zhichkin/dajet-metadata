@@ -117,7 +117,7 @@ static void Main(string[] args)
         .Where(i => i.Name == "ТестовыйПланОбмена").FirstOrDefault();
 
     // Получаем метаданные СУБД для полей таблицы объекта метаданных 1С
-    List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(Publication.TableName);
+    List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(publication.TableName);
     if (sqlFields.Count == 0)
     {
         Console.WriteLine("SQL fields are not found.");
@@ -126,11 +126,11 @@ static void Main(string[] args)
 
     // Дополняем свойства объекта метаданных 1С по метаданным СУБД
     MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
-    merger.MergeProperties(Publication, sqlFields);
+    merger.MergeProperties(publication, sqlFields);
 
     // Выводим результат
-    Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
-    foreach (MetaProperty property in metaObject.Properties)
+    Console.WriteLine(publication.Name + " (" + publication.TableName + "):");
+    foreach (MetaProperty property in publication.Properties)
     {
         Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
     }
