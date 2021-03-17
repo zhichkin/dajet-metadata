@@ -17,7 +17,7 @@ namespace DaJet.Metadata.Tests
         private readonly IConfigurationFileParser configReader;
 
         private readonly bool MSSQL = true;
-        private MetaObject Publication { get; set; }
+        private MetadataObject Publication { get; set; }
         public PublicationTests() : base()
         {
             if (MSSQL)
@@ -47,7 +47,7 @@ namespace DaJet.Metadata.Tests
             InfoBase = metadata.LoadInfoBase();
             Assert.IsNotNull(InfoBase);
         }
-        private void SetupMetaObject()
+        private void SetupMetadataObject()
         {
             if (Publication != null) return;
             SetupInfoBase();
@@ -58,14 +58,14 @@ namespace DaJet.Metadata.Tests
         }
         [TestMethod("Свойства плана обмена")] public void TestPublicationProperties()
         {
-            SetupMetaObject();
+            SetupMetadataObject();
 
             string alias = MSSQL ? "План обмена" : "Тестовый";
             string table = string.Format(MSSQL ? "_Node{0}" : "_node{0}", Publication.TypeCode);
 
             Assert.IsTrue(Publication.IsReferenceType);
             Assert.AreEqual(Publication.Alias, alias);
-            Assert.AreEqual(Publication.TypeName, MetaObjectTypes.Publication);
+            Assert.AreEqual(Publication.TypeName, MetadataObjectTypes.Publication);
             Assert.AreEqual(Publication.TableName.ToLowerInvariant(), table.ToLowerInvariant());
 
             Console.WriteLine("Name: " + Publication.Name);
@@ -94,8 +94,8 @@ namespace DaJet.Metadata.Tests
         }
         [TestMethod("Ссылка")] public void TestPropertyСсылка()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "Ссылка");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "Ссылка");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsTrue(property.PropertyType.IsUuid);
@@ -109,7 +109,7 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_IDRRef");
+            DatabaseField field = TestFieldExists(property, "_IDRRef");
             Assert.AreEqual(field.Length, 16);
             Assert.AreEqual(field.TypeName, "binary");
             Assert.AreEqual(field.KeyOrdinal, 1);
@@ -117,8 +117,8 @@ namespace DaJet.Metadata.Tests
         }
         [TestMethod("ВерсияДанных")] public void TestPropertyВерсияДанных()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "ВерсияДанных");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "ВерсияДанных");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -132,14 +132,14 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_Version");
+            DatabaseField field = TestFieldExists(property, "_Version");
             Assert.AreEqual(field.Length, 8);
             Assert.AreEqual(field.TypeName, "timestamp");
         }
         [TestMethod("ПометкаУдаления")] public void TestPropertyПометкаУдаления()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "ПометкаУдаления");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "ПометкаУдаления");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -153,14 +153,14 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_Marked");
+            DatabaseField field = TestFieldExists(property, "_Marked");
             Assert.AreEqual(field.Length, 1);
             Assert.AreEqual(field.TypeName, "binary");
         }
         [TestMethod("Предопределённый")] public void TestPropertyПредопределённый()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "Предопределённый");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "Предопределённый");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsTrue(property.PropertyType.IsUuid);
@@ -174,14 +174,14 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_PredefinedID");
+            DatabaseField field = TestFieldExists(property, "_PredefinedID");
             Assert.AreEqual(field.Length, 16);
             Assert.AreEqual(field.TypeName, "binary");
         }
         [TestMethod("НомерПринятого")] public void TestPropertyНомерПринятого()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "НомерПринятого");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "НомерПринятого");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -195,7 +195,7 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_ReceivedNo");
+            DatabaseField field = TestFieldExists(property, "_ReceivedNo");
             Assert.AreEqual(field.Length, 9);
             Assert.AreEqual(field.Scale, 0);
             Assert.AreEqual(field.Precision, 10);
@@ -203,8 +203,8 @@ namespace DaJet.Metadata.Tests
         }
         [TestMethod("НомерОтправленного")] public void TestPropertyНомерОтправленного()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Publication, "НомерОтправленного");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Publication, "НомерОтправленного");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -218,7 +218,7 @@ namespace DaJet.Metadata.Tests
             Assert.IsFalse(property.PropertyType.CanBeReference);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
 
-            MetaField field = TestFieldExists(property, "_SentNo");
+            DatabaseField field = TestFieldExists(property, "_SentNo");
             Assert.AreEqual(field.Length, 9);
             Assert.AreEqual(field.Scale, 0);
             Assert.AreEqual(field.Precision, 10);
@@ -233,17 +233,17 @@ namespace DaJet.Metadata.Tests
                 Console.WriteLine(" - " + item);
             }
         }
-        private void ShowProperties(MetaObject metaObject)
+        private void ShowProperties(MetadataObject metaObject)
         {
             Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
-            foreach (MetaProperty property in metaObject.Properties)
+            foreach (MetadataProperty property in metaObject.Properties)
             {
                 Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
             }
         }
         [TestMethod("Добавление свойств по метаданным СУБД")] public void MergeProperties()
         {
-            SetupMetaObject();
+            SetupMetadataObject();
 
             ShowProperties(Publication);
             Console.WriteLine();
@@ -294,7 +294,7 @@ namespace DaJet.Metadata.Tests
 
         [TestMethod("Загрузка узлов плана обмена")] public void SelectSubscribers()
         {
-            SetupMetaObject();
+            SetupMetadataObject();
 
             Publication publication = (Publication)Publication;
 

@@ -1,15 +1,15 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class MetaField
+    public sealed class DatabaseField
     {
-        public MetaField() { }
-        public MetaField(string name, string typeName, int length)
+        public DatabaseField() { }
+        public DatabaseField(string name, string typeName, int length)
         {
             Name = name;
             Length = length;
             TypeName = typeName;
         }
-        public MetaField(string name, string typeName, int length, int precision, int scale) : this(name, typeName, length)
+        public DatabaseField(string name, string typeName, int length, int precision, int scale) : this(name, typeName, length)
         {
             Scale = scale;
             Precision = precision;

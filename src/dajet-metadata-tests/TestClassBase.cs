@@ -33,28 +33,28 @@ namespace DaJet.Metadata.Tests
             InfoBase = metadata.LoadInfoBase();
             Assert.IsNotNull(InfoBase);
         }
-        protected MetaProperty TestPropertyExists(MetaObject metaObject, string name)
+        protected MetadataProperty TestPropertyExists(MetadataObject metaObject, string name)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == name).FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == name).FirstOrDefault();
             Assert.IsNotNull(property);
             return property;
             //TODO: проверить наличие полей в базе данных
         }
-        protected void TestPropertyNotExists(MetaObject metaObject, string name)
+        protected void TestPropertyNotExists(MetadataObject metaObject, string name)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == name).FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == name).FirstOrDefault();
             Assert.IsNull(property);
         }
-        protected MetaObject TestTablePartExists(MetaObject metaObject, string name)
+        protected MetadataObject TestTablePartExists(MetadataObject metaObject, string name)
         {
-            MetaObject tablePart = metaObject.MetaObjects.Where(t => t.Name == name).FirstOrDefault();
+            MetadataObject tablePart = metaObject.MetadataObjects.Where(t => t.Name == name).FirstOrDefault();
             Assert.IsNotNull(tablePart);
             return tablePart;
             //TODO: проверить наличие таблицы в базе данных tablePart.TableName
         }
-        protected MetaField TestFieldExists(MetaProperty property, string name)
+        protected DatabaseField TestFieldExists(MetadataProperty property, string name)
         {
-            MetaField field = property.Fields.Where(f => f.Name == name).FirstOrDefault();
+            DatabaseField field = property.Fields.Where(f => f.Name == name).FirstOrDefault();
             Assert.IsNotNull(field);
             return field;
             //TODO: проверить наличие поля в базе данных - ?

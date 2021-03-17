@@ -23,14 +23,14 @@ namespace DaJet.Metadata
         private sealed class ReadMetaUuidParameters
         {
             internal InfoBase InfoBase { get; set; }
-            internal MetaObject MetaObject { get; set; }
+            internal MetadataObject MetadataObject { get; set; }
         }
 
         private const string DBNAMES_FILE_NAME = "DBNames";
 
         private readonly IMetadataFileReader MetadataFileReader;
         private readonly IDBNamesFileParser DBNamesFileParser = new DBNamesFileParser();
-        private readonly IMetaObjectFileParser MetaObjectFileParser = new MetaObjectFileParser();
+        private readonly IMetadataObjectFileParser MetadataObjectFileParser = new MetadataObjectFileParser();
 
         public MetadataReader(IMetadataFileReader metadataFileReader)
         {
@@ -41,9 +41,9 @@ namespace DaJet.Metadata
         {
             InfoBase infoBase = new InfoBase();
             ReadDBNames(infoBase);
-            MetaObjectFileParser.UseInfoBase(infoBase);
+            MetadataObjectFileParser.UseInfoBase(infoBase);
             ReadMetaUuids(infoBase);
-            ReadMetaObjects(infoBase);
+            ReadMetadataObjects(infoBase);
             return infoBase;
         }
 
@@ -66,7 +66,7 @@ namespace DaJet.Metadata
                     ReadMetaUuidParameters parameters = new ReadMetaUuidParameters()
                     {
                         InfoBase = infoBase,
-                        MetaObject = item.Value
+                        MetadataObject = item.Value
                     };
                     tasks[i] = Task.Factory.StartNew(
                         ReadMetaUuid,
@@ -102,14 +102,14 @@ namespace DaJet.Metadata
         {
             if (!(parameters is ReadMetaUuidParameters input)) return;
 
-            byte[] fileData = MetadataFileReader.ReadBytes(input.MetaObject.UUID.ToString());
+            byte[] fileData = MetadataFileReader.ReadBytes(input.MetadataObject.FileName.ToString());
             using (StreamReader stream = MetadataFileReader.CreateReader(fileData))
             {
-                MetaObjectFileParser.ParseMetaUuid(stream, input.MetaObject);
+                MetadataObjectFileParser.ParseMetaUuid(stream, input.MetadataObject);
             }
-            input.InfoBase.MetaReferenceTypes.TryAdd(input.MetaObject.MetaUuid, input.MetaObject);
+            input.InfoBase.MetaReferenceTypes.TryAdd(input.MetadataObject.Uuid, input.MetadataObject);
         }
-        private void ReadMetaObjects(InfoBase infoBase)
+        private void ReadMetadataObjects(InfoBase infoBase)
         {
             ReadValueTypes(infoBase);
             ReadReferenceTypes(infoBase);
@@ -123,7 +123,7 @@ namespace DaJet.Metadata
                 foreach (var item in collection)
                 {
                     tasks[i] = Task.Factory.StartNew(
-                        ReadMetaObject,
+                        ReadMetadataObject,
                         item.Value,
                         CancellationToken.None,
                         TaskCreationOptions.DenyChildAttach,
@@ -161,7 +161,7 @@ namespace DaJet.Metadata
                 foreach (var item in collection)
                 {
                     tasks[i] = Task.Factory.StartNew(
-                        ReadMetaObject,
+                        ReadMetadataObject,
                         item.Value,
                         CancellationToken.None,
                         TaskCreationOptions.DenyChildAttach,
@@ -190,17 +190,17 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void ReadMetaObject(object metaObject)
+        private void ReadMetadataObject(object metaObject)
         {
-            MetaObject obj = (MetaObject)metaObject;
-            byte[] fileData = MetadataFileReader.ReadBytes(obj.UUID.ToString());
+            MetadataObject obj = (MetadataObject)metaObject;
+            byte[] fileData = MetadataFileReader.ReadBytes(obj.FileName.ToString());
             if (fileData == null)
             {
                 return; // TODO: log error "Metadata file is not found"
             }
             using (StreamReader stream = MetadataFileReader.CreateReader(fileData))
             {
-                MetaObjectFileParser.ParseMetaObject(stream, obj);
+                MetadataObjectFileParser.ParseMetadataObject(stream, obj);
             }
         }
     }

@@ -4,13 +4,13 @@ using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
-    ///<summary>Класс для описания свойств объекта метаданных (реквизитов, измерений и ресурсов)</summary>
-    public sealed class MetaProperty
+    ///<summary>Класс для описания свойств объекта метаданных <see cref="MetadataObject"> (реквизитов, измерений и ресурсов)</summary>
+    public sealed class MetadataProperty
     {
         public Guid FileName { get; set; }
         public string Name { get; set; }
         public string Field { get; set; }
-        public List<MetaField> Fields { get; set; } = new List<MetaField>();
+        public List<DatabaseField> Fields { get; set; } = new List<DatabaseField>();
         ///<summary>Логический смысл свойства. Подробнее смотри перечисление <see cref="PropertyPurpose"/>.</summary>
         public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Property;
         public DataTypeInfo PropertyType { get; set; } = new DataTypeInfo();

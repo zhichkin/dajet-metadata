@@ -23,7 +23,7 @@ namespace DaJet.Metadata.CLI
                 new Option<string>("--d", "Database name"),
                 new Option<string>("--u", "User name (Windows authentication is used if not defined)"),
                 new Option<string>("--p", "User password if SQL Server authentication is used"),
-                new Option<string>("--m", "MetaObject name (example: \"Справочник.Номенклатура\")"),
+                new Option<string>("--m", "MetadataObject name (example: \"Справочник.Номенклатура\")"),
                 new Option<FileInfo>("--out-file", "File path to save metaobject information"),
                 new Option<FileInfo>("--out-root", "File path to save configuration information")
             };
@@ -81,7 +81,7 @@ namespace DaJet.Metadata.CLI
 
             if (outFile != null && !string.IsNullOrWhiteSpace(m))
             {
-                SaveMetaObjectToFile(outFile.FullName, fileReader, m);
+                SaveMetadataObjectToFile(outFile.FullName, fileReader, m);
             }
         }
         private static void SaveConfigToFile(string filePath, IMetadataFileReader fileReader, IConfigurationFileParser configParser)
@@ -94,15 +94,15 @@ namespace DaJet.Metadata.CLI
                 writer.Write(reader.ReadToEnd());
             }
         }
-        private static void SaveMetaObjectToFile(string filePath, IMetadataFileReader fileReader, string metadataName)
+        private static void SaveMetadataObjectToFile(string filePath, IMetadataFileReader fileReader, string metadataName)
         {
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return;
             string typeName = names[0];
             string objectName = names[1];
 
-            MetaObject metaObject = null;
-            Dictionary<Guid, MetaObject> collection = null;
+            MetadataObject metaObject = null;
+            Dictionary<Guid, MetadataObject> collection = null;
             IMetadataReader metadata = new MetadataReader(fileReader);
             InfoBase infoBase = metadata.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
@@ -115,7 +115,7 @@ namespace DaJet.Metadata.CLI
             metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
             if (metaObject == null) return;
 
-            byte[] fileData = fileReader.ReadBytes(metaObject.UUID.ToString());
+            byte[] fileData = fileReader.ReadBytes(metaObject.FileName.ToString());
             if (fileData == null) return;
 
             using (StreamReader reader = fileReader.CreateReader(fileData))

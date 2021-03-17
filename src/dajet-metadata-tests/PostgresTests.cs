@@ -78,8 +78,8 @@ namespace DaJet.Metadata.Tests
             string typeName = names[0];
             string objectName = names[1];
 
-            MetaObject metaObject = null;
-            Dictionary<Guid, MetaObject> collection = null;
+            MetadataObject metaObject = null;
+            Dictionary<Guid, MetadataObject> collection = null;
             InfoBase infoBase = metadata.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
@@ -131,22 +131,22 @@ namespace DaJet.Metadata.Tests
                 Console.WriteLine(" - " + item);
             }
         }
-        private void ShowProperties(MetaObject metaObject)
+        private void ShowProperties(MetadataObject metaObject)
         {
             Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
-            foreach (MetaProperty property in metaObject.Properties)
+            foreach (MetadataProperty property in metaObject.Properties)
             {
                 Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
             }
         }
-        private MetaObject GetMetaObjectByName(string metadataName)
+        private MetadataObject GetMetadataObjectByName(string metadataName)
         {
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return null;
             string typeName = names[0];
             string objectName = names[1];
 
-            Dictionary<Guid, MetaObject> collection = null;
+            Dictionary<Guid, MetadataObject> collection = null;
             InfoBase infoBase = metadata.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
@@ -159,7 +159,7 @@ namespace DaJet.Metadata.Tests
         [TestMethod("Добавление свойств по метаданным СУБД")] public void MergeProperties()
         {
             string[] metadataName = { "Справочник.ВходящаяОчередьRabbitMQ", "Справочник.ИсходящаяОчередьRabbitMQ" };
-            MetaObject metaObject = GetMetaObjectByName(metadataName[0]);
+            MetadataObject metaObject = GetMetadataObjectByName(metadataName[0]);
             if (metaObject == null)
             {
                 Console.WriteLine($"Metaobject \"{metadataName[0]}\" is not found.");

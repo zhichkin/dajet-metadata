@@ -21,7 +21,7 @@ namespace DaJet.Metadata
         /// </summary>
         /// <param name="properties">Список свойств объекта метаданных</param>
         /// <returns>Список имён полей свойств объекта метаданных, отсортированный по возрастанию</returns>
-        List<string> PrepareComparison(List<MetaProperty> properties);
+        List<string> PrepareComparison(List<MetadataProperty> properties);
         /// <summary>
         /// Выполняет сравнение отсортированных по возврастанию списков: обновляемого и эталонного.
         /// </summary>
@@ -35,7 +35,7 @@ namespace DaJet.Metadata
         /// </summary>
         /// /// <param name="metaObject">Объект метаданных</param>
         /// <param name="fields">Коллекция полей таблицы СУБД объекта метаданных</param>
-        void MergeProperties(MetaObject metaObject, List<SqlFieldInfo> fields);
+        void MergeProperties(MetadataObject metaObject, List<SqlFieldInfo> fields);
     }
     /// <summary>
     /// Класс реализует интерфейс <see cref="IMetadataCompareAndMergeService"/>,
@@ -108,7 +108,7 @@ namespace DaJet.Metadata
             }
             return list;
         }
-        public List<string> PrepareComparison(List<MetaProperty> properties)
+        public List<string> PrepareComparison(List<MetadataProperty> properties)
         {
             List<string> list = new List<string>(properties.Count);
             for (int i = 0; i < properties.Count; i++)
@@ -121,9 +121,9 @@ namespace DaJet.Metadata
             list.Sort();
             return list;
         }
-        private SortedDictionary<string, MetaProperty> PrepareMerging(List<MetaProperty> properties)
+        private SortedDictionary<string, MetadataProperty> PrepareMerging(List<MetadataProperty> properties)
         {
-            SortedDictionary<string, MetaProperty> fields = new SortedDictionary<string, MetaProperty>();
+            SortedDictionary<string, MetadataProperty> fields = new SortedDictionary<string, MetadataProperty>();
             for (int p = 0; p < properties.Count; p++)
             {
                 for (var f = 0; f < properties[p].Fields.Count; f++)
@@ -133,9 +133,9 @@ namespace DaJet.Metadata
             }
             return fields;
         }
-        public void MergeProperties(MetaObject metaObject, List<SqlFieldInfo> fields)
+        public void MergeProperties(MetadataObject metaObject, List<SqlFieldInfo> fields)
         {
-            SortedDictionary<string, MetaProperty> lookup = PrepareMerging(metaObject.Properties);
+            SortedDictionary<string, MetadataProperty> lookup = PrepareMerging(metaObject.Properties);
 
             List<string> target_list = lookup.Keys.ToList();
 
@@ -186,7 +186,7 @@ namespace DaJet.Metadata
                 source_index++; // Берём следующий элемент source
             }
         }
-        private void DeletePropertyField(List<MetaProperty> properties, MetaProperty property, string name)
+        private void DeletePropertyField(List<MetadataProperty> properties, MetadataProperty property, string name)
         {
             for (int i = 0; i < property.Fields.Count; i++)
             {
@@ -201,13 +201,13 @@ namespace DaJet.Metadata
                 properties.Remove(property);
             }
         }
-        private void UpdatePropertyField(MetaProperty property, SqlFieldInfo field)
+        private void UpdatePropertyField(MetadataProperty property, SqlFieldInfo field)
         {
             if (field.DATA_TYPE != "nchar"
                 && field.DATA_TYPE != "nvarchar"
                 && field.DATA_TYPE != "numeric") return;
 
-            MetaField f = property.Fields.Where(f => f.Name == field.COLUMN_NAME).FirstOrDefault();
+            DatabaseField f = property.Fields.Where(f => f.Name == field.COLUMN_NAME).FirstOrDefault();
             if (f == null) return;
             f.TypeName = field.DATA_TYPE;
             f.Length = field.CHARACTER_OCTET_LENGTH;
@@ -215,7 +215,7 @@ namespace DaJet.Metadata
             f.Precision = field.NUMERIC_PRECISION;
             f.IsNullable = field.IS_NULLABLE;
         }
-        private void InsertPropertyField(MetaObject metaObject, SqlFieldInfo field)
+        private void InsertPropertyField(MetadataObject metaObject, SqlFieldInfo field)
         {
             string propertyName = string.Empty;
             if (!MetadataTokens.PropertyNameLookup.TryGetValue(field.COLUMN_NAME.ToLowerInvariant(), out propertyName))
@@ -223,7 +223,7 @@ namespace DaJet.Metadata
                 propertyName = field.COLUMN_NAME;
             }
 
-            MetaProperty property = new MetaProperty()
+            MetadataProperty property = new MetadataProperty()
             {
                 Name = propertyName,
                 Field = field.COLUMN_NAME,
@@ -231,7 +231,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             SetupPropertyType(metaObject, property, field);
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = field.COLUMN_NAME,
                 TypeName = field.DATA_TYPE,
@@ -243,7 +243,7 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        private void SetupPropertyType(MetaObject metaObject, MetaProperty property, SqlFieldInfo field)
+        private void SetupPropertyType(MetadataObject metaObject, MetadataProperty property, SqlFieldInfo field)
         {
             if (field.DATA_TYPE == "nvarchar")
             {

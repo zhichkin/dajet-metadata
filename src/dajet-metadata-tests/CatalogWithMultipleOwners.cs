@@ -6,9 +6,9 @@ namespace DaJet.Metadata.Tests
 {
     [TestClass] public class CatalogWithMutlipleOwners : TestClassBase
     {
-        private MetaObject Catalog { get; set; }
+        private MetadataObject Catalog { get; set; }
         public CatalogWithMutlipleOwners() : base() { }
-        private void SetupMetaObject()
+        private void SetupMetadataObject()
         {
             if (Catalog != null) return;
             SetupInfoBase();
@@ -18,8 +18,8 @@ namespace DaJet.Metadata.Tests
         }
         [TestMethod("Владелец")] public void TestPropertyВладелец()
         {
-            SetupMetaObject();
-            MetaProperty property = TestPropertyExists(Catalog, "Владелец");
+            SetupMetadataObject();
+            MetadataProperty property = TestPropertyExists(Catalog, "Владелец");
 
             Assert.AreEqual(property.Purpose, PropertyPurpose.System);
             Assert.IsFalse(property.PropertyType.IsUuid);
@@ -32,7 +32,7 @@ namespace DaJet.Metadata.Tests
             Assert.IsTrue(property.PropertyType.CanBeReference);
             Assert.IsTrue(property.PropertyType.IsMultipleType);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
-            MetaField field;
+            DatabaseField field;
             field = TestFieldExists(property, "_OwnerID_TYPE");
             Assert.AreEqual(field.Length, 1);
             Assert.AreEqual(field.TypeName, "binary");

@@ -5,7 +5,7 @@ namespace DaJet.Metadata
 {
     public static class SqlUtility
     {
-        public static string CreateTableFieldScript(MetaField field)
+        public static string CreateTableFieldScript(DatabaseField field)
         {
             string SIZE = string.Empty;
             if (field.TypeName == "char"

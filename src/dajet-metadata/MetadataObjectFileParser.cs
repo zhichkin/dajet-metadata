@@ -7,13 +7,13 @@ using System.Text.RegularExpressions;
 
 namespace DaJet.Metadata
 {
-    public interface IMetaObjectFileParser
+    public interface IMetadataObjectFileParser
     {
         void UseInfoBase(InfoBase infoBase);
-        void ParseMetaUuid(StreamReader reader, MetaObject metaObject);
-        void ParseMetaObject(StreamReader reader, MetaObject metaObject);
+        void ParseMetaUuid(StreamReader reader, MetadataObject metaObject);
+        void ParseMetadataObject(StreamReader reader, MetadataObject metaObject);
     }
-    public sealed class MetaObjectFileParser : IMetaObjectFileParser
+    public sealed class MetadataObjectFileParser : IMetadataObjectFileParser
     {
         #region "Regular expressions"
         
@@ -30,111 +30,111 @@ namespace DaJet.Metadata
 
         #endregion
 
-        internal delegate void SpecialParser(StreamReader reader, string line, MetaObject metaObject);
+        internal delegate void SpecialParser(StreamReader reader, string line, MetadataObject metaObject);
         private readonly Dictionary<string, SpecialParser> _SpecialParsers = new Dictionary<string, SpecialParser>();
 
         private InfoBase InfoBase;
 
-        public MetaObjectFileParser()
+        public MetadataObjectFileParser()
         {
             ConfigureParsers();
         }
         private void ConfigureParsers()
         {
-            _SpecialParsers.Add("cf4abea7-37b2-11d4-940f-008048da11f9", ParseMetaObjectProperties); // Catalogs properties collection
+            _SpecialParsers.Add("cf4abea7-37b2-11d4-940f-008048da11f9", ParseMetadataObjectProperties); // Catalogs properties collection
             _SpecialParsers.Add("932159f9-95b2-4e76-a8dd-8849fe5c5ded", ParseNestedObjects); // Catalogs nested objects collection
 
-            _SpecialParsers.Add("45e46cbc-3e24-4165-8b7b-cc98a6f80211", ParseMetaObjectProperties); // Documents properties collection
+            _SpecialParsers.Add("45e46cbc-3e24-4165-8b7b-cc98a6f80211", ParseMetadataObjectProperties); // Documents properties collection
             _SpecialParsers.Add("21c53e09-8950-4b5e-a6a0-1054f1bbc274", ParseNestedObjects); // Documents nested objects collection
 
-            _SpecialParsers.Add("31182525-9346-4595-81f8-6f91a72ebe06", ParseMetaObjectProperties); // Коллекция реквизитов плана видов характеристик
+            _SpecialParsers.Add("31182525-9346-4595-81f8-6f91a72ebe06", ParseMetadataObjectProperties); // Коллекция реквизитов плана видов характеристик
             _SpecialParsers.Add("54e36536-7863-42fd-bea3-c5edd3122fdc", ParseNestedObjects); // Коллекция табличных частей плана видов характеристик
 
-            _SpecialParsers.Add("1a1b4fea-e093-470d-94ff-1d2f16cda2ab", ParseMetaObjectProperties); // Коллекция реквизитов плана обмена
+            _SpecialParsers.Add("1a1b4fea-e093-470d-94ff-1d2f16cda2ab", ParseMetadataObjectProperties); // Коллекция реквизитов плана обмена
             _SpecialParsers.Add("52293f4b-f98c-43ea-a80f-41047ae7ab58", ParseNestedObjects); // Коллекция табличных частей плана обмена
 
-            _SpecialParsers.Add("13134203-f60b-11d5-a3c7-0050bae0a776", ParseMetaObjectDimensions); // Коллекция измерений регистра сведений
-            _SpecialParsers.Add("13134202-f60b-11d5-a3c7-0050bae0a776", ParseMetaObjectMeasures); // Коллекция ресурсов регистра сведений
-            _SpecialParsers.Add("a2207540-1400-11d6-a3c7-0050bae0a776", ParseMetaObjectProperties); // Коллекция реквизитов регистра сведений
+            _SpecialParsers.Add("13134203-f60b-11d5-a3c7-0050bae0a776", ParseMetadataObjectDimensions); // Коллекция измерений регистра сведений
+            _SpecialParsers.Add("13134202-f60b-11d5-a3c7-0050bae0a776", ParseMetadataObjectMeasures); // Коллекция ресурсов регистра сведений
+            _SpecialParsers.Add("a2207540-1400-11d6-a3c7-0050bae0a776", ParseMetadataObjectProperties); // Коллекция реквизитов регистра сведений
 
-            _SpecialParsers.Add("b64d9a43-1642-11d6-a3c7-0050bae0a776", ParseMetaObjectDimensions); // Коллекция измерений регистра накопления
-            _SpecialParsers.Add("b64d9a41-1642-11d6-a3c7-0050bae0a776", ParseMetaObjectMeasures); // Коллекция ресурсов регистра накопления
-            _SpecialParsers.Add("b64d9a42-1642-11d6-a3c7-0050bae0a776", ParseMetaObjectProperties); // Коллекция реквизитов регистра накопления
+            _SpecialParsers.Add("b64d9a43-1642-11d6-a3c7-0050bae0a776", ParseMetadataObjectDimensions); // Коллекция измерений регистра накопления
+            _SpecialParsers.Add("b64d9a41-1642-11d6-a3c7-0050bae0a776", ParseMetadataObjectMeasures); // Коллекция ресурсов регистра накопления
+            _SpecialParsers.Add("b64d9a42-1642-11d6-a3c7-0050bae0a776", ParseMetadataObjectProperties); // Коллекция реквизитов регистра накопления
 
-            _SpecialParsers.Add("6e65cbf5-daa8-4d8d-bef8-59723f4e5777", ParseMetaObjectProperties); // Коллекция реквизитов плана счетов
-            _SpecialParsers.Add("78bd1243-c4df-46c3-8138-e147465cb9a4", ParseMetaObjectProperties); // Коллекция признаков учёта плана счетов
+            _SpecialParsers.Add("6e65cbf5-daa8-4d8d-bef8-59723f4e5777", ParseMetadataObjectProperties); // Коллекция реквизитов плана счетов
+            _SpecialParsers.Add("78bd1243-c4df-46c3-8138-e147465cb9a4", ParseMetadataObjectProperties); // Коллекция признаков учёта плана счетов
             // Коллекция признаков учёта субконто плана счетов - не имеет полей в таблице базы данных
-            //_SpecialParsers.Add("c70ca527-5042-4cad-a315-dcb4007e32a3", ParseMetaObjectProperties);
+            //_SpecialParsers.Add("c70ca527-5042-4cad-a315-dcb4007e32a3", ParseMetadataObjectProperties);
 
-            _SpecialParsers.Add("35b63b9d-0adf-4625-a047-10ae874c19a3", ParseMetaObjectDimensions); // Коллекция измерений регистра бухгалтерского учёта
-            _SpecialParsers.Add("63405499-7491-4ce3-ac72-43433cbe4112", ParseMetaObjectMeasures); // Коллекция ресурсов регистра бухгалтерского учёта
-            _SpecialParsers.Add("9d28ee33-9c7e-4a1b-8f13-50aa9b36607b", ParseMetaObjectProperties); // Коллекция реквизитов регистра бухгалтерского учёта
+            _SpecialParsers.Add("35b63b9d-0adf-4625-a047-10ae874c19a3", ParseMetadataObjectDimensions); // Коллекция измерений регистра бухгалтерского учёта
+            _SpecialParsers.Add("63405499-7491-4ce3-ac72-43433cbe4112", ParseMetadataObjectMeasures); // Коллекция ресурсов регистра бухгалтерского учёта
+            _SpecialParsers.Add("9d28ee33-9c7e-4a1b-8f13-50aa9b36607b", ParseMetadataObjectProperties); // Коллекция реквизитов регистра бухгалтерского учёта
         }
 
         public void UseInfoBase(InfoBase infoBase)
         {
             InfoBase = infoBase;
         }
-        public void ParseMetaUuid(StreamReader reader, MetaObject metaObject)
+        public void ParseMetaUuid(StreamReader reader, MetadataObject metaObject)
         {
             _ = reader.ReadLine(); // 1. line
             string line = reader.ReadLine(); // 2. line
 
             string[] items = line.Split(',');
 
-            string value = (metaObject.TypeName == MetaObjectTypes.Enumeration ? items[1] : items[3]);
+            string value = (metaObject.TypeName == MetadataObjectTypes.Enumeration ? items[1] : items[3]);
 
-            metaObject.MetaUuid = new Guid(value);
+            metaObject.Uuid = new Guid(value);
         }
-        public void ParseMetaObject(StreamReader reader, MetaObject metaObject)
+        public void ParseMetadataObject(StreamReader reader, MetadataObject metaObject)
         {
-            if (metaObject.TypeName == MetaObjectTypes.Constant)
+            if (metaObject.TypeName == MetadataObjectTypes.Constant)
             {
                 ParseConstant(reader, metaObject); return;
             }
-            else if (metaObject.TypeName == MetaObjectTypes.Catalog)
+            else if (metaObject.TypeName == MetadataObjectTypes.Catalog)
             {
                 // TODO: AddCatalogBasicProperties(metaObject); ?
             }
             string line = reader.ReadLine(); // 1. line
 
             line = reader.ReadLine(); // 2. line
-            //string uuid = ParseMetaObjectUuid(line, metaObject); // идентификатор объекта метаданных ParseMetaUuid
+            //string uuid = ParseMetadataObjectUuid(line, metaObject); // идентификатор объекта метаданных ParseMetaUuid
             _ = reader.ReadLine(); // 3. line
             line = reader.ReadLine(); // 4. line
-            if (metaObject.TypeName == MetaObjectTypes.Publication)
+            if (metaObject.TypeName == MetadataObjectTypes.Publication)
             {
-                ParseMetaObjectName(line, metaObject); // metaobject's UUID and Name
+                ParseMetadataObjectName(line, metaObject); // metaobject's UUID and Name
             }
 
             line = reader.ReadLine(); // 5. line
-            if (metaObject.TypeName == MetaObjectTypes.Publication)
+            if (metaObject.TypeName == MetadataObjectTypes.Publication)
             {
-                ParseMetaObjectAlias(line, metaObject); // metaobject's alias
+                ParseMetadataObjectAlias(line, metaObject); // metaobject's alias
             }
             else
             {
-                ParseMetaObjectName(line, metaObject); // metaobject's UUID and Name
+                ParseMetadataObjectName(line, metaObject); // metaobject's UUID and Name
             }
 
             line = reader.ReadLine(); // 6. line
-            if (metaObject.TypeName == MetaObjectTypes.Publication)
+            if (metaObject.TypeName == MetadataObjectTypes.Publication)
             {
                 ParseIsDistributed(line, metaObject);
             }
             else
             {
-                ParseMetaObjectAlias(line, metaObject); // metaobject's alias
+                ParseMetadataObjectAlias(line, metaObject); // metaobject's alias
             }
 
             _ = reader.ReadLine(); // 7. line
 
-            if (metaObject.TypeName == MetaObjectTypes.Catalog)
+            if (metaObject.TypeName == MetadataObjectTypes.Catalog)
             {
                 // starts from 8. line
                 ParseReferenceOwner(reader, metaObject); // свойство справочника "Владелец"
             }
-            else if (metaObject.TypeName == MetaObjectTypes.Document)
+            else if (metaObject.TypeName == MetadataObjectTypes.Document)
             {
                 // starts from 8. line
                 // TODO: Parse объекты метаданных, которые являются основанием для заполнения текущего
@@ -166,18 +166,18 @@ namespace DaJet.Metadata
 
         #region "Catalogs"
 
-        private void AddCatalogBasicProperties(MetaObject metaObject)
+        private void AddCatalogBasicProperties(MetadataObject metaObject)
         {
             AddCatalogPropertyСсылка(metaObject);
             AddCatalogPropertyВерсияДанных(metaObject);
             AddCatalogPropertyПометкаУдаления(metaObject);
             AddCatalogPropertyПредопределённый(metaObject);
         }
-        private void AddCatalogPropertyСсылка(MetaObject metaObject)
+        private void AddCatalogPropertyСсылка(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "Ссылка").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "Ссылка").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "Ссылка",
                 Field = "_IDRRef",
@@ -185,7 +185,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.IsUuid = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_IDRRef",
                 Length = 16,
@@ -196,11 +196,11 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        private void AddCatalogPropertyВерсияДанных(MetaObject metaObject)
+        private void AddCatalogPropertyВерсияДанных(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "ВерсияДанных").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "ВерсияДанных").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "ВерсияДанных",
                 Field = "_Version",
@@ -208,7 +208,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.IsBinary = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_Version",
                 Length = 8,
@@ -216,11 +216,11 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        private void AddCatalogPropertyПометкаУдаления(MetaObject metaObject)
+        private void AddCatalogPropertyПометкаУдаления(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "ПометкаУдаления").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "ПометкаУдаления").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "ПометкаУдаления",
                 Field = "_Marked",
@@ -228,7 +228,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.CanBeBoolean = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_Marked",
                 Length = 1,
@@ -236,11 +236,11 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        private void AddCatalogPropertyПредопределённый(MetaObject metaObject)
+        private void AddCatalogPropertyПредопределённый(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "Предопределённый").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "Предопределённый").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "Предопределённый",
                 Field = "_PredefinedID",
@@ -248,7 +248,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.IsUuid = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_PredefinedID",
                 Length = 16,
@@ -261,11 +261,11 @@ namespace DaJet.Metadata
 
         #region "Publications"
 
-        private void PublicationAddPropertyНомерПринятого(MetaObject metaObject)
+        private void PublicationAddPropertyНомерПринятого(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "НомерПринятого",
                 Field = "_ReceivedNo",
@@ -273,7 +273,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.IsUuid = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_ReceivedNo",
                 Length = 9,
@@ -284,11 +284,11 @@ namespace DaJet.Metadata
             });
             metaObject.Properties.Add(property);
         }
-        private void PublicationAddPropertyНомерОтправленного(MetaObject metaObject)
+        private void PublicationAddPropertyНомерОтправленного(MetadataObject metaObject)
         {
-            MetaProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
             if (property != null) return;
-            property = new MetaProperty()
+            property = new MetadataProperty()
             {
                 Name = "НомерОтправленного",
                 Field = "_SentNo",
@@ -296,7 +296,7 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
             property.PropertyType.IsUuid = true;
-            property.Fields.Add(new MetaField()
+            property.Fields.Add(new DatabaseField()
             {
                 Name = "_SentNo",
                 Length = 9,
@@ -308,7 +308,7 @@ namespace DaJet.Metadata
             metaObject.Properties.Add(property);
         }
 
-        private void ParseIsDistributed(string line, MetaObject metaObject)
+        private void ParseIsDistributed(string line, MetadataObject metaObject)
         {
             if (!(metaObject is Publication publication)) return;
             int value = 0;
@@ -321,27 +321,27 @@ namespace DaJet.Metadata
 
         #endregion
 
-        private string ParseMetaObjectUuid(string line, MetaObject metaObject)
+        private string ParseMetadataObjectUuid(string line, MetadataObject metaObject)
         {
             if (!metaObject.IsReferenceType) return string.Empty;
 
             string[] items = line.Split(',');
 
-            return (metaObject.TypeName == MetaObjectTypes.Enumeration ? items[1] : items[3]);
+            return (metaObject.TypeName == MetadataObjectTypes.Enumeration ? items[1] : items[3]);
         }
-        private void ParseMetaObjectName(string line, MetaObject metaObject)
+        private void ParseMetadataObjectName(string line, MetadataObject metaObject)
         {
             string[] lines = line.Split(',');
-            //string uuid = lines[2].Replace("}", string.Empty); // ParseMetaObjectUuid
+            //string uuid = lines[2].Replace("}", string.Empty); // ParseMetadataObjectUuid
             metaObject.Name = lines[3].Replace("\"", string.Empty);
         }
-        private void ParseMetaObjectAlias(string line, MetaObject metaObject)
+        private void ParseMetadataObjectAlias(string line, MetadataObject metaObject)
         {
             string[] lines = line.Split(',');
             string alias = lines[2].Replace("}", string.Empty);
             metaObject.Alias = alias.Replace("\"", string.Empty);
         }
-        private void ParseReferenceOwner(StreamReader reader, MetaObject metaObject)
+        private void ParseReferenceOwner(StreamReader reader, MetadataObject metaObject)
         {
             int count = 0;
             string[] lines;
@@ -368,7 +368,7 @@ namespace DaJet.Metadata
                     Guid uuid = new Guid(match.Value);
                     foreach (var collection in InfoBase.ReferenceTypes)
                     {
-                        if (collection.TryGetValue(uuid, out MetaObject owner))
+                        if (collection.TryGetValue(uuid, out MetadataObject owner))
                         {
                             owners.Add(owner.TypeCode);
                             break;
@@ -380,7 +380,7 @@ namespace DaJet.Metadata
 
             if (owners.Count > 0)
             {
-                MetaProperty property = new MetaProperty
+                MetadataProperty property = new MetadataProperty
                 {
                     Name = "Владелец",
                     FileName = Guid.Empty,
@@ -391,7 +391,7 @@ namespace DaJet.Metadata
                 property.PropertyType.ReferenceTypeCode = (owners.Count == 1) ? owners[0] : 0; // single or multiple type
                 if (property.PropertyType.IsMultipleType)
                 {
-                    property.Fields.Add(new MetaField()
+                    property.Fields.Add(new DatabaseField()
                     {
                         Name = "_OwnerID_TYPE",
                         Length = 1,
@@ -403,7 +403,7 @@ namespace DaJet.Metadata
                         IsPrimaryKey = false,
                         Purpose = FieldPurpose.Discriminator
                     });
-                    property.Fields.Add(new MetaField()
+                    property.Fields.Add(new DatabaseField()
                     {
                         Name = "_OwnerID_RTRef",
                         Length = 4,
@@ -415,7 +415,7 @@ namespace DaJet.Metadata
                         IsPrimaryKey = false,
                         Purpose = FieldPurpose.TypeCode
                     });
-                    property.Fields.Add(new MetaField()
+                    property.Fields.Add(new DatabaseField()
                     {
                         Name = "_OwnerID_RRRef",
                         Length = 16,
@@ -430,7 +430,7 @@ namespace DaJet.Metadata
                 }
                 else
                 {
-                    property.Fields.Add(new MetaField()
+                    property.Fields.Add(new DatabaseField()
                     {
                         Name = "_OwnerIDRRef",
                         Length = 16,
@@ -451,19 +451,19 @@ namespace DaJet.Metadata
 
         #region "User defined properties"
 
-        private void ParseMetaObjectMeasures(StreamReader reader, string line, MetaObject metaObject)
+        private void ParseMetadataObjectMeasures(StreamReader reader, string line, MetadataObject metaObject)
         {
             ParseMetaProperties(reader, line, metaObject, PropertyPurpose.Measure);
         }
-        private void ParseMetaObjectDimensions(StreamReader reader, string line, MetaObject metaObject)
+        private void ParseMetadataObjectDimensions(StreamReader reader, string line, MetadataObject metaObject)
         {
             ParseMetaProperties(reader, line, metaObject, PropertyPurpose.Dimension);
         }
-        private void ParseMetaObjectProperties(StreamReader reader, string line, MetaObject metaObject)
+        private void ParseMetadataObjectProperties(StreamReader reader, string line, MetadataObject metaObject)
         {
             ParseMetaProperties(reader, line, metaObject, PropertyPurpose.Property);
         }
-        private void ParseMetaProperties(StreamReader reader, string line, MetaObject metaObject, PropertyPurpose purpose)
+        private void ParseMetaProperties(StreamReader reader, string line, MetadataObject metaObject, PropertyPurpose purpose)
         {
             string[] lines = line.Split(',');
             int count = int.Parse(lines[1].Replace("}", string.Empty));
@@ -476,28 +476,28 @@ namespace DaJet.Metadata
                     match = rxDbName.Match(nextLine);
                     if (match.Success)
                     {
-                        ParseMetaProperty(reader, nextLine, metaObject, purpose);
+                        ParseMetadataProperty(reader, nextLine, metaObject, purpose);
                         break;
                     }
                 }
             }
         }
-        private void ParseMetaProperty(StreamReader reader, string line, MetaObject metaObject, PropertyPurpose purpose)
+        private void ParseMetadataProperty(StreamReader reader, string line, MetadataObject metaObject, PropertyPurpose purpose)
         {
             string[] lines = line.Split(',');
             string fileName = lines[2].Replace("}", string.Empty);
             string objectName = lines[3].Replace("\"", string.Empty);
 
-            if (InfoBase.Properties.TryGetValue(new Guid(fileName), out MetaProperty property))
+            if (InfoBase.Properties.TryGetValue(new Guid(fileName), out MetadataProperty property))
             {
                 property.Name = objectName;
                 property.Purpose = purpose;
                 metaObject.Properties.Add(property);
             }
-            ParseMetaPropertyTypes(reader, property);
+            ParseMetadataPropertyTypes(reader, property);
             CreateDatabaseFields(property);
         }
-        private void ParseMetaPropertyTypes(StreamReader reader, MetaProperty property)
+        private void ParseMetadataPropertyTypes(StreamReader reader, MetadataProperty property)
         {
             string line = reader.ReadLine();
             if (line == null) return;
@@ -535,7 +535,7 @@ namespace DaJet.Metadata
                     {
                         typeInfo.IsUuid = true;
                     }
-                    else if (InfoBase.MetaReferenceTypes.TryGetValue(new Guid(uuid), out MetaObject type))
+                    else if (InfoBase.MetaReferenceTypes.TryGetValue(new Guid(uuid), out MetadataObject type))
                     {
                         typeInfo.CanBeReference = true;
                         typeCodes.Add(type.TypeCode); // требуется для определения многозначности типа данных (см. комментарий ниже)
@@ -554,13 +554,13 @@ namespace DaJet.Metadata
             {
                 // В целях оптимизации в DataTypeInfo не хранятся все допустимые для данного свойства коды ссылочных типов.
                 // В случае составного типа код типа конкретного значения можно получить в базе данных в поле {имя поля}_TRef.
-                // В случае же сохранения кода типа в базу данных код типа можно получить из свойства MetaObject.TypeCode.
+                // В случае же сохранения кода типа в базу данных код типа можно получить из свойства MetadataObject.TypeCode.
                 // У не составных типов данных такого поля в базе данных нет, поэтому необходимо сохранить код типа в DataTypeInfo.
                 typeInfo.ReferenceTypeCode = typeCodes[0];
             }
             property.PropertyType = typeInfo;
         }
-        private void CreateDatabaseFields(MetaProperty property)
+        private void CreateDatabaseFields(MetadataProperty property)
         {
             if (property.PropertyType.IsMultipleType)
             {
@@ -571,11 +571,11 @@ namespace DaJet.Metadata
                 CreateDatabaseFieldsForSingleType(property);
             }
         }
-        private void CreateDatabaseFieldsForSingleType(MetaProperty property)
+        private void CreateDatabaseFieldsForSingleType(MetadataProperty property)
         {
             if (property.PropertyType.IsUuid)
             {
-                property.Fields.Add(new MetaField(property.Field, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.Field, "binary", 16));
             }
             else if (property.PropertyType.IsBinary)
             {
@@ -584,61 +584,61 @@ namespace DaJet.Metadata
             }
             else if (property.PropertyType.IsValueStorage)
             {
-                property.Fields.Add(new MetaField(property.Field, "varbinary", -1));
+                property.Fields.Add(new DatabaseField(property.Field, "varbinary", -1));
             }
             else if (property.PropertyType.CanBeString)
             {
                 // should be updated from database
-                property.Fields.Add(new MetaField(property.Field, "nvarchar", 10));
+                property.Fields.Add(new DatabaseField(property.Field, "nvarchar", 10));
             }
             else if (property.PropertyType.CanBeNumeric)
             {
                 // should be updated from database
-                property.Fields.Add(new MetaField(property.Field, "numeric", 9, 10, 0));
+                property.Fields.Add(new DatabaseField(property.Field, "numeric", 9, 10, 0));
             }
             else if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new MetaField(property.Field, "binary", 1));
+                property.Fields.Add(new DatabaseField(property.Field, "binary", 1));
             }
             else if (property.PropertyType.CanBeDateTime)
             {
                 // can be updated from database
-                property.Fields.Add(new MetaField(property.Field, "datetime2", 6, 19, 0));
+                property.Fields.Add(new DatabaseField(property.Field, "datetime2", 6, 19, 0));
             }
             else if (property.PropertyType.CanBeReference)
             {
-                property.Fields.Add(new MetaField(property.Field + MetadataTokens.RRef, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.Field + MetadataTokens.RRef, "binary", 16));
             }
         }
-        private void CreateDatabaseFieldsForMultipleType(MetaProperty property)
+        private void CreateDatabaseFieldsForMultipleType(MetadataProperty property)
         {
-            property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.TYPE, "binary", 1));
+            property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.TYPE, "binary", 1));
             if (property.PropertyType.CanBeString)
             {
                 // should be updated from database
-                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.S, "nvarchar", 10));
+                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.S, "nvarchar", 10));
             }
             if (property.PropertyType.CanBeNumeric)
             {
                 // should be updated from database
-                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
+                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
             }
             if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.L, "binary", 1));
+                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.L, "binary", 1));
             }
             if (property.PropertyType.CanBeDateTime)
             {
                 // can be updated from database
-                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
             }
             if (property.PropertyType.CanBeReference)
             {
                 if (property.PropertyType.ReferenceTypeCode == 0) // miltiple refrence type
                 {
-                    property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.RTRef, "binary", 4));
+                    property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.RTRef, "binary", 4));
                 }
-                property.Fields.Add(new MetaField(property.Field + "_" + MetadataTokens.RRRef, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.RRRef, "binary", 16));
             }
         }
         
@@ -661,7 +661,7 @@ namespace DaJet.Metadata
 
         #region "Table parts"
 
-        private void ParseNestedObjects(StreamReader reader, string line, MetaObject dbo)
+        private void ParseNestedObjects(StreamReader reader, string line, MetadataObject dbo)
         {
             string[] lines = line.Split(',');
             int count = int.Parse(lines[1]);
@@ -680,22 +680,22 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void ParseNestedObject(StreamReader reader, string line, MetaObject owner)
+        private void ParseNestedObject(StreamReader reader, string line, MetadataObject owner)
         {
             string[] lines = line.Split(',');
             string fileName = lines[2].Replace("}", string.Empty);
             string objectName = lines[3].Replace("\"", string.Empty);
 
-            if (InfoBase.TableParts.TryGetValue(new Guid(fileName), out MetaObject nested))
+            if (InfoBase.TableParts.TryGetValue(new Guid(fileName), out MetadataObject nested))
             {
                 nested.Owner = owner;
                 nested.Name = objectName;
                 nested.TableName = owner.TableName + nested.TableName;
-                owner.MetaObjects.Add(nested);
+                owner.MetadataObjects.Add(nested);
             }
             ParseNestedMetaProperties(reader, nested);
         }
-        private void ParseNestedMetaProperties(StreamReader reader, MetaObject dbo)
+        private void ParseNestedMetaProperties(StreamReader reader, MetadataObject dbo)
         {
             string line;
             Match match;
@@ -714,7 +714,7 @@ namespace DaJet.Metadata
 
         #region "Constants"
 
-        private void ParseConstant(StreamReader reader, MetaObject metaObject)
+        private void ParseConstant(StreamReader reader, MetadataObject metaObject)
         {
             _ = reader.ReadLine(); // 1. line
             _ = reader.ReadLine(); // 2. line
@@ -727,11 +727,11 @@ namespace DaJet.Metadata
             string uuid = lines[2].TrimEnd('}');
             metaObject.Name = lines[3].Trim('"');
 
-            if (InfoBase.Properties.TryGetValue(new Guid(uuid), out MetaProperty property))
+            if (InfoBase.Properties.TryGetValue(new Guid(uuid), out MetadataProperty property))
             {
                 metaObject.Properties.Add(property);
             }
-            ParseMetaPropertyTypes(reader, property);
+            ParseMetadataPropertyTypes(reader, property);
         }
 
         #endregion

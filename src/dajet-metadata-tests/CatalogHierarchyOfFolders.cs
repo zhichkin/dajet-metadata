@@ -6,9 +6,9 @@ namespace DaJet.Metadata.Tests
 {
     [TestClass] public class CatalogHierarchyOfFolders : TestClassBase
     {
-        private MetaObject Catalog { get; set; }
+        private MetadataObject Catalog { get; set; }
         public CatalogHierarchyOfFolders() : base() { }
-        private void SetupMetaObject()
+        private void SetupMetadataObject()
         {
             if (Catalog != null) return;
             SetupInfoBase();

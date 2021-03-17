@@ -5,11 +5,11 @@ namespace DaJet.Metadata
 {
     public sealed class DBNameEntry
     {
-        public MetaObject MetaObject = new MetaObject();
+        public MetadataObject MetadataObject = new MetadataObject();
         public List<DBName> DBNames = new List<DBName>();
         public override string ToString()
         {
-            string metadataType = MetaObject.TypeName;
+            string metadataType = MetadataObject.TypeName;
             if (string.IsNullOrEmpty(metadataType))
             {
                 if (DBNames.Count > 0)
@@ -17,7 +17,7 @@ namespace DaJet.Metadata
                     metadataType = DBNames[0].Token;
                 }
             }
-            return string.Format("{0} {{{1}:{2}}}", metadataType, MetaObject.TypeCode, MetaObject.UUID);
+            return string.Format("{0} {{{1}:{2}}}", metadataType, MetadataObject.TypeCode, MetadataObject.FileName);
         }
     }
     public sealed class DBName

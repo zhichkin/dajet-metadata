@@ -5,6 +5,8 @@ namespace DaJet.Metadata
 {
     public static class MetadataTokens
     {
+        #region "Постфиксы наименования полей таблиц СУБД и идентификаторы типов данных"
+
         ///<summary>Boolean (SQL table fields postfix)</summary>
         public const string L = "L";
         ///<summary>Boolean (config file metadata)</summary>
@@ -19,6 +21,64 @@ namespace DaJet.Metadata
         public const string T = "T";
         ///<summary>Reference type, УникальныйИдентификатор или ХранилищеЗначения</summary>
         public const string R = "#";
+
+        #endregion
+
+        #region "Токены объектов метаданных"
+
+        ///<summary>Табличная часть (вложенный значимый тип данных)</summary>
+        public const string VT = "VT";
+        ///<summary>Перечисление (ссылочный тип данных)</summary>
+        public const string Enum = "Enum";
+        ///<summary>План видов характеристик (ссылочный тип данных)</summary>
+        public const string Chrc = "Chrc";
+        ///<summary>Константа (значимый тип данных)</summary>
+        public const string Const = "Const";
+        ///<summary>Регистр сведений (значимый тип данных)</summary>
+        public const string InfoRg = "InfoRg";
+        ///<summary>План счетов (ссылочный тип данных)</summary>
+        public const string Acc = "Acc";
+        ///<summary>Регистр бухгалтерии (значимый тип данных)</summary>
+        public const string AccRg = "AccRg";
+        ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
+        public const string AccRgED = "AccRgED";
+        ///<summary>Регистр накопления (значимый тип данных)</summary>
+        public const string AccumRg = "AccumRg";
+        ///<summary>Таблица итогов регистра накопления (зависимый значимый тип данных)</summary>
+        public const string AccumRgT = "AccumRgT";
+        ///<summary>Таблица настроек регистра накопления (зависимый значимый тип данных)</summary>
+        public const string AccumRgOpt = "AccumRgOpt";
+        ///<summary>Таблица изменений регистра накопления (зависимый значимый тип данных)</summary>
+        public const string AccumRgChngR = "AccumRgChngR";
+        ///<summary>Документ (ссылочный тип данных)</summary>
+        public const string Document = "Document";
+        ///<summary>Справочник (ссылочный тип данных)</summary>
+        public const string Reference = "Reference";
+        ///<summary>План обмена (ссылочный тип данных)</summary>
+        public const string Node = "Node";
+        ///<summary>Таблица изменений планов обмена (одна на каждый объект метаданных)</summary>
+        public const string ChngR = "ChngR";
+        ///<summary>Хранилище метаданных конфигурации 1С</summary>
+        public const string Config = "Config";
+
+        #endregion
+
+        public static readonly Dictionary<string, IMetadataObjectFactory> ObjectFactories = new Dictionary<string, IMetadataObjectFactory>()
+        {
+            { Acc, new MetadataObjectFactory<Account>() },
+            { AccRg, new MetadataObjectFactory<AccountingRegister>() },
+            { AccumRg, new MetadataObjectFactory<AccumulationRegister>() },
+            { Reference, new MetadataObjectFactory<Catalog>() },
+            { Chrc, new MetadataObjectFactory<Characteristic>() },
+            { Const, new MetadataObjectFactory<Constant>() },
+            { Document, new MetadataObjectFactory<Document>() },
+            { Enum, new MetadataObjectFactory<Enumeration>() },
+            { InfoRg, new MetadataObjectFactory<InformationRegister>() },
+            { Node, new MetadataObjectFactory<Publication>() },
+            { VT, new MetadataObjectFactory<TablePart>() }
+        };
+
+        #region "Токены полей таблиц СУБД объектов метаданных"
 
         public const string RRef = "RRef";
         public const string TRef = "TRef";
@@ -64,41 +124,6 @@ namespace DaJet.Metadata
         public const string SentNo = "SentNo";
         public const string ReceivedNo = "ReceivedNo";
 
-        ///<summary>Табличная часть (вложенный значимый тип данных)</summary>
-        public const string VT = "VT";
-        ///<summary>Перечисление (ссылочный тип данных)</summary>
-        public const string Enum = "Enum";
-        ///<summary>План видов характеристик (ссылочный тип данных)</summary>
-        public const string Chrc = "Chrc";
-        ///<summary>Константа (значимый тип данных)</summary>
-        public const string Const = "Const";
-        ///<summary>Регистр сведений (значимый тип данных)</summary>
-        public const string InfoRg = "InfoRg";
-        ///<summary>План счетов (ссылочный тип данных)</summary>
-        public const string Acc = "Acc";
-        ///<summary>Регистр бухгалтерии (значимый тип данных)</summary>
-        public const string AccRg = "AccRg";
-        ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
-        public const string AccRgED = "AccRgED";
-        ///<summary>Регистр накопления (значимый тип данных)</summary>
-        public const string AccumRg = "AccumRg";
-        ///<summary>Таблица итогов регистра накопления (зависимый значимый тип данных)</summary>
-        public const string AccumRgT = "AccumRgT";
-        ///<summary>Таблица настроек регистра накопления (зависимый значимый тип данных)</summary>
-        public const string AccumRgOpt = "AccumRgOpt";
-        ///<summary>Таблица изменений регистра накопления (зависимый значимый тип данных)</summary>
-        public const string AccumRgChngR = "AccumRgChngR";
-        ///<summary>Документ (ссылочный тип данных)</summary>
-        public const string Document = "Document";
-        ///<summary>Справочник (ссылочный тип данных)</summary>
-        public const string Reference = "Reference";
-        ///<summary>План обмена (ссылочный тип данных)</summary>
-        public const string Node = "Node";
-        ///<summary>Таблица изменений планов обмена (одна на каждый объект метаданных)</summary>
-        public const string ChngR = "ChngR";
-        ///<summary>Хранилище метаданных конфигурации 1С</summary>
-        public const string Config = "Config";
-
         public const string Splitter = "Splitter";
         public const string NodeTRef = "NodeTRef";
         public const string NodeRRef = "NodeRRef";
@@ -108,6 +133,8 @@ namespace DaJet.Metadata
         public const string MinPeriod = "MinPeriod";
         public const string MinCalculatedPeriod = "MinCalculatedPeriod";
         public const string RepetitionFactor = "RepetitionFactor";
+
+        #endregion
 
         public static readonly Dictionary<string, string> PropertyNameLookup = new Dictionary<string, string>()
         {
@@ -124,6 +151,8 @@ namespace DaJet.Metadata
             { "_ReceivedNo".ToLowerInvariant(), "НомерПринятого" }
             // - ПланОбмена
             // TODO: добавить свойства для документов, табличных частей и т.д.
+
+            // TODO: move this lookup to MetadataObjectFactory ?
         };
     }
 }

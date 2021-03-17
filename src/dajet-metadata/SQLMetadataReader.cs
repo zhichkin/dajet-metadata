@@ -69,11 +69,11 @@ namespace DaJet.Metadata
             public bool IS_NULLABLE;
         }
         private string ConnectionString { get; set; }
-        public void Load(string connectionString, MetaObject metaObject)
+        public void Load(string connectionString, MetadataObject metaObject)
         {
             ConnectionString = connectionString;
             ReadSQLMetadata(metaObject);
-            foreach (MetaObject nested in metaObject.MetaObjects)
+            foreach (MetadataObject nested in metaObject.MetadataObjects)
             {
                 ReadSQLMetadata(nested);
             }
@@ -181,7 +181,7 @@ namespace DaJet.Metadata
             }
             return info;
         }
-        private void ReadSQLMetadata(MetaObject metaObject)
+        private void ReadSQLMetadata(MetadataObject metaObject)
         {
             if (string.IsNullOrWhiteSpace(metaObject.TableName)) return;
 
@@ -191,8 +191,8 @@ namespace DaJet.Metadata
 
             foreach (SqlFieldInfo info in sql_fields)
             {
-                bool found = false; MetaField field = null;
-                foreach (MetaProperty p in metaObject.Properties)
+                bool found = false; DatabaseField field = null;
+                foreach (MetadataProperty p in metaObject.Properties)
                 {
                     if (string.IsNullOrEmpty(p.Field)) { continue; }
 
@@ -200,7 +200,7 @@ namespace DaJet.Metadata
 
                     if (info.COLUMN_NAME.TrimStart('_').StartsWith(p.Field))
                     {
-                        field = new MetaField()
+                        field = new DatabaseField()
                         {
                             Name = info.COLUMN_NAME,
                             Purpose = SqlUtility.ParseFieldPurpose(info.COLUMN_NAME)
@@ -216,11 +216,11 @@ namespace DaJet.Metadata
                     DataTypeInfo propertyType = new DataTypeInfo();
 
                     if (metaObject.Owner != null // таблица итогов регистра накопления
-                        && metaObject.TypeName == MetaObjectTypes.AccumulationRegister
-                        && metaObject.Owner.TypeName == MetaObjectTypes.AccumulationRegister)
+                        && metaObject.TypeName == MetadataObjectTypes.AccumulationRegister
+                        && metaObject.Owner.TypeName == MetadataObjectTypes.AccumulationRegister)
                     {
                         // find property name in main table object by field name
-                        foreach (MetaProperty ownerProperty in metaObject.Owner.Properties)
+                        foreach (MetadataProperty ownerProperty in metaObject.Owner.Properties)
                         {
                             if (ownerProperty.Fields.Where(f => f.Name == info.COLUMN_NAME).FirstOrDefault() != null)
                             {
@@ -235,10 +235,10 @@ namespace DaJet.Metadata
                         }
                     }
 
-                    MetaProperty property = metaObject.Properties.Where(p => p.Name == propertyName).FirstOrDefault();
+                    MetadataProperty property = metaObject.Properties.Where(p => p.Name == propertyName).FirstOrDefault();
                     if (property == null)
                     {
-                        property = new MetaProperty()
+                        property = new MetadataProperty()
                         {
                             Name = string.IsNullOrEmpty(propertyName) ? info.COLUMN_NAME : propertyName,
                             Purpose = PropertyPurpose.System
@@ -254,7 +254,7 @@ namespace DaJet.Metadata
                         //}
                     }
 
-                    field = new MetaField()
+                    field = new DatabaseField()
                     {
                         Name = info.COLUMN_NAME,
                         Purpose = SqlUtility.ParseFieldPurpose(info.COLUMN_NAME)
@@ -278,7 +278,7 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void MatchFieldToProperty(SqlFieldInfo field, MetaObject metaObject, MetaProperty property)
+        private void MatchFieldToProperty(SqlFieldInfo field, MetadataObject metaObject, MetadataProperty property)
         {
             string columnName = field.COLUMN_NAME.TrimStart('_');
             if (columnName.StartsWith(MetadataTokens.IDRRef))

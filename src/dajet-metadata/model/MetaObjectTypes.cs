@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public static class MetaObjectTypes
+    public static class MetadataObjectTypes
     {
         public static string Unknown { get; } = "Unknown";
         /// <summary> Справочник </summary>

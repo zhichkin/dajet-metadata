@@ -25,46 +25,46 @@ namespace DaJet.Metadata
         }
         private string MapTokenToTypeName(string token)
         {
-            if (token == MetadataTokens.VT) return MetaObjectTypes.TablePart;
-            else if (token == MetadataTokens.Acc) return MetaObjectTypes.Account;
-            else if (token == MetadataTokens.Enum) return MetaObjectTypes.Enumeration;
-            else if (token == MetadataTokens.Node) return MetaObjectTypes.Publication;
-            else if (token == MetadataTokens.Chrc) return MetaObjectTypes.Characteristic;
-            else if (token == MetadataTokens.Const) return MetaObjectTypes.Constant;
-            else if (token == MetadataTokens.AccRg) return MetaObjectTypes.AccountingRegister;
-            else if (token == MetadataTokens.InfoRg) return MetaObjectTypes.InformationRegister;
-            else if (token == MetadataTokens.AccumRg) return MetaObjectTypes.AccumulationRegister;
-            else if (token == MetadataTokens.Document) return MetaObjectTypes.Document;
-            else if (token == MetadataTokens.Reference) return MetaObjectTypes.Catalog;
-            else return MetaObjectTypes.Unknown;
+            if (token == MetadataTokens.VT) return MetadataObjectTypes.TablePart;
+            else if (token == MetadataTokens.Acc) return MetadataObjectTypes.Account;
+            else if (token == MetadataTokens.Enum) return MetadataObjectTypes.Enumeration;
+            else if (token == MetadataTokens.Node) return MetadataObjectTypes.Publication;
+            else if (token == MetadataTokens.Chrc) return MetadataObjectTypes.Characteristic;
+            else if (token == MetadataTokens.Const) return MetadataObjectTypes.Constant;
+            else if (token == MetadataTokens.AccRg) return MetadataObjectTypes.AccountingRegister;
+            else if (token == MetadataTokens.InfoRg) return MetadataObjectTypes.InformationRegister;
+            else if (token == MetadataTokens.AccumRg) return MetadataObjectTypes.AccumulationRegister;
+            else if (token == MetadataTokens.Document) return MetadataObjectTypes.Document;
+            else if (token == MetadataTokens.Reference) return MetadataObjectTypes.Catalog;
+            else return MetadataObjectTypes.Unknown;
         }
         private string CreateDBName(string token, string code)
         {
             return $"_{token}{code}";
         }
-        private MetaObject CreateMetaObject(Guid uuid, string token, string code)
+        private MetadataObject CreateMetadataObject(Guid uuid, string token, string code)
         {
             if (token == MetadataTokens.Node)
             {
                 return new Publication()
                 {
-                    UUID = uuid,
+                    FileName = uuid,
                     TypeCode = int.Parse(code),
                     TypeName = MapTokenToTypeName(token),
                     TableName = CreateDBName(token, code)
                 };
             }
-            return new MetaObject()
+            return new MetadataObject()
             {
-                UUID = uuid,
+                FileName = uuid,
                 TypeCode = int.Parse(code),
                 TypeName = MapTokenToTypeName(token),
                 TableName = CreateDBName(token, code)
             };
         }
-        private MetaProperty CreateMetaProperty(Guid uuid, string token, string code)
+        private MetadataProperty CreateMetadataProperty(Guid uuid, string token, string code)
         {
-            return new MetaProperty()
+            return new MetadataProperty()
             {
                 FileName = uuid,
                 Field = CreateDBName(token, code)
@@ -88,51 +88,51 @@ namespace DaJet.Metadata
 
             if (token == MetadataTokens.Fld)
             {
-                _ = infoBase.Properties.TryAdd(uuid, CreateMetaProperty(uuid, token, code));
+                _ = infoBase.Properties.TryAdd(uuid, CreateMetadataProperty(uuid, token, code));
             }
             else if (token == MetadataTokens.VT)
             {
-                _ = infoBase.TableParts.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.TableParts.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Acc)
             {
-                _ = infoBase.Accounts.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Accounts.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Reference)
             {
-                _ = infoBase.Catalogs.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Catalogs.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Document)
             {
-                _ = infoBase.Documents.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Documents.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Enum)
             {
-                _ = infoBase.Enumerations.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Enumerations.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Node)
             {
-                _ = infoBase.Publications.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Publications.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Chrc)
             {
-                _ = infoBase.Characteristics.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Characteristics.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.Const)
             {
-                _ = infoBase.Constants.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.Constants.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.AccRg)
             {
-                _ = infoBase.AccountingRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.AccountingRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.InfoRg)
             {
-                _ = infoBase.InformationRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.InformationRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token == MetadataTokens.AccumRg)
             {
-                _ = infoBase.AccumulationRegisters.TryAdd(uuid, CreateMetaObject(uuid, token, code));
+                _ = infoBase.AccumulationRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
             }
             else if (token.EndsWith(MetadataTokens.ChngR) && !token.StartsWith(MetadataTokens.Config))
             {
@@ -145,7 +145,7 @@ namespace DaJet.Metadata
         }
         private void AttachChangeTrackingTable(InfoBase infoBase, Guid uuid, string token, string code)
         {
-            List<Dictionary<Guid, MetaObject>> list = new List<Dictionary<Guid, MetaObject>>()
+            List<Dictionary<Guid, MetadataObject>> list = new List<Dictionary<Guid, MetadataObject>>()
             {
                 infoBase.Accounts,
                 infoBase.Catalogs,
@@ -157,12 +157,12 @@ namespace DaJet.Metadata
                 infoBase.InformationRegisters,
                 infoBase.AccumulationRegisters
             };
-            MetaObject owner;
+            MetadataObject owner;
             foreach (var item in list)
             {
                 if (item.TryGetValue(uuid, out owner))
                 {
-                    owner.MetaObjects.Add(CreateMetaObject(uuid, token, code));
+                    owner.MetadataObjects.Add(CreateMetadataObject(uuid, token, code));
                     break;
                 }
             }
