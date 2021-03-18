@@ -25,15 +25,15 @@ namespace DaJet.Metadata.Tests
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
 
-            //ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-            //metadataService
-            //    .UseConnectionString(ConnectionString)
-            //    .UseDatabaseProvider(DatabaseProviders.SQLServer);
-
-            ConnectionString = "Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;";
+            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
             metadataService
                 .UseConnectionString(ConnectionString)
-                .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
+                .UseDatabaseProvider(DatabaseProviders.SQLServer);
+
+            //ConnectionString = "Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;";
+            //metadataService
+            //    .UseConnectionString(ConnectionString)
+            //    .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
         }
         [TestMethod("Загрузка свойств конфигурации")] public void ReadConfigurationProperties()
         {
