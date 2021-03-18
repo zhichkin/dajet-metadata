@@ -16,23 +16,28 @@ namespace DaJet.Metadata.Tests
     {
         private const string DBNAMES_FILE_NAME = "DBNames";
         private string ConnectionString { get; set; }
-        private readonly IMetadataReader metadata;
-        private readonly IMetadataFileReader fileReader;
-        private readonly IConfigurationFileParser configReader;
+        private readonly IMetadataService metadataService = new MetadataService();
+        
         public UnitTests()
         {
             // dajet-metadata
+            // dajet-metadata-pg
             // trade_11_2_3_159_demo
             // accounting_3_0_72_72_demo
-            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-            fileReader = new MetadataFileReader();
-            fileReader.UseConnectionString(ConnectionString);
-            metadata = new MetadataReader(fileReader);
-            configReader = new ConfigurationFileParser(fileReader);
+
+            //ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
+            //metadataService
+            //    .UseConnectionString(ConnectionString)
+            //    .UseDatabaseProvider(DatabaseProviders.SQLServer);
+
+            ConnectionString = "Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;";
+            metadataService
+                .UseConnectionString(ConnectionString)
+                .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
         }
         [TestMethod("Загрузка свойств конфигурации")] public void ReadConfigurationProperties()
         {
-            ConfigInfo config = configReader.ReadConfigurationProperties();
+            ConfigInfo config = metadataService.ReadConfigurationProperties();
 
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
@@ -51,8 +56,8 @@ namespace DaJet.Metadata.Tests
             watch.Start();
 
             InfoBase infoBase = new InfoBase();
-            byte[] fileData = fileReader.ReadBytes(DBNAMES_FILE_NAME);
-            using (StreamReader stream = fileReader.CreateReader(fileData))
+            byte[] fileData = metadataService.ReadBytes(DBNAMES_FILE_NAME);
+            using (StreamReader stream = metadataService.CreateReader(fileData))
             {
                 IDBNamesFileParser parser = new DBNamesFileParser();
                 parser.Parse(stream, infoBase);
@@ -66,7 +71,7 @@ namespace DaJet.Metadata.Tests
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            InfoBase infoBase = metadata.LoadInfoBase();
+            InfoBase infoBase = metadataService.LoadInfoBase();
 
             watch.Stop();
             Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
@@ -82,7 +87,7 @@ namespace DaJet.Metadata.Tests
 
             MetadataObject metaObject = null;
             Dictionary<Guid, MetadataObject> collection = null;
-            InfoBase infoBase = metadata.LoadInfoBase();
+            InfoBase infoBase = metadataService.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
             else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
@@ -95,32 +100,17 @@ namespace DaJet.Metadata.Tests
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            ISqlMetadataReader sqlReader = new SqlMetadataReader();
-            sqlReader.UseConnectionString(ConnectionString);
-            List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(metaObject.TableName);
-            if (sqlFields.Count == 0) return;
-
-            MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
-            List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
-            List<string> sourceFields = merger.PrepareComparison(sqlFields);
-
             List<string> delete_list;
             List<string> insert_list;
-            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
+            bool result = metadataService.CompareWithDatabase(metaObject, out delete_list, out insert_list);
 
             watch.Stop();
             Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
             Console.WriteLine();
 
-            int match = targetFields.Count - delete_list.Count;
-            int unmatch = sourceFields.Count - match;
-            Console.WriteLine("Всё сходится = " + (insert_list.Count == unmatch).ToString());
+            Console.WriteLine("Всё сходится = " + result.ToString());
             Console.WriteLine();
 
-            ShowList("target", targetFields);
-            Console.WriteLine();
-            ShowList("source", sourceFields);
-            Console.WriteLine();
             ShowList("delete", delete_list);
             Console.WriteLine();
             ShowList("insert", insert_list);
@@ -135,18 +125,13 @@ namespace DaJet.Metadata.Tests
         }
 
 
-        private readonly MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
-        private readonly ISqlMetadataReader sqlReader = new SqlMetadataReader();
+        
         [TestMethod] public void MergePerformance()
         {
-            sqlReader.UseConnectionString(ConnectionString);
-
-            //InfoBase infoBase = metadata.LoadInfoBase();
-
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            InfoBase infoBase = metadata.LoadInfoBase();
+            InfoBase infoBase = metadataService.LoadInfoBase();
 
             foreach (var collection in infoBase.ValueTypes)
             {
@@ -188,12 +173,9 @@ namespace DaJet.Metadata.Tests
         private void MergeFields(object parameters)
         {
             MetadataObject metaObject = (MetadataObject)parameters;
-            List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(metaObject.TableName);
-            List<string> targetFields = merger.PrepareComparison(metaObject.Properties);
-            List<string> sourceFields = merger.PrepareComparison(sqlFields);
             List<string> delete_list;
             List<string> insert_list;
-            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
+            metadataService.CompareWithDatabase(metaObject, out delete_list, out insert_list);
         }
 
 
@@ -203,7 +185,7 @@ namespace DaJet.Metadata.Tests
             Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
             foreach (MetadataProperty property in metaObject.Properties)
             {
-                Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
+                Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
             }
         }
         private MetadataObject GetMetadataObjectByName(string metadataName)
@@ -214,7 +196,7 @@ namespace DaJet.Metadata.Tests
             string objectName = names[1];
 
             Dictionary<Guid, MetadataObject> collection = null;
-            InfoBase infoBase = metadata.LoadInfoBase();
+            InfoBase infoBase = metadataService.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
             else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
@@ -285,8 +267,25 @@ namespace DaJet.Metadata.Tests
             ShowList("source", sourceFields);
         }
 
+        [TestMethod("Табличная часть")] public void TestTablePart()
+        {
+            InfoBase infoBase = metadataService.LoadInfoBase();
+            Assert.IsNotNull(infoBase);
 
-        [TestMethod] public void TestPublication()
+            MetadataObject catalog = infoBase.Catalogs.Values.Where(i => i.Name == "ПростойСправочник").FirstOrDefault();
+            Assert.IsNotNull(catalog);
+
+            MetadataObject tablePart = catalog.MetadataObjects.Where(t => t.Name == "ТабличнаяЧасть1").FirstOrDefault();
+            Assert.IsNotNull(tablePart);
+            Assert.AreEqual(catalog, ((TablePart)tablePart).Owner);
+            Assert.AreEqual(tablePart.TableName, string.Format("{0}_VT{1}", catalog.TableName, tablePart.TypeCode));
+
+            ShowProperties(tablePart);
+            metadataService.EnrichFromDatabase(tablePart);
+            ShowProperties(tablePart);
+        }
+
+        [TestMethod("Получить состав плана обмена")] public void TestPublication()
         {
             // 1b2faf29-5ed0-44fd-90c4-329ff3d3ad74
             // 1012b779-cd67-4122-a2ae-18ef014297f3
@@ -295,11 +294,12 @@ namespace DaJet.Metadata.Tests
             // e1f1df1a-5f4b-4269-9f67-4a5fa61df942
             // e1f1df1a-5f4b-4269-9f67-4a5fa61df942
             string fileName = "1012b779-cd67-4122-a2ae-18ef014297f3.1";
-            byte[] fileData = fileReader.ReadBytes(fileName);
-            using (StreamReader reader = fileReader.CreateReader(fileData))
-            using (StreamWriter writer = new StreamWriter(@"C:\temp\metadata-test\publication.txt", false, Encoding.UTF8))
+            byte[] fileData = metadataService.ReadBytes(fileName);
+            using (StreamReader reader = metadataService.CreateReader(fileData))
+            //using (StreamWriter writer = new StreamWriter(@"C:\temp\metadata-test\publication.txt", false, Encoding.UTF8))
             {
-                writer.Write(reader.ReadToEnd());
+                //writer.Write(reader.ReadToEnd());
+                Console.WriteLine(reader.ReadToEnd());
             }
         }
     }

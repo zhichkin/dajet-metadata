@@ -3,6 +3,20 @@ using System.Collections.Generic;
 
 namespace DaJet.Metadata.Model
 {
+    public sealed class PublicationPropertyFactory : MetadataPropertyFactory
+    {
+        protected override void InitializePropertyNameLookup()
+        {
+            PropertyNameLookup.Add("idrref", "Ссылка");
+            PropertyNameLookup.Add("marked", "ПометкаУдаления");
+            PropertyNameLookup.Add("version", "ВерсияДанных");
+            PropertyNameLookup.Add("predefinedid", "Предопределённый");
+            PropertyNameLookup.Add("code", "Код");
+            PropertyNameLookup.Add("description", "Наименование");
+            PropertyNameLookup.Add("sentno", "НомерОтправленного");
+            PropertyNameLookup.Add("receivedno", "НомерПринятого");
+        }
+    }
     public sealed class Publication : MetadataObject
     {
         public bool IsDistributed { get; set; }

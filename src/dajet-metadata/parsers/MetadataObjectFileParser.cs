@@ -82,17 +82,17 @@ namespace DaJet.Metadata
 
             string[] items = line.Split(',');
 
-            string value = (metaObject.TypeName == MetadataObjectTypes.Enumeration ? items[1] : items[3]);
+            string value = (metaObject.GetType() == typeof(Enumeration) ? items[1] : items[3]);
 
             metaObject.Uuid = new Guid(value);
         }
         public void ParseMetadataObject(StreamReader reader, MetadataObject metaObject)
         {
-            if (metaObject.TypeName == MetadataObjectTypes.Constant)
+            if (metaObject.GetType() == typeof(Constant))
             {
                 ParseConstant(reader, metaObject); return;
             }
-            else if (metaObject.TypeName == MetadataObjectTypes.Catalog)
+            else if (metaObject.GetType() == typeof(Catalog))
             {
                 // TODO: AddCatalogBasicProperties(metaObject); ?
             }
@@ -102,13 +102,13 @@ namespace DaJet.Metadata
             //string uuid = ParseMetadataObjectUuid(line, metaObject); // идентификатор объекта метаданных ParseMetaUuid
             _ = reader.ReadLine(); // 3. line
             line = reader.ReadLine(); // 4. line
-            if (metaObject.TypeName == MetadataObjectTypes.Publication)
+            if (metaObject.GetType() == typeof(Publication))
             {
                 ParseMetadataObjectName(line, metaObject); // metaobject's UUID and Name
             }
 
             line = reader.ReadLine(); // 5. line
-            if (metaObject.TypeName == MetadataObjectTypes.Publication)
+            if (metaObject.GetType() == typeof(Publication))
             {
                 ParseMetadataObjectAlias(line, metaObject); // metaobject's alias
             }
@@ -118,7 +118,7 @@ namespace DaJet.Metadata
             }
 
             line = reader.ReadLine(); // 6. line
-            if (metaObject.TypeName == MetadataObjectTypes.Publication)
+            if (metaObject.GetType() == typeof(Publication))
             {
                 ParseIsDistributed(line, metaObject);
             }
@@ -129,12 +129,12 @@ namespace DaJet.Metadata
 
             _ = reader.ReadLine(); // 7. line
 
-            if (metaObject.TypeName == MetadataObjectTypes.Catalog)
+            if (metaObject.GetType() == typeof(Catalog))
             {
                 // starts from 8. line
                 ParseReferenceOwner(reader, metaObject); // свойство справочника "Владелец"
             }
-            else if (metaObject.TypeName == MetadataObjectTypes.Document)
+            else if (metaObject.GetType() == typeof(Document))
             {
                 // starts from 8. line
                 // TODO: Parse объекты метаданных, которые являются основанием для заполнения текущего
@@ -180,7 +180,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "Ссылка",
-                Field = "_IDRRef",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -203,7 +202,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "ВерсияДанных",
-                Field = "_Version",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -223,7 +221,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "ПометкаУдаления",
-                Field = "_Marked",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -243,7 +240,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "Предопределённый",
-                Field = "_PredefinedID",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -268,7 +264,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "НомерПринятого",
-                Field = "_ReceivedNo",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -291,7 +286,6 @@ namespace DaJet.Metadata
             property = new MetadataProperty()
             {
                 Name = "НомерОтправленного",
-                Field = "_SentNo",
                 FileName = Guid.Empty,
                 Purpose = PropertyPurpose.System
             };
@@ -327,7 +321,7 @@ namespace DaJet.Metadata
 
             string[] items = line.Split(',');
 
-            return (metaObject.TypeName == MetadataObjectTypes.Enumeration ? items[1] : items[3]);
+            return (metaObject.GetType() == typeof(Enumeration) ? items[1] : items[3]);
         }
         private void ParseMetadataObjectName(string line, MetadataObject metaObject)
         {
@@ -384,8 +378,7 @@ namespace DaJet.Metadata
                 {
                     Name = "Владелец",
                     FileName = Guid.Empty,
-                    Purpose = PropertyPurpose.System, // PropertyPurpose.Hierarchy - ?
-                    Field = "OwnerID" // [_OwnerIDRRef] or [_OwnerID_TYPE]+[_OwnerID_RTRef]+[_OwnerID_RRRef]
+                    Purpose = PropertyPurpose.System, // PropertyPurpose.Hierarchy - !?
                 };
                 property.PropertyType.CanBeReference = true;
                 property.PropertyType.ReferenceTypeCode = (owners.Count == 1) ? owners[0] : 0; // single or multiple type
@@ -488,12 +481,15 @@ namespace DaJet.Metadata
             string fileName = lines[2].Replace("}", string.Empty);
             string objectName = lines[3].Replace("\"", string.Empty);
 
-            if (InfoBase.Properties.TryGetValue(new Guid(fileName), out MetadataProperty property))
+            if (!InfoBase.Properties.TryGetValue(new Guid(fileName), out MetadataProperty property))
             {
-                property.Name = objectName;
-                property.Purpose = purpose;
-                metaObject.Properties.Add(property);
+                return;
             }
+
+            property.Name = objectName;
+            property.Purpose = purpose;
+            metaObject.Properties.Add(property);
+
             ParseMetadataPropertyTypes(reader, property);
             CreateDatabaseFields(property);
         }
@@ -562,6 +558,7 @@ namespace DaJet.Metadata
         }
         private void CreateDatabaseFields(MetadataProperty property)
         {
+            // TODO: убрать в MetadataPropertyFactory
             if (property.PropertyType.IsMultipleType)
             {
                 CreateDatabaseFieldsForMultipleType(property);
@@ -575,7 +572,7 @@ namespace DaJet.Metadata
         {
             if (property.PropertyType.IsUuid)
             {
-                property.Fields.Add(new DatabaseField(property.Field, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.DbName, "binary", 16));
             }
             else if (property.PropertyType.IsBinary)
             {
@@ -584,61 +581,61 @@ namespace DaJet.Metadata
             }
             else if (property.PropertyType.IsValueStorage)
             {
-                property.Fields.Add(new DatabaseField(property.Field, "varbinary", -1));
+                property.Fields.Add(new DatabaseField(property.DbName, "varbinary", -1));
             }
             else if (property.PropertyType.CanBeString)
             {
                 // should be updated from database
-                property.Fields.Add(new DatabaseField(property.Field, "nvarchar", 10));
+                property.Fields.Add(new DatabaseField(property.DbName, "nvarchar", 10));
             }
             else if (property.PropertyType.CanBeNumeric)
             {
                 // should be updated from database
-                property.Fields.Add(new DatabaseField(property.Field, "numeric", 9, 10, 0));
+                property.Fields.Add(new DatabaseField(property.DbName, "numeric", 9, 10, 0));
             }
             else if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new DatabaseField(property.Field, "binary", 1));
+                property.Fields.Add(new DatabaseField(property.DbName, "binary", 1));
             }
             else if (property.PropertyType.CanBeDateTime)
             {
                 // can be updated from database
-                property.Fields.Add(new DatabaseField(property.Field, "datetime2", 6, 19, 0));
+                property.Fields.Add(new DatabaseField(property.DbName, "datetime2", 6, 19, 0));
             }
             else if (property.PropertyType.CanBeReference)
             {
-                property.Fields.Add(new DatabaseField(property.Field + MetadataTokens.RRef, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.DbName + MetadataTokens.RRef, "binary", 16));
             }
         }
         private void CreateDatabaseFieldsForMultipleType(MetadataProperty property)
         {
-            property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.TYPE, "binary", 1));
+            property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "binary", 1));
             if (property.PropertyType.CanBeString)
             {
                 // should be updated from database
-                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.S, "nvarchar", 10));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.S, "nvarchar", 10));
             }
             if (property.PropertyType.CanBeNumeric)
             {
                 // should be updated from database
-                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
             }
             if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.L, "binary", 1));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "binary", 1));
             }
             if (property.PropertyType.CanBeDateTime)
             {
                 // can be updated from database
-                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
             }
             if (property.PropertyType.CanBeReference)
             {
                 if (property.PropertyType.ReferenceTypeCode == 0) // miltiple refrence type
                 {
-                    property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.RTRef, "binary", 4));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "binary", 4));
                 }
-                property.Fields.Add(new DatabaseField(property.Field + "_" + MetadataTokens.RRRef, "binary", 16));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "binary", 16));
             }
         }
         
@@ -688,7 +685,10 @@ namespace DaJet.Metadata
 
             if (InfoBase.TableParts.TryGetValue(new Guid(fileName), out MetadataObject nested))
             {
-                nested.Owner = owner;
+                if (nested is TablePart)
+                {
+                    ((TablePart)nested).Owner = owner;
+                }
                 nested.Name = objectName;
                 nested.TableName = owner.TableName + nested.TableName;
                 owner.MetadataObjects.Add(nested);

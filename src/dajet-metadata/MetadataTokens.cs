@@ -1,7 +1,4 @@
-﻿using DaJet.Metadata.Model;
-using System.Collections.Generic;
-
-namespace DaJet.Metadata
+﻿namespace DaJet.Metadata
 {
     public static class MetadataTokens
     {
@@ -21,6 +18,12 @@ namespace DaJet.Metadata
         public const string T = "T";
         ///<summary>Reference type, УникальныйИдентификатор или ХранилищеЗначения</summary>
         public const string R = "#";
+
+        public const string RRef = "RRef";
+        public const string TRef = "TRef";
+        public const string RRRef = "RRRef";
+        public const string RTRef = "RTRef";
+        public const string TYPE = "TYPE"; // 0x08 - reference data type
 
         #endregion
 
@@ -63,28 +66,7 @@ namespace DaJet.Metadata
 
         #endregion
 
-        public static readonly Dictionary<string, IMetadataObjectFactory> ObjectFactories = new Dictionary<string, IMetadataObjectFactory>()
-        {
-            { Acc, new MetadataObjectFactory<Account>() },
-            { AccRg, new MetadataObjectFactory<AccountingRegister>() },
-            { AccumRg, new MetadataObjectFactory<AccumulationRegister>() },
-            { Reference, new MetadataObjectFactory<Catalog>() },
-            { Chrc, new MetadataObjectFactory<Characteristic>() },
-            { Const, new MetadataObjectFactory<Constant>() },
-            { Document, new MetadataObjectFactory<Document>() },
-            { Enum, new MetadataObjectFactory<Enumeration>() },
-            { InfoRg, new MetadataObjectFactory<InformationRegister>() },
-            { Node, new MetadataObjectFactory<Publication>() },
-            { VT, new MetadataObjectFactory<TablePart>() }
-        };
-
         #region "Токены полей таблиц СУБД объектов метаданных"
-
-        public const string RRef = "RRef";
-        public const string TRef = "TRef";
-        public const string RRRef = "RRRef";
-        public const string RTRef = "RTRef";
-        public const string TYPE = "TYPE"; // 0x08 - reference data type
 
         public const string Fld = "Fld";
         public const string IDRRef = "IDRRef";
@@ -135,24 +117,5 @@ namespace DaJet.Metadata
         public const string RepetitionFactor = "RepetitionFactor";
 
         #endregion
-
-        public static readonly Dictionary<string, string> PropertyNameLookup = new Dictionary<string, string>()
-        {
-            { "_Code".ToLowerInvariant(), "Код" },
-            { "_Description".ToLowerInvariant(), "Наименование" },
-            { "_IDRRef".ToLowerInvariant(), "Ссылка" },
-            { "_Marked".ToLowerInvariant(), "ПометкаУдаления" },
-            { "_PredefinedID".ToLowerInvariant(), "Предопределённый" },
-            { "_Version".ToLowerInvariant(), "ВерсияДанных" },
-            { "_Folder".ToLowerInvariant(), "ЭтоГруппа" },
-            { "_ParentIDRRef".ToLowerInvariant(), "Родитель" },
-            // + ПланОбмена
-            { "_SentNo".ToLowerInvariant(), "НомерОтправленного" },
-            { "_ReceivedNo".ToLowerInvariant(), "НомерПринятого" }
-            // - ПланОбмена
-            // TODO: добавить свойства для документов, табличных частей и т.д.
-
-            // TODO: move this lookup to MetadataObjectFactory ?
-        };
     }
 }

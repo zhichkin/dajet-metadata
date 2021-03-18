@@ -1,5 +1,7 @@
 ﻿using DaJet.Metadata.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DaJet.Metadata.Tests
@@ -9,29 +11,52 @@ namespace DaJet.Metadata.Tests
         // dajet-metadata
         // trade_11_2_3_159_demo
         // accounting_3_0_72_72_demo
-        public string ConnectionString { get; set; } = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-#pragma warning disable IDE0052 // Remove unread private members
-        private readonly IMetadataReader metadata;
-#pragma warning restore IDE0052 // Remove unread private members
-        private readonly IMetadataFileReader fileReader;
-#pragma warning disable IDE0052 // Remove unread private members
-        private readonly IConfigurationFileParser configReader;
-#pragma warning restore IDE0052 // Remove unread private members
-
+        protected readonly IMetadataService metadataService = new MetadataService();
         protected InfoBase InfoBase { get; set; }
+        public string ConnectionString { get; set; }
+
+        private bool MSSQL = true;
 
         public TestClassBase()
         {
-            fileReader = new MetadataFileReader();
-            fileReader.UseConnectionString(ConnectionString);
-            metadata = new MetadataReader(fileReader);
-            configReader = new ConfigurationFileParser(fileReader);
+            if (MSSQL)
+            {
+                ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
+                metadataService
+                    .UseConnectionString(ConnectionString)
+                    .UseDatabaseProvider(DatabaseProviders.SQLServer);
+            }
+            else
+            {
+                ConnectionString = "Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;";
+                metadataService
+                    .UseConnectionString(ConnectionString)
+                    .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
+            }
+            Console.WriteLine("DatabaseProvider: " + metadataService.DatabaseProvider);
+            Console.WriteLine("ConnectionString: " + metadataService.ConnectionString);
         }
         protected virtual void SetupInfoBase()
         {
             if (InfoBase != null) return;
-            InfoBase = metadata.LoadInfoBase();
+            InfoBase = metadataService.LoadInfoBase();
             Assert.IsNotNull(InfoBase);
+        }
+        protected void ShowList(string name, List<string> list)
+        {
+            Console.WriteLine(name + " (" + list.Count.ToString() + ")" + ":");
+            foreach (string item in list)
+            {
+                Console.WriteLine(" - " + item);
+            }
+        }
+        protected void ShowProperties(MetadataObject metaObject)
+        {
+            Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
+            foreach (MetadataProperty property in metaObject.Properties)
+            {
+                Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
+            }
         }
         protected MetadataProperty TestPropertyExists(MetadataObject metaObject, string name)
         {

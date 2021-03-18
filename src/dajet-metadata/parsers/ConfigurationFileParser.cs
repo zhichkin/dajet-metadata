@@ -14,7 +14,7 @@ namespace DaJet.Metadata
         string GetConfigurationFileName();
 
         ///<summary>Выполняет чтение свойств конфигурации 1С</summary>
-        ///<returns>Значения свойств конфигурации ConfigInfo</returns>
+        ///<returns>Значения свойств конфигурации <see cref="ConfigInfo"/></returns>
         ConfigInfo ReadConfigurationProperties();
     }
     public sealed class ConfigurationFileParser : IConfigurationFileParser

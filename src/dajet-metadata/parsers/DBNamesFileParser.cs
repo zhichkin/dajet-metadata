@@ -11,6 +11,7 @@ namespace DaJet.Metadata
     }
     public sealed class DBNamesFileParser : IDBNamesFileParser
     {
+        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
         public void Parse(StreamReader stream, InfoBase infoBase)
         {
             string line = stream.ReadLine(); // 1. line
@@ -23,57 +24,37 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private string MapTokenToTypeName(string token)
+        private int ParseCapacity(string line)
         {
-            if (token == MetadataTokens.VT) return MetadataObjectTypes.TablePart;
-            else if (token == MetadataTokens.Acc) return MetadataObjectTypes.Account;
-            else if (token == MetadataTokens.Enum) return MetadataObjectTypes.Enumeration;
-            else if (token == MetadataTokens.Node) return MetadataObjectTypes.Publication;
-            else if (token == MetadataTokens.Chrc) return MetadataObjectTypes.Characteristic;
-            else if (token == MetadataTokens.Const) return MetadataObjectTypes.Constant;
-            else if (token == MetadataTokens.AccRg) return MetadataObjectTypes.AccountingRegister;
-            else if (token == MetadataTokens.InfoRg) return MetadataObjectTypes.InformationRegister;
-            else if (token == MetadataTokens.AccumRg) return MetadataObjectTypes.AccumulationRegister;
-            else if (token == MetadataTokens.Document) return MetadataObjectTypes.Document;
-            else if (token == MetadataTokens.Reference) return MetadataObjectTypes.Catalog;
-            else return MetadataObjectTypes.Unknown;
-        }
-        private string CreateDBName(string token, string code)
-        {
-            return $"_{token}{code}";
+            return int.Parse(line.Replace("{", string.Empty).Replace(",", string.Empty));
         }
         private MetadataObject CreateMetadataObject(Guid uuid, string token, string code)
         {
-            if (token == MetadataTokens.Node)
+            MetadataObject metaObject;
+
+            IMetadataObjectFactory factory = MetadataManager.GetFactory(token);
+            if (factory == null)
             {
-                return new Publication()
-                {
-                    FileName = uuid,
-                    TypeCode = int.Parse(code),
-                    TypeName = MapTokenToTypeName(token),
-                    TableName = CreateDBName(token, code)
-                };
+                metaObject = new MetadataObject(); // unknown (unsupported) metadata object type
             }
-            return new MetadataObject()
+            else
             {
-                FileName = uuid,
-                TypeCode = int.Parse(code),
-                TypeName = MapTokenToTypeName(token),
-                TableName = CreateDBName(token, code)
-            };
+                metaObject = factory.CreateObject();
+            }
+
+            metaObject.FileName = uuid;
+            metaObject.TypeCode = int.Parse(code);
+            metaObject.TableName = MetadataManager.CreateDbName(token, metaObject.TypeCode);
+
+            return metaObject;
         }
         private MetadataProperty CreateMetadataProperty(Guid uuid, string token, string code)
         {
             return new MetadataProperty()
             {
                 FileName = uuid,
-                Field = CreateDBName(token, code)
+                DbName = MetadataManager.CreateDbName(token, int.Parse(code))
             };
-        }
-
-        private int ParseCapacity(string line)
-        {
-            return int.Parse(line.Replace("{", string.Empty).Replace(",", string.Empty));
         }
         private void ParseEntry(string line, InfoBase infoBase)
         {

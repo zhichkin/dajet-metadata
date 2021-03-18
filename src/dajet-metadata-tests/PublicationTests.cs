@@ -11,10 +11,7 @@ namespace DaJet.Metadata.Tests
     [TestClass]
     public sealed class PublicationTests : TestClassBase
     {
-        private readonly IMetadataReader metadata;
-        private readonly ISqlMetadataReader sqlReader;
-        private readonly IMetadataFileReader fileReader;
-        private readonly IConfigurationFileParser configReader;
+        private readonly IMetadataService metadataService = new MetadataService();
 
         private readonly bool MSSQL = true;
         private MetadataObject Publication { get; set; }
@@ -23,28 +20,22 @@ namespace DaJet.Metadata.Tests
             if (MSSQL)
             {
                 ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-                fileReader = new MetadataFileReader();
-                fileReader.UseConnectionString(ConnectionString);
-                metadata = new MetadataReader(fileReader);
-                sqlReader = new SqlMetadataReader();
-                sqlReader.UseConnectionString(ConnectionString);
-                configReader = new ConfigurationFileParser(fileReader);
+                metadataService
+                    .UseDatabaseProvider(DatabaseProviders.SQLServer)
+                    .UseConnectionString(ConnectionString);
             }
             else
             {
                 ConnectionString = "Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;";
-                fileReader = new PostgresMetadataFileReader();
-                fileReader.UseConnectionString(ConnectionString);
-                metadata = new MetadataReader(fileReader);
-                sqlReader = new PostgresMetadataReader();
-                sqlReader.UseConnectionString(ConnectionString);
-                configReader = new ConfigurationFileParser(fileReader);
+                metadataService
+                    .UseDatabaseProvider(DatabaseProviders.PostgreSQL)
+                    .UseConnectionString(ConnectionString);
             }
         }
         protected override void SetupInfoBase()
         {
             if (InfoBase != null) return;
-            InfoBase = metadata.LoadInfoBase();
+            InfoBase = metadataService.LoadInfoBase();
             Assert.IsNotNull(InfoBase);
         }
         private void SetupMetadataObject()
@@ -65,12 +56,12 @@ namespace DaJet.Metadata.Tests
 
             Assert.IsTrue(Publication.IsReferenceType);
             Assert.AreEqual(Publication.Alias, alias);
-            Assert.AreEqual(Publication.TypeName, MetadataObjectTypes.Publication);
+            Assert.AreEqual(Publication.GetType(), typeof(Publication));
             Assert.AreEqual(Publication.TableName.ToLowerInvariant(), table.ToLowerInvariant());
 
             Console.WriteLine("Name: " + Publication.Name);
             Console.WriteLine("Alias: " + Publication.Alias);
-            Console.WriteLine("TypeName: " + Publication.TypeName);
+            Console.WriteLine("TypeName: " + Publication.GetType().Name);
             Console.WriteLine("TableName: " + Publication.TableName);
             Console.WriteLine("IsDistributed: " + ((Publication)Publication).IsDistributed.ToString());
 
@@ -238,7 +229,7 @@ namespace DaJet.Metadata.Tests
             Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
             foreach (MetadataProperty property in metaObject.Properties)
             {
-                Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
+                Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
             }
         }
         [TestMethod("Добавление свойств по метаданным СУБД")] public void MergeProperties()
@@ -253,43 +244,27 @@ namespace DaJet.Metadata.Tests
             Stopwatch watch = Stopwatch.StartNew();
             watch.Start();
 
-            List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(Publication.TableName);
-            if (sqlFields.Count == 0)
-            {
-                Console.WriteLine("SQL fields are not found.");
-                return;
-            }
-
-            MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
-            merger.MergeProperties(Publication, sqlFields);
+            metadataService.EnrichFromDatabase(Publication);
 
             ShowProperties(Publication);
             Console.WriteLine();
             Console.WriteLine("************");
             Console.WriteLine();
 
-            List<string> targetFields = merger.PrepareComparison(Publication.Properties);
-            List<string> sourceFields = merger.PrepareComparison(sqlFields);
             List<string> delete_list;
             List<string> insert_list;
-            merger.Compare(targetFields, sourceFields, out delete_list, out insert_list);
+            bool result = metadataService.CompareWithDatabase(Publication, out delete_list, out insert_list);
 
             watch.Stop();
             Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
             Console.WriteLine();
 
-            int match = targetFields.Count - delete_list.Count;
-            int unmatch = sourceFields.Count - match;
-            Console.WriteLine("Всё сходится = " + (insert_list.Count == unmatch).ToString());
+            Console.WriteLine("Всё сходится = " + result.ToString());
             Console.WriteLine();
 
             ShowList("delete", delete_list);
             Console.WriteLine();
             ShowList("insert", insert_list);
-            Console.WriteLine();
-            ShowList("target", targetFields);
-            Console.WriteLine();
-            ShowList("source", sourceFields);
         }
 
         [TestMethod("Загрузка узлов плана обмена")] public void SelectSubscribers()
@@ -299,8 +274,8 @@ namespace DaJet.Metadata.Tests
             Publication publication = (Publication)Publication;
 
             PublicationDataMapper mapper = new PublicationDataMapper();
-            mapper.UseConnectionString(fileReader.ConnectionString);
-            mapper.UseDatabaseProvider(MSSQL ? DatabaseProviders.SQLServer : DatabaseProviders.PostgreSQL);
+            mapper.UseDatabaseProvider(metadataService.DatabaseProvider);
+            mapper.UseConnectionString(metadataService.ConnectionString);
             mapper.SelectSubscribers(publication);
 
             Console.WriteLine(string.Format("Publisher: ({0}) {1}",

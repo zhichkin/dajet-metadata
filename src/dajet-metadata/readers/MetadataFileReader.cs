@@ -1,6 +1,8 @@
 ﻿using Microsoft.Data.SqlClient;
+using Npgsql;
 using System;
 using System.Data;
+using System.Data.Common;
 using System.IO;
 using System.IO.Compression;
 using System.Text;
@@ -8,10 +10,17 @@ using System.Text;
 namespace DaJet.Metadata
 {
     /// <summary>
-    /// Интерфейс для чтения файлов конфигурации 1С
+    /// Интерфейс для чтения файлов конфигурации 1С из таблиц IBVersion, Params и Config
     /// </summary>
     public interface IMetadataFileReader
     {
+        ///<summary>Используемый провайдер баз данных</summary>
+        DatabaseProviders DatabaseProvider { get; }
+
+        ///<summary>Устанавливает провайдера базы данных СУБД</summary>
+        ///<param name="provider">Значение перечисления <see cref="DatabaseProviders"/> (Microsoft SQL Server или PostgreSQL)</param>
+        void UseDatabaseProvider(DatabaseProviders databaseProvider);
+
         ///<summary>Возвращает установленную ранее строку подключения к базе данных 1С</summary>
         string ConnectionString { get; }
 
@@ -48,11 +57,16 @@ namespace DaJet.Metadata
         private const string ROOT_FILE_NAME = "root"; // Config
         private const string DBNAMES_FILE_NAME = "DBNames"; // Params
 
-        private const string IBVERSION_QUERY_SCRIPT = "SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];";
-        private const string PARAMS_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Params] WHERE [FileName] = @FileName;";
-        private const string CONFIG_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
+        private const string MS_IBVERSION_QUERY_SCRIPT = "SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];";
+        private const string MS_PARAMS_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Params] WHERE [FileName] = @FileName;";
+        private const string MS_CONFIG_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
 
-        public string ConnectionString { get; private set; }
+        private const string PG_IBVERSION_QUERY_SCRIPT = "SELECT platformversionreq FROM ibversion LIMIT 1;";
+        private const string PG_PARAMS_QUERY_SCRIPT = "SELECT binarydata FROM params WHERE filename = '{filename}';";
+        private const string PG_CONFIG_QUERY_SCRIPT = "SELECT binarydata FROM config WHERE filename = '{filename}';"; // Version 8.3 ORDER BY [PartNo] ASC";
+
+        public string ConnectionString { get; private set; } = string.Empty;
+        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
         private byte[] CombineArrays(byte[] a1, byte[] a2)
         {
             if (a1 == null) return a2;
@@ -62,73 +76,82 @@ namespace DaJet.Metadata
             Buffer.BlockCopy(a2, 0, result, a1.Length, a2.Length);
             return result;
         }
+        private DbConnection CreateDbConnection()
+        {
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            {
+                return new SqlConnection(ConnectionString);
+            }
+            return new NpgsqlConnection(ConnectionString);
+        }
+        private void ConfigureFileNameParameter(DbCommand command, string fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName)) return;
+
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            {
+                ((SqlCommand)command).Parameters.AddWithValue("FileName", fileName);
+            }
+            else
+            {
+                command.CommandText = command.CommandText.Replace("{filename}", fileName);
+            }
+        }
         private T ExecuteScalar<T>(string script, string fileName)
         {
             T result = default(T);
+            using (DbConnection connection = CreateDbConnection())
+            using (DbCommand command = connection.CreateCommand())
             {
-                SqlConnection connection = new SqlConnection(ConnectionString);
-                SqlCommand command = connection.CreateCommand();
-                command.CommandType = CommandType.Text;
                 command.CommandText = script;
-                if (!string.IsNullOrWhiteSpace(fileName))
-                {
-                    command.Parameters.AddWithValue("FileName", fileName);
-                }
-                try
-                {
-                    connection.Open();
-                    result = (T)command.ExecuteScalar();
-                }
-                catch { throw; }
-                finally { DisposeDatabaseResources(connection, command, null); }
+                command.CommandType = CommandType.Text;
+                ConfigureFileNameParameter(command, fileName);
+                connection.Open();
+                result = (T)command.ExecuteScalar();
             }
             return result;
         }
         private byte[] ExecuteReader(string script, string fileName)
         {
             byte[] fileData = null;
+            using (DbConnection connection = CreateDbConnection())
+            using (DbCommand command = connection.CreateCommand())
             {
-                SqlConnection connection = new SqlConnection(ConnectionString);
-                SqlCommand command = connection.CreateCommand();
-                SqlDataReader reader = null;
-                command.CommandType = CommandType.Text;
                 command.CommandText = script;
-                command.Parameters.AddWithValue("FileName", fileName);
-                try
+                command.CommandType = CommandType.Text;
+                ConfigureFileNameParameter(command, fileName);
+                connection.Open();
+                using (DbDataReader reader = command.ExecuteReader())
                 {
-                    connection.Open();
-                    reader = command.ExecuteReader();
                     while (reader.Read())
                     {
-                        byte[] data = reader.GetSqlBytes(0).Value;
+                        byte[] data = (byte[])reader[0];
                         fileData = CombineArrays(fileData, data);
                     }
-                    reader.Close();
                 }
-                catch { throw; }
-                finally { DisposeDatabaseResources(connection, command, reader); }
             }
             return fileData;
         }
-        private void DisposeDatabaseResources(SqlConnection connection, SqlCommand command, SqlDataReader reader)
-        {
-            if (reader != null)
-            {
-                if (!reader.IsClosed && reader.HasRows)
-                {
-                    if (command != null) command.Cancel();
-                }
-                reader.Dispose();
-            }
-            if (command != null) command.Dispose();
-            if (connection != null) connection.Dispose();
-        }
-
         public void UseConnectionString(string connectionString)
         {
             ConnectionString = connectionString;
         }
+        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        {
+            DatabaseProvider = databaseProvider;
+        }
         public void ConfigureConnectionString(string server, string database, string userName, string password)
+        {
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            {
+                ConfigureConnectionStringForSQLServer(server, database, userName, password);
+            }
+            else
+            {
+                ConfigureConnectionStringForPostgreSQL(server, database, userName, password);
+            }
+        }
+        private void ConfigureConnectionStringForSQLServer(string server, string database, string userName, string password)
         {
             SqlConnectionStringBuilder connectionString = new SqlConnectionStringBuilder()
             {
@@ -143,24 +166,70 @@ namespace DaJet.Metadata
             connectionString.IntegratedSecurity = string.IsNullOrWhiteSpace(userName);
             ConnectionString = connectionString.ToString();
         }
+        private void ConfigureConnectionStringForPostgreSQL(string server, string database, string userName, string password)
+        {
+            // Default values for PostgreSQL
+            int serverPort = 5432;
+            string serverName = "127.0.0.1";
+
+            string[] serverInfo = server.Split(':');
+            if (serverInfo.Length == 1)
+            {
+                serverName = serverInfo[0];
+            }
+            else if (serverInfo.Length > 1)
+            {
+                serverName = serverInfo[0];
+                if (!int.TryParse(serverInfo[1], out serverPort))
+                {
+                    serverPort = 5432;
+                }
+            }
+
+            NpgsqlConnectionStringBuilder connectionString = new NpgsqlConnectionStringBuilder()
+            {
+                Host = serverName,
+                Port = serverPort,
+                Database = database
+            };
+            if (!string.IsNullOrWhiteSpace(userName))
+            {
+                connectionString.Username = userName;
+                connectionString.Password = password;
+            }
+            ConnectionString = connectionString.ToString();
+        }
         public int GetPlatformRequiredVersion()
         {
-            return ExecuteScalar<int>(IBVERSION_QUERY_SCRIPT, null);
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            {
+                return ExecuteScalar<int>(MS_IBVERSION_QUERY_SCRIPT, null);
+            }
+            return ExecuteScalar<int>(PG_IBVERSION_QUERY_SCRIPT, null);
         }
         public byte[] ReadBytes(string fileName)
         {
             if (fileName == ROOT_FILE_NAME)
             {
-                return ExecuteReader(CONFIG_QUERY_SCRIPT, fileName);
+                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                {
+                    return ExecuteReader(MS_CONFIG_QUERY_SCRIPT, fileName);
+                }
+                return ExecuteReader(PG_CONFIG_QUERY_SCRIPT, fileName);
             }
             else if (fileName == DBNAMES_FILE_NAME)
             {
-                return ExecuteReader(PARAMS_QUERY_SCRIPT, fileName);
+                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                {
+                    return ExecuteReader(MS_PARAMS_QUERY_SCRIPT, fileName);
+                }
+                return ExecuteReader(PG_PARAMS_QUERY_SCRIPT, fileName);
             }
-            else
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
             {
-                return ExecuteReader(CONFIG_QUERY_SCRIPT, fileName);
+                return ExecuteReader(MS_CONFIG_QUERY_SCRIPT, fileName);
             }
+            return ExecuteReader(PG_CONFIG_QUERY_SCRIPT, fileName);
         }
         public StreamReader CreateReader(byte[] fileData)
         {

@@ -1,6 +1,7 @@
 ﻿using DaJet.Metadata.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
@@ -24,12 +25,12 @@ namespace DaJet.Metadata.Tests
 
             Assert.IsTrue(Catalog.IsReferenceType);
             Assert.AreEqual(Catalog.Alias, "Простой справочник");
-            Assert.AreEqual(Catalog.TypeName, MetadataObjectTypes.Catalog);
+            Assert.AreEqual(Catalog.GetType(), typeof(Catalog));
             Assert.AreEqual(Catalog.TableName, string.Format("_Reference{0}", Catalog.TypeCode));
 
             Console.WriteLine("Name: " + Catalog.Name);
             Console.WriteLine("Alias: " + Catalog.Alias);
-            Console.WriteLine("TypeName: " + Catalog.TypeName);
+            Console.WriteLine("TypeName: " + Catalog.GetType().Name);
             Console.WriteLine("TableName: " + Catalog.TableName);
 
             TestPropertyNotExists(Catalog, "Владелец");
@@ -418,7 +419,7 @@ namespace DaJet.Metadata.Tests
         {
             MetadataObject tablePart = TestTablePartExists(Catalog, name);
 
-            Assert.AreEqual(Catalog, tablePart.Owner);
+            Assert.AreEqual(Catalog, ((TablePart)tablePart).Owner);
             Assert.AreEqual(tablePart.TableName, string.Format("{0}_VT{1}", Catalog.TableName, tablePart.TypeCode));
             
             for (int i = 1; i <= propertiesCount; i++)
@@ -440,6 +441,71 @@ namespace DaJet.Metadata.Tests
                 Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
             }
             //TODO: проверить наличие полей основных реквизитов в базе данных _Reference31_IDRRef + _KeyField + _LineNo(49)
+        }
+
+        [TestMethod("Табличная часть (добавление свойств из БД)")] public void TestTablePart()
+        {
+            InfoBase infoBase = metadataService.LoadInfoBase();
+            Assert.IsNotNull(infoBase);
+
+            MetadataObject catalog = infoBase.Catalogs.Values.Where(i => i.Name == "ПростойСправочник").FirstOrDefault();
+            Assert.IsNotNull(catalog);
+
+            MetadataObject tablePart = catalog.MetadataObjects.Where(t => t.Name == "ТабличнаяЧасть1").FirstOrDefault();
+            Assert.IsNotNull(tablePart);
+            Assert.AreEqual(catalog, ((TablePart)tablePart).Owner);
+            Assert.AreEqual(tablePart.TableName, string.Format("{0}_VT{1}", catalog.TableName, tablePart.TypeCode));
+
+            ShowProperties(tablePart);
+            metadataService.EnrichFromDatabase(tablePart);
+            ShowProperties(tablePart);
+
+            List<string> delete_list;
+            List<string> insert_list;
+            bool result = metadataService.CompareWithDatabase(tablePart, out delete_list, out insert_list);
+
+            Console.WriteLine();
+            Console.WriteLine("Всё сходится = " + result.ToString());
+            Console.WriteLine();
+
+            ShowList("delete", delete_list);
+            Console.WriteLine();
+            ShowList("insert", insert_list);
+        }
+
+        [TestMethod("Загрузка метаданных СУБД")] public void MergeProperties()
+        {
+            SetupMetadataObject();
+
+            ShowProperties(Catalog);
+                Console.WriteLine();
+                Console.WriteLine("************");
+                Console.WriteLine();
+
+            Stopwatch watch = Stopwatch.StartNew();
+            watch.Start();
+
+            metadataService.EnrichFromDatabase(Catalog);
+
+            ShowProperties(Catalog);
+            Console.WriteLine();
+            Console.WriteLine("************");
+            Console.WriteLine();
+
+            List<string> delete_list;
+            List<string> insert_list;
+            bool result = metadataService.CompareWithDatabase(Catalog, out delete_list, out insert_list);
+
+            watch.Stop();
+            Console.WriteLine("Elapsed in " + watch.ElapsedMilliseconds + " milliseconds.");
+            Console.WriteLine();
+
+            Console.WriteLine("Всё сходится = " + result.ToString());
+            Console.WriteLine();
+
+            ShowList("delete", delete_list);
+            Console.WriteLine();
+            ShowList("insert", insert_list);
         }
     }
 }

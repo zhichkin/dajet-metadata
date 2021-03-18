@@ -48,20 +48,21 @@ namespace DaJet.Metadata.CLI
                 ShowErrorMessage(DATABASE_IS_NOT_DEFINED_ERROR); return;
             }
 
-            IMetadataFileReader fileReader = null;
+            IMetadataService metadataService = new MetadataService();
             if (!string.IsNullOrWhiteSpace(ms))
             {
-                fileReader = new MetadataFileReader();
-                fileReader.ConfigureConnectionString(ms, d, u, p);
+                metadataService
+                    .UseDatabaseProvider(DatabaseProviders.SQLServer)
+                    .ConfigureConnectionString(ms, d, u, p);
             }
             else if (!string.IsNullOrWhiteSpace(pg))
             {
-                fileReader = new PostgresMetadataFileReader();
-                fileReader.ConfigureConnectionString(pg, d, u, p);
+                metadataService
+                    .UseDatabaseProvider(DatabaseProviders.PostgreSQL)
+                    .ConfigureConnectionString(pg, d, u, p);
             }
 
-            IConfigurationFileParser configParser = new ConfigurationFileParser(fileReader);
-            ConfigInfo config = configParser.ReadConfigurationProperties();
+            ConfigInfo config = metadataService.ReadConfigurationProperties();
 
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
@@ -76,25 +77,25 @@ namespace DaJet.Metadata.CLI
 
             if (outRoot != null)
             {
-                SaveConfigToFile(outRoot.FullName, fileReader, configParser);
+                SaveConfigToFile(outRoot.FullName, metadataService);
             }
 
             if (outFile != null && !string.IsNullOrWhiteSpace(m))
             {
-                SaveMetadataObjectToFile(outFile.FullName, fileReader, m);
+                SaveMetadataObjectToFile(outFile.FullName, metadataService, m);
             }
         }
-        private static void SaveConfigToFile(string filePath, IMetadataFileReader fileReader, IConfigurationFileParser configParser)
+        private static void SaveConfigToFile(string filePath, IMetadataService metadataService)
         {
-            string fileName = configParser.GetConfigurationFileName();
-            byte[] fileData = fileReader.ReadBytes(fileName);
-            using (StreamReader reader = fileReader.CreateReader(fileData))
+            string fileName = metadataService.GetConfigurationFileName();
+            byte[] fileData = metadataService.ReadBytes(fileName);
+            using (StreamReader reader = metadataService.CreateReader(fileData))
             using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
             {
                 writer.Write(reader.ReadToEnd());
             }
         }
-        private static void SaveMetadataObjectToFile(string filePath, IMetadataFileReader fileReader, string metadataName)
+        private static void SaveMetadataObjectToFile(string filePath, IMetadataService metadataService, string metadataName)
         {
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return;
@@ -103,8 +104,7 @@ namespace DaJet.Metadata.CLI
 
             MetadataObject metaObject = null;
             Dictionary<Guid, MetadataObject> collection = null;
-            IMetadataReader metadata = new MetadataReader(fileReader);
-            InfoBase infoBase = metadata.LoadInfoBase();
+            InfoBase infoBase = metadataService.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;
             else if (typeName == "ПланОбмена") collection = infoBase.Publications;
@@ -115,10 +115,10 @@ namespace DaJet.Metadata.CLI
             metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
             if (metaObject == null) return;
 
-            byte[] fileData = fileReader.ReadBytes(metaObject.FileName.ToString());
+            byte[] fileData = metadataService.ReadBytes(metaObject.FileName.ToString());
             if (fileData == null) return;
 
-            using (StreamReader reader = fileReader.CreateReader(fileData))
+            using (StreamReader reader = metadataService.CreateReader(fileData))
             using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
             {
                 writer.Write(reader.ReadToEnd());

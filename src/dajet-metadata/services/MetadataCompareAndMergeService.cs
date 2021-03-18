@@ -23,7 +23,7 @@ namespace DaJet.Metadata
         /// <returns>Список имён полей свойств объекта метаданных, отсортированный по возрастанию</returns>
         List<string> PrepareComparison(List<MetadataProperty> properties);
         /// <summary>
-        /// Выполняет сравнение отсортированных по возврастанию списков: обновляемого и эталонного.
+        /// Выполняет сравнение отсортированных по возврастанию списков: обновляемого (target) и эталонного (source).
         /// </summary>
         /// <param name="target_list">Список для изменения (обновляемый)</param>
         /// <param name="source_list">Список для сравнения (эталонный)</param>
@@ -33,8 +33,8 @@ namespace DaJet.Metadata
         /// <summary>
         /// Выполняет сравнение и слияние свойств объекта метаданных с полями таблицы СУБД
         /// </summary>
-        /// /// <param name="metaObject">Объект метаданных</param>
-        /// <param name="fields">Коллекция полей таблицы СУБД объекта метаданных</param>
+        /// <param name="metaObject">Объект метаданных, для которого выполняется сравнение и слияние</param>
+        /// <param name="fields">Коллекция полей таблицы СУБД объекта метаданных, отсортированная по возрастанию имён полей</param>
         void MergeProperties(MetadataObject metaObject, List<SqlFieldInfo> fields);
     }
     /// <summary>
@@ -43,6 +43,7 @@ namespace DaJet.Metadata
     /// </summary>
     public sealed class MetadataCompareAndMergeService : IMetadataCompareAndMergeService
     {
+        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
         public void Compare(List<string> target_list, List<string> source_list, out List<string> delete_list, out List<string> insert_list)
         {
             delete_list = new List<string>();
@@ -217,64 +218,13 @@ namespace DaJet.Metadata
         }
         private void InsertPropertyField(MetadataObject metaObject, SqlFieldInfo field)
         {
-            string propertyName = string.Empty;
-            if (!MetadataTokens.PropertyNameLookup.TryGetValue(field.COLUMN_NAME.ToLowerInvariant(), out propertyName))
-            {
-                propertyName = field.COLUMN_NAME;
-            }
+            IMetadataObjectFactory factory = MetadataManager.GetFactory(metaObject.GetType());
+            if (factory == null) return;
 
-            MetadataProperty property = new MetadataProperty()
+            MetadataProperty property = factory.CreateProperty(metaObject, field);
+            if (property != null)
             {
-                Name = propertyName,
-                Field = field.COLUMN_NAME,
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            SetupPropertyType(metaObject, property, field);
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = field.COLUMN_NAME,
-                TypeName = field.DATA_TYPE,
-                Length = field.CHARACTER_MAXIMUM_LENGTH,
-                Scale = field.NUMERIC_SCALE,
-                Precision = field.NUMERIC_PRECISION,
-                IsNullable = field.IS_NULLABLE,
-                Purpose = (field.DATA_TYPE == "timestamp") ? FieldPurpose.Version : FieldPurpose.Value
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void SetupPropertyType(MetadataObject metaObject, MetadataProperty property, SqlFieldInfo field)
-        {
-            if (field.DATA_TYPE == "nvarchar")
-            {
-                property.PropertyType.CanBeString = true;
-            }
-            else if (field.DATA_TYPE == "numeric")
-            {
-                property.PropertyType.CanBeNumeric = true;
-            }
-            else if (field.DATA_TYPE == "timestamp")
-            {
-                property.PropertyType.IsBinary = true;
-            }
-            else if (field.DATA_TYPE == "binary")
-            {
-                if (field.CHARACTER_MAXIMUM_LENGTH == 1)
-                {
-                    property.PropertyType.CanBeBoolean = true;
-                }
-                else if (field.CHARACTER_MAXIMUM_LENGTH == 16)
-                {
-                    if (field.COLUMN_NAME == "_IDRRef")
-                    {
-                        property.PropertyType.IsUuid = true;
-                    }
-                    else
-                    {
-                        property.PropertyType.CanBeReference = true;
-                        property.PropertyType.ReferenceTypeCode = metaObject.TypeCode;
-                    }
-                }
+                metaObject.Properties.Add(property);
             }
         }
     }
