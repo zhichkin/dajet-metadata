@@ -144,6 +144,10 @@ namespace DaJet.Metadata
             }
             else if (metaObject.GetType() == typeof(Document))
             {
+                // 8. line
+
+                // TODO: get DocumentFileParser and call method Parse
+
                 // 8. line - основния для заполнения документа {0,0},1,
                 // {0,3, // количество объектов-оснований
                 // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
