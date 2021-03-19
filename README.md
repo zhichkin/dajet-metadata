@@ -102,7 +102,7 @@ static void Main(string[] args)
         .UseConnectionString(connectionString)
         .UseDatabaseProvider(DatabaseProviders.SQLServer);
 
-    InfoBase infoBase = metadata.LoadInfoBase();
+    InfoBase infoBase = metadataService.LoadInfoBase();
 
     // Находим план обмена (публикацию) по его имени, как оно указано в конфигурации 1С
     Publication publication = infoBase.Publications.Values
@@ -160,7 +160,7 @@ static void Main(string[] args)
         .UseConnectionString(connectionString)
         .UseDatabaseProvider(DatabaseProviders.SQLServer);
 
-    InfoBase infoBase = metadata.LoadInfoBase();
+    InfoBase infoBase = metadataService.LoadInfoBase();
 
     // Находим объект метаданных 1С для загрузки его метаданных СУБД
     Publication publication = infoBase.Publications.Values
