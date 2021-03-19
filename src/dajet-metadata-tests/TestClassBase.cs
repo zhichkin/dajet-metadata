@@ -15,7 +15,7 @@ namespace DaJet.Metadata.Tests
         protected InfoBase InfoBase { get; set; }
         public string ConnectionString { get; set; }
 
-        private bool MSSQL = true;
+        protected bool MSSQL = true;
 
         public TestClassBase()
         {

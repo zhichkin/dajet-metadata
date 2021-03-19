@@ -30,7 +30,7 @@ namespace DaJet.Metadata.Tests
                 .UseConnectionString(ConnectionString)
                 .UseDatabaseProvider(DatabaseProviders.SQLServer);
 
-            //ConnectionString = "Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;";
+            //ConnectionString = "Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;";
             //metadataService
             //    .UseConnectionString(ConnectionString)
             //    .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
@@ -278,7 +278,6 @@ namespace DaJet.Metadata.Tests
             MetadataObject tablePart = catalog.MetadataObjects.Where(t => t.Name == "ТабличнаяЧасть1").FirstOrDefault();
             Assert.IsNotNull(tablePart);
             Assert.AreEqual(catalog, ((TablePart)tablePart).Owner);
-            Assert.AreEqual(tablePart.TableName, string.Format("{0}_VT{1}", catalog.TableName, tablePart.TypeCode));
 
             ShowProperties(tablePart);
             metadataService.EnrichFromDatabase(tablePart);

@@ -90,8 +90,10 @@ namespace DaJet.Metadata
         public IMetadataService UseDatabaseProvider(DatabaseProviders databaseProvider)
         {
             DatabaseProvider = databaseProvider;
+            DBNamesFileParser.UseDatabaseProvider(DatabaseProvider);
             SqlMetadataReader.UseDatabaseProvider(DatabaseProvider);
             MetadataFileReader.UseDatabaseProvider(DatabaseProvider);
+            MetadataObjectFileParser.UseDatabaseProvider(DatabaseProvider);
             return this;
         }
         public IMetadataService UseConnectionString(string connectionString)

@@ -33,15 +33,36 @@ namespace DaJet.Metadata.Tests
             Assert.IsTrue(property.PropertyType.IsMultipleType);
             Assert.AreEqual(property.PropertyType.ReferenceTypeCode, 0);
             DatabaseField field;
-            field = TestFieldExists(property, "_OwnerID_TYPE");
-            Assert.AreEqual(field.Length, 1);
-            Assert.AreEqual(field.TypeName, "binary");
-            field = TestFieldExists(property, "_OwnerID_RTRef");
-            Assert.AreEqual(field.Length, 4);
-            Assert.AreEqual(field.TypeName, "binary");
-            field = TestFieldExists(property, "_OwnerID_RRRef");
-            Assert.AreEqual(field.Length, 16);
-            Assert.AreEqual(field.TypeName, "binary");
+            if (MSSQL)
+            {
+                field = TestFieldExists(property, "_OwnerID_TYPE");
+                Assert.AreEqual(field.Length, 1);
+                Assert.AreEqual(field.TypeName, "binary");
+            }
+            else
+            {
+                field = TestFieldExists(property, "_OwnerID_TYPE".ToLowerInvariant());
+            }
+            if (MSSQL)
+            {
+                field = TestFieldExists(property, "_OwnerID_RTRef");
+                Assert.AreEqual(field.Length, 4);
+                Assert.AreEqual(field.TypeName, "binary");
+            }
+            else
+            {
+                field = TestFieldExists(property, "_OwnerID_RTRef".ToLowerInvariant());
+            }
+            if (MSSQL)
+            {
+                field = TestFieldExists(property, "_OwnerID_RRRef");
+                Assert.AreEqual(field.Length, 16);
+                Assert.AreEqual(field.TypeName, "binary");
+            }
+            else
+            {
+                field = TestFieldExists(property, "_OwnerID_RRRef".ToLowerInvariant());
+            }
         }
     }
 }

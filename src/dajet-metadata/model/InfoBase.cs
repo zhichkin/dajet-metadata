@@ -8,6 +8,7 @@ namespace DaJet.Metadata.Model
     {
         public List<Dictionary<Guid, MetadataObject>> ValueTypes { get; private set; }
         public List<Dictionary<Guid, MetadataObject>> ReferenceTypes { get; private set; }
+        public Dictionary<Type, Dictionary<Guid, MetadataObject>> AllTypes { get; private set; }
         public InfoBase()
         {
             ValueTypes = new List<Dictionary<Guid, MetadataObject>>()
@@ -26,8 +27,22 @@ namespace DaJet.Metadata.Model
                 Publications,
                 Characteristics
             };
+            AllTypes = new Dictionary<Type, Dictionary<Guid, MetadataObject>>()
+            {
+                { typeof(Account), Accounts },
+                { typeof(AccountingRegister), AccountingRegisters },
+                { typeof(AccumulationRegister), AccumulationRegisters },
+                { typeof(Catalog), Catalogs },
+                { typeof(Characteristic), Characteristics },
+                { typeof(Constant), Constants },
+                { typeof(Document), Documents },
+                { typeof(Enumeration), Enumerations },
+                { typeof(InformationRegister), InformationRegisters },
+                { typeof(Publication), Publications }
+            };
         }
         public ConfigInfo ConfigInfo { get; set; }
+        ///<summary>Соответствие идентификаторов объектов метаданных типа "ТабличнаяЧасть"</summary>
         public Dictionary<Guid, MetadataObject> TableParts { get; } = new Dictionary<Guid, MetadataObject>();
         ///<summary>Соответствие идентификаторов объектов метаданных типа "Реквизит", "Измерение", "Ресурс"</summary>
         public Dictionary<Guid, MetadataProperty> Properties { get; } = new Dictionary<Guid, MetadataProperty>();

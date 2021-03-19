@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
     public interface IMetadataPropertyFactory
     {
         MetadataProperty CreateProperty(MetadataObject owner, SqlFieldInfo field);
+        MetadataProperty CreateProperty(string name, PropertyPurpose purpose);
     }
     public abstract class MetadataPropertyFactory : IMetadataPropertyFactory
     {
@@ -23,6 +25,7 @@ namespace DaJet.Metadata.Model
             }
             return string.Empty;
         }
+
         public MetadataProperty CreateProperty(MetadataObject owner, SqlFieldInfo field)
         {
             string fieldName = field.COLUMN_NAME.ToLowerInvariant().TrimStart('_');
@@ -33,16 +36,23 @@ namespace DaJet.Metadata.Model
                 propertyName = field.COLUMN_NAME;
             }
 
-            MetadataProperty property = new MetadataProperty()
-            {
-                Name = propertyName,
-                DbName = field.COLUMN_NAME,
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
+            // Проверка нужна для свойств, имеющих составной тип данных
+            MetadataProperty property = owner.Properties
+                .Where(p => p.Name == propertyName)
+                .FirstOrDefault();
 
-            SetupPropertyType(owner, property, field);
-            
+            if (property == null)
+            {
+                property = new MetadataProperty()
+                {
+                    Name = propertyName,
+                    DbName = field.COLUMN_NAME,
+                    FileName = Guid.Empty,
+                    Purpose = PropertyPurpose.System
+                };
+                SetupPropertyType(owner, property, field);
+            }
+
             property.Fields.Add(new DatabaseField()
             {
                 Name = field.COLUMN_NAME,
@@ -58,6 +68,8 @@ namespace DaJet.Metadata.Model
         }
         private void SetupPropertyType(MetadataObject owner, MetadataProperty property, SqlFieldInfo field)
         {
+            // TODO: учесть именования типов PostgreSQL, например (mchar, mvarchar)
+
             if (field.DATA_TYPE == "nvarchar")
             {
                 property.PropertyType.CanBeString = true;
@@ -96,6 +108,16 @@ namespace DaJet.Metadata.Model
                     }
                 }
             }
+        }
+
+        public MetadataProperty CreateProperty(string name, PropertyPurpose purpose)
+        {
+            return new MetadataProperty()
+            {
+                Name = name,
+                Purpose = purpose,
+                FileName = Guid.Empty
+            };
         }
     }
 }

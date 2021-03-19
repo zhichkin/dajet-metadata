@@ -32,9 +32,17 @@ namespace DaJet.Metadata.Tests
             Assert.IsTrue(property.PropertyType.CanBeReference);
             Assert.IsFalse(property.PropertyType.IsMultipleType);
             Assert.AreNotEqual(property.PropertyType.ReferenceTypeCode, 0);
-            DatabaseField field = TestFieldExists(property, "_OwnerIDRRef");
-            Assert.AreEqual(field.Length, 16);
-            Assert.AreEqual(field.TypeName, "binary");
+            DatabaseField field;
+            if (MSSQL)
+            {
+                field = TestFieldExists(property, "_OwnerIDRRef");
+                Assert.AreEqual(field.Length, 16);
+                Assert.AreEqual(field.TypeName, "binary");
+            }
+            else
+            {
+                field = TestFieldExists(property, "_OwnerIDRRef".ToLowerInvariant());
+            }
         }
     }
 }

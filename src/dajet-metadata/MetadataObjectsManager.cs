@@ -5,8 +5,12 @@ namespace DaJet.Metadata.Model
 {
     public interface IMetadataObjectsManager
     {
+        DatabaseProviders DatabaseProvider { get; }
+        void UseDatabaseProvider(DatabaseProviders databaseProvider);
         Type GetTypeByToken(string token);
         string CreateDbName(string token, int code);
+        MetadataObject CreateObject(Guid uuid, string token, int code);
+        MetadataProperty CreateProperty(Guid uuid, string token, int code);
         IMetadataObjectFactory GetFactory(Type type);
         IMetadataObjectFactory GetFactory(string token);
         IMetadataObjectFactory GetFactory<T>() where T : MetadataObject, new();
@@ -41,9 +45,38 @@ namespace DaJet.Metadata.Model
             { typeof(Publication), new MetadataObjectFactory<Publication>(new PublicationPropertyFactory()) },
             { typeof(TablePart), new MetadataObjectFactory<TablePart>(new TablePartPropertyFactory()) }
         };
+        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        {
+            DatabaseProvider = databaseProvider;
+        }
         public string CreateDbName(string token, int code)
         {
-            return $"_{token}{code}"; // TODO: учесть PostgreSQL .ToLowerInvariant()
+            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            {
+                return $"_{token}{code}";
+            }
+            return $"_{token}{code}".ToLowerInvariant();
+        }
+        public MetadataObject CreateObject(Guid uuid, string token, int code)
+        {
+            IMetadataObjectFactory factory = GetFactory(token);
+            if (factory == null) return null;
+
+            MetadataObject metaObject = factory.CreateObject();
+            metaObject.FileName = uuid;
+            metaObject.TypeCode = code;
+            metaObject.TableName = CreateDbName(token, code);
+
+            return metaObject;
+        }
+        public MetadataProperty CreateProperty(Guid uuid, string token, int code)
+        {
+            return new MetadataProperty()
+            {
+                FileName = uuid,
+                DbName = CreateDbName(token, code)
+            };
         }
         public Type GetTypeByToken(string token)
         {

@@ -221,7 +221,7 @@ namespace DaJet.Metadata
             IMetadataObjectFactory factory = MetadataManager.GetFactory(metaObject.GetType());
             if (factory == null) return;
 
-            MetadataProperty property = factory.CreateProperty(metaObject, field);
+            MetadataProperty property = factory.PropertyFactory.CreateProperty(metaObject, field);
             if (property != null)
             {
                 metaObject.Properties.Add(property);

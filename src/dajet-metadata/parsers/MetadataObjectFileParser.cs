@@ -12,6 +12,8 @@ namespace DaJet.Metadata
         void UseInfoBase(InfoBase infoBase);
         void ParseMetaUuid(StreamReader reader, MetadataObject metaObject);
         void ParseMetadataObject(StreamReader reader, MetadataObject metaObject);
+        DatabaseProviders DatabaseProvider { get; }
+        void UseDatabaseProvider(DatabaseProviders databaseProvider);
     }
     public sealed class MetadataObjectFileParser : IMetadataObjectFileParser
     {
@@ -24,20 +26,26 @@ namespace DaJet.Metadata
         private readonly Regex rxNestedProperties = new Regex("^{888744e1-b616-11d4-9436-004095e12fc7,\\d+[},]$"); // Коллекция реквизитов табличной части любого объекта метаданных look rxSpecialUUID
 
         // Структура блока описания ссылки на объект метаданных
-        // {"#",157fa490-4ce9-11d4-9415-008048da11f9, - идентификатор класса объекта метаданных "ОбъектМетаданных"
-        // {1,fd8fe814-97e6-42d3-a042-b1e429cfb067}   - внутренний идентификатор объекта метаданных
+        // {"#",157fa490-4ce9-11d4-9415-008048da11f9, - идентификатор класса типа "ОбъектМетаданных"
+        // {1,fd8fe814-97e6-42d3-a042-b1e429cfb067}   - идентификатор объекта метаданных из файла таблицы Config
         // }
 
         #endregion
 
         internal delegate void SpecialParser(StreamReader reader, string line, MetadataObject metaObject);
         private readonly Dictionary<string, SpecialParser> _SpecialParsers = new Dictionary<string, SpecialParser>();
-
+        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
         private InfoBase InfoBase;
 
         public MetadataObjectFileParser()
         {
             ConfigureParsers();
+        }
+        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        {
+            DatabaseProvider = databaseProvider;
+            MetadataManager.UseDatabaseProvider(DatabaseProvider);
         }
         private void ConfigureParsers()
         {
@@ -136,10 +144,20 @@ namespace DaJet.Metadata
             }
             else if (metaObject.GetType() == typeof(Document))
             {
-                // starts from 8. line
-                // TODO: Parse объекты метаданных, которые являются основанием для заполнения текущего
-                // starts after count (количество объектов оснований) * 3 (размер ссылки на объект метаданных) + 1 (тэг закрытия блока объектов оснований)
-                // TODO: Parse все регистры (информационные, накопления и бухгалтерские), по которым текущий документ выполняет движения.
+                // 8. line - основния для заполнения документа {0,0},1,
+                // {0,3, // количество объектов-оснований
+                // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
+                // {1,e1f1df1a-5f4b-4269-9f67-4a5fa61df942}
+                // },
+                // ... 3 строки - блок описания объекта-основания
+                // },1,
+                //
+                // 9. line - регистры, для которых документ является регистратором {0,0},0,...
+                // {0,1, // количество регистров
+                // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
+                // {1,9da99f9d-0b68-48b9-ae53-bf9ce3b0d0ee}
+                // }
+                // },0,...
             }
 
             int count = 0;
@@ -384,9 +402,11 @@ namespace DaJet.Metadata
                 property.PropertyType.ReferenceTypeCode = (owners.Count == 1) ? owners[0] : 0; // single or multiple type
                 if (property.PropertyType.IsMultipleType)
                 {
+                    // Multiple value type 
+
                     property.Fields.Add(new DatabaseField()
                     {
-                        Name = "_OwnerID_TYPE",
+                        Name = (DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_TYPE" : "_OwnerID_TYPE".ToLowerInvariant()),
                         Length = 1,
                         TypeName = "binary",
                         Scale = 0,
@@ -398,7 +418,7 @@ namespace DaJet.Metadata
                     });
                     property.Fields.Add(new DatabaseField()
                     {
-                        Name = "_OwnerID_RTRef",
+                        Name = (DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_RTRef" : "_OwnerID_RTRef".ToLowerInvariant()),
                         Length = 4,
                         TypeName = "binary",
                         Scale = 0,
@@ -410,7 +430,7 @@ namespace DaJet.Metadata
                     });
                     property.Fields.Add(new DatabaseField()
                     {
-                        Name = "_OwnerID_RRRef",
+                        Name = (DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_RRRef" : "_OwnerID_RRRef".ToLowerInvariant()),
                         Length = 16,
                         TypeName = "binary",
                         Scale = 0,
@@ -421,11 +441,11 @@ namespace DaJet.Metadata
                         Purpose = FieldPurpose.Object
                     });
                 }
-                else
+                else // Single value type
                 {
                     property.Fields.Add(new DatabaseField()
                     {
-                        Name = "_OwnerIDRRef",
+                        Name = (DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerIDRRef" : "_OwnerIDRRef".ToLowerInvariant()),
                         Length = 16,
                         TypeName = "binary",
                         Scale = 0,

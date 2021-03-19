@@ -8,10 +8,18 @@ namespace DaJet.Metadata
     public interface IDBNamesFileParser
     {
         void Parse(StreamReader stream, InfoBase infoBase);
+        DatabaseProviders DatabaseProvider { get; }
+        void UseDatabaseProvider(DatabaseProviders databaseProvider);
     }
     public sealed class DBNamesFileParser : IDBNamesFileParser
     {
         private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
+        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        {
+            DatabaseProvider = databaseProvider;
+            MetadataManager.UseDatabaseProvider(DatabaseProvider);
+        }
         public void Parse(StreamReader stream, InfoBase infoBase)
         {
             string line = stream.ReadLine(); // 1. line
@@ -28,34 +36,6 @@ namespace DaJet.Metadata
         {
             return int.Parse(line.Replace("{", string.Empty).Replace(",", string.Empty));
         }
-        private MetadataObject CreateMetadataObject(Guid uuid, string token, string code)
-        {
-            MetadataObject metaObject;
-
-            IMetadataObjectFactory factory = MetadataManager.GetFactory(token);
-            if (factory == null)
-            {
-                metaObject = new MetadataObject(); // unknown (unsupported) metadata object type
-            }
-            else
-            {
-                metaObject = factory.CreateObject();
-            }
-
-            metaObject.FileName = uuid;
-            metaObject.TypeCode = int.Parse(code);
-            metaObject.TableName = MetadataManager.CreateDbName(token, metaObject.TypeCode);
-
-            return metaObject;
-        }
-        private MetadataProperty CreateMetadataProperty(Guid uuid, string token, string code)
-        {
-            return new MetadataProperty()
-            {
-                FileName = uuid,
-                DbName = MetadataManager.CreateDbName(token, int.Parse(code))
-            };
-        }
         private void ParseEntry(string line, InfoBase infoBase)
         {
             string[] items = line.Split(',');
@@ -65,67 +45,37 @@ namespace DaJet.Metadata
             if (uuid == Guid.Empty) return; // Системный объект метаданных
 
             string token = items[1].Trim('\"');
-            string code = items[2].TrimEnd('}');
+            int code = int.Parse(items[2].TrimEnd('}'));
 
             if (token == MetadataTokens.Fld)
             {
-                _ = infoBase.Properties.TryAdd(uuid, CreateMetadataProperty(uuid, token, code));
+                _ = infoBase.Properties.TryAdd(uuid, MetadataManager.CreateProperty(uuid, token, code));
+                return;
             }
-            else if (token == MetadataTokens.VT)
+
+            Type type = MetadataManager.GetTypeByToken(token);
+            if (type == null) return; // unsupported type of metadata object
+
+            MetadataObject metaObject = MetadataManager.CreateObject(uuid, token, code);
+            if (metaObject == null) return; // unsupported type of metadata object
+
+            if (token == MetadataTokens.VT)
             {
-                _ = infoBase.TableParts.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
+                _ = infoBase.TableParts.TryAdd(uuid, metaObject);
+                return;
             }
-            else if (token == MetadataTokens.Acc)
+
+            if (!infoBase.AllTypes.TryGetValue(type, out Dictionary<Guid, MetadataObject> collection))
             {
-                _ = infoBase.Accounts.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
+                return; // unsupported collection of metadata objects
             }
-            else if (token == MetadataTokens.Reference)
-            {
-                _ = infoBase.Catalogs.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.Document)
-            {
-                _ = infoBase.Documents.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.Enum)
-            {
-                _ = infoBase.Enumerations.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.Node)
-            {
-                _ = infoBase.Publications.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.Chrc)
-            {
-                _ = infoBase.Characteristics.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.Const)
-            {
-                _ = infoBase.Constants.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.AccRg)
-            {
-                _ = infoBase.AccountingRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.InfoRg)
-            {
-                _ = infoBase.InformationRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token == MetadataTokens.AccumRg)
-            {
-                _ = infoBase.AccumulationRegisters.TryAdd(uuid, CreateMetadataObject(uuid, token, code));
-            }
-            else if (token.EndsWith(MetadataTokens.ChngR) && !token.StartsWith(MetadataTokens.Config))
-            {
-                AttachChangeTrackingTable(infoBase, uuid, token, code);
-            }
-            else
-            {
-                //TODO: другие объекты метаданных, в том числе различные зависимые значимые типы (таблицы итогов и т.п.)
-            }
+
+            _ = collection.TryAdd(uuid, metaObject);
         }
-        private void AttachChangeTrackingTable(InfoBase infoBase, Guid uuid, string token, string code)
+        private void AttachChangeTrackingTable(InfoBase infoBase, Guid uuid, string token, int code)
         {
+            // [ChngR, но не ConfigChngR]
+            // Список объектов, которые могут иметь таблицы изменений в планах обмена 1С
             List<Dictionary<Guid, MetadataObject>> list = new List<Dictionary<Guid, MetadataObject>>()
             {
                 infoBase.Accounts,
@@ -143,7 +93,7 @@ namespace DaJet.Metadata
             {
                 if (item.TryGetValue(uuid, out owner))
                 {
-                    owner.MetadataObjects.Add(CreateMetadataObject(uuid, token, code));
+                    owner.MetadataObjects.Add(MetadataManager.CreateObject(uuid, token, code));
                     break;
                 }
             }
