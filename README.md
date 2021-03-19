@@ -99,7 +99,7 @@ static void Main(string[] args)
     IMetadataService metadataService = new MetadataService();
 
     metadataService.
-        .UseConnectionString(csSqlServer)
+        .UseConnectionString(connectionString)
         .UseDatabaseProvider(DatabaseProviders.SQLServer);
 
     InfoBase infoBase = metadata.LoadInfoBase();
@@ -157,7 +157,7 @@ static void Main(string[] args)
     IMetadataService metadataService = new MetadataService();
 
     metadataService.
-        .UseConnectionString(csSqlServer)
+        .UseConnectionString(connectionString)
         .UseDatabaseProvider(DatabaseProviders.SQLServer);
 
     InfoBase infoBase = metadata.LoadInfoBase();
