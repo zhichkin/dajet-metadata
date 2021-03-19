@@ -10,7 +10,79 @@ Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL
 
 [NuGet package](https://www.nuget.org/packages/DaJet.Metadata/)
 
-Кроме метаданных 1С дополнительно выполняется чтение метаданных СУБД.
+Кроме метаданных 1С дополнительно можно выполнять чтение метаданных СУБД.
+
+<details>
+<summary>Пример загрузки метаданных и свойств конфигурации</summary>
+
+```C#
+using DaJet.Metadata;
+using DaJet.Metadata.Model;
+
+static void Main(string[] args)
+{
+    string csPostgres = "Host=127.0.0.1;Port=5432;Database=MY_1C_DATABASE;Username=postgres;Password=postgres;";
+    string csSqlServer = "Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True";
+
+    IMetadataService metadataService = new MetadataService();
+
+    #region "PostgreSQL"
+
+    // Настройки для подключения к PostgreSQL
+    metadataService.
+        .UseConnectionString(csPostgres)
+        .UseDatabaseProvider(DatabaseProviders.PostgreSQL);
+
+    // 1. Пример чтения метаданных конфигурации 1С
+    InfoBase infoBase = metadataService.LoadInfoBase();
+    
+    // 2. Пример чтения свойств конфигурации 1С
+    ConfigInfo config = metadataService.ReadConfigurationProperties();
+
+    // 3. Пример дополнения справочника "Номенклатура" свойствами из базы данных
+    MetadataObject catalog = infoBase.Catalogs.Values
+                                 .Where(i => i.Name == "Номенклатура")
+                                 .FirstOrDefault();
+
+    if (catalog == null)
+    {
+        Console.WriteLine("Справочник \"Номенклатура\" не найден!");
+        return;
+    }
+
+    Console.WriteLine("Свойства справочника до обогащения из базы данных.");
+    Console.WriteLine(catalog.Name + " (" + catalog.TableName + "):");
+    foreach (MetadataProperty property in catalog.Properties)
+    {
+        Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
+    }
+
+    // Выполняем сравнение и объединение с метаданными СУБД
+    metadataService.EnrichFromDatabase(catalog);
+
+    Console.WriteLine("Свойства справочника после обогащения из базы данных.");
+    Console.WriteLine(catalog.Name + " (" + catalog.TableName + "):");
+    foreach (MetadataProperty property in catalog.Properties)
+    {
+        Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
+    }
+
+    #endregion
+
+    #region "Microsoft SQL Server"
+
+    // Настройки для подключения к Microsoft SQL Server
+    metadataService.
+        .UseConnectionString(csSqlServer)
+        .UseDatabaseProvider(DatabaseProviders.SQLServer);
+
+    // Всё остальное работает ровно также, как и для PostgreSQL
+
+    #endregion
+}
+```
+
+</details>
 
 <details>
 <summary>Пример загрузки свойств и узлов плана обмена</summary>
@@ -65,31 +137,6 @@ static void Main(string[] args)
 ```
 
 </details>
-
-**Пример чтения метаданных:**
-```C#
-using DaJet.Metadata;
-using DaJet.Metadata.Model;
-
-static void Main(string[] args)
-{
-    // Для информационной базы на Microsoft SQL Server
-    IMetadataFileReader fileReader = new MetadataFileReader();
-    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
-
-    // Для информационной базы на PostgreSQL
-    // IMetadataFileReader fileReader = new PostgresMetadataFileReader();
-    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
-
-    // 1. Пример чтения метаданных конфигурации 1С (для всех СУБД)
-    IMetadataReader metadata = new MetadataReader(fileReader);
-    InfoBase infoBase = metadata.LoadInfoBase();
-
-    // 2. Пример чтения свойств конфигурации 1С (для всех СУБД)
-    IConfigurationFileParser configReader = new ConfigurationFileParser(fileReader);
-    ConfigInfo config = configReader.ReadConfigurationProperties();
-}
-```
 
 <details>
 <summary>Пример загрузки метаданных СУБД для объекта метаданных 1С</summary>
