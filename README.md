@@ -94,26 +94,31 @@ using DaJet.Metadata.Mappers;
 
 static void Main(string[] args)
 {
-    // Для информационной базы на Microsoft SQL Server
-    IMetadataFileReader fileReader = new MetadataFileReader();
-    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
+    string connectionString = "Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True";
 
-    // Для информационной базы на PostgreSQL
-    // IMetadataFileReader fileReader = new PostgresMetadataFileReader();
-    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
+    IMetadataService metadataService = new MetadataService();
 
-    // Загружаем все метаданные конфигурации 1С
-    IMetadataReader metadata = new MetadataReader(fileReader);
+    metadataService.
+        .UseConnectionString(csSqlServer)
+        .UseDatabaseProvider(DatabaseProviders.SQLServer);
+
     InfoBase infoBase = metadata.LoadInfoBase();
 
     // Находим план обмена (публикацию) по его имени, как оно указано в конфигурации 1С
     Publication publication = infoBase.Publications.Values
-        .Where(i => i.Name == "ТестовыйПланОбмена").FirstOrDefault();
+                                  .Where(i => i.Name == "ТестовыйПланОбмена")
+                                  .FirstOrDefault();
+
+    if (publication == null)
+    {
+        Console.WriteLine("План обмена \"ТестовыйПланОбмена\" не найден!");
+        return;
+    }
 
     // Создаём экземпляр класса для загрузки данных плана обмена
     PublicationDataMapper mapper = new PublicationDataMapper();
-    mapper.UseConnectionString(fileReader.ConnectionString);
-    mapper.UseDatabaseProvider(DatabaseProviders.SQLServer);
+    mapper.UseDatabaseProvider(metadataService.DatabaseProvider);
+    mapper.UseConnectionString(metadataService.ConnectionString);
 
     // Загружаем узлы плана обмена (подписчиков)
     mapper.SelectSubscribers(publication);
@@ -139,7 +144,7 @@ static void Main(string[] args)
 </details>
 
 <details>
-<summary>Пример загрузки метаданных СУБД для объекта метаданных 1С</summary>
+<summary>Пример сравнения метаданных СУБД для объекта метаданных 1С</summary>
 
 ```C#
 using DaJet.Metadata;
@@ -147,40 +152,30 @@ using DaJet.Metadata.Model;
 
 static void Main(string[] args)
 {
-    // Для информационной базы на Microsoft SQL Server
-    IMetadataFileReader fileReader = new MetadataFileReader();
-    fileReader.UseConnectionString("Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True");
+    string connectionString = "Data Source=MY_DATABASE_SERVER;Initial Catalog=MY_1C_DATABASE;Integrated Security=True";
 
-    // Для информационной базы на PostgreSQL
-    // IMetadataFileReader fileReader = new PostgresMetadataFileReader();
-    // fileReader.UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;");
+    IMetadataService metadataService = new MetadataService();
 
-    // Загружаем все метаданные конфигурации 1С
-    IMetadataReader metadata = new MetadataReader(fileReader);
+    metadataService.
+        .UseConnectionString(csSqlServer)
+        .UseDatabaseProvider(DatabaseProviders.SQLServer);
+
     InfoBase infoBase = metadata.LoadInfoBase();
 
     // Находим объект метаданных 1С для загрузки его метаданных СУБД
     Publication publication = infoBase.Publications.Values
-        .Where(i => i.Name == "ТестовыйПланОбмена").FirstOrDefault();
+                                  .Where(i => i.Name == "ТестовыйПланОбмена")
+                                  .FirstOrDefault();
 
-    // Получаем метаданные СУБД для полей таблицы объекта метаданных 1С
-    List<SqlFieldInfo> sqlFields = sqlReader.GetSqlFieldsOrderedByName(publication.TableName);
-    if (sqlFields.Count == 0)
+    if (publication == null)
     {
-        Console.WriteLine("SQL fields are not found.");
+        Console.WriteLine("План обмена \"ТестовыйПланОбмена\" не найден!");
         return;
     }
 
-    // Дополняем свойства объекта метаданных 1С по метаданным СУБД
-    MetadataCompareAndMergeService merger = new MetadataCompareAndMergeService();
-    merger.MergeProperties(publication, sqlFields);
-
-    // Выводим результат
-    Console.WriteLine(publication.Name + " (" + publication.TableName + "):");
-    foreach (MetaProperty property in publication.Properties)
-    {
-        Console.WriteLine(" - " + property.Name + " (" + property.Field + ")");
-    }
+    List<string> delete_list; // Список "лишних" - есть в объекте метаданных 1С, но не найдены в базе данных
+    List<string> insert_list; // Список "новых" - есть в базе данных, но нет в объекте метаданных 1С
+    bool result = metadataService.CompareWithDatabase(publication, out delete_list, out insert_list);
 }
 ```
 
