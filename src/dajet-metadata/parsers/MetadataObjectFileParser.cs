@@ -14,6 +14,11 @@ namespace DaJet.Metadata
         void ParseMetadataObject(StreamReader reader, MetadataObject metaObject);
         DatabaseProviders DatabaseProvider { get; }
         void UseDatabaseProvider(DatabaseProviders databaseProvider);
+
+        void SkipLines(StreamReader reader, int count);
+        void ParseName(StreamReader reader, MetadataObject metaObject);
+        void ParseAlias(StreamReader reader, MetadataObject metaObject);
+        void ParsePropertiesAndTableParts(StreamReader reader, MetadataObject metaObject);
     }
     public sealed class MetadataObjectFileParser : IMetadataObjectFileParser
     {
@@ -32,14 +37,16 @@ namespace DaJet.Metadata
 
         #endregion
 
-        internal delegate void SpecialParser(StreamReader reader, string line, MetadataObject metaObject);
-        private readonly Dictionary<string, SpecialParser> _SpecialParsers = new Dictionary<string, SpecialParser>();
-        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
         private InfoBase InfoBase;
+        private readonly IMetadataManager MetadataManager = new MetadataManager();
+        private readonly Dictionary<Type, IFileParser> FileParsers = new Dictionary<Type, IFileParser>();
+        private delegate void SpecialParser(StreamReader reader, string line, MetadataObject metaObject);
+        private readonly Dictionary<string, SpecialParser> _SpecialParsers = new Dictionary<string, SpecialParser>();
 
         public MetadataObjectFileParser()
         {
             ConfigureParsers();
+            ConfigureFileParsers();
         }
         public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
         public void UseDatabaseProvider(DatabaseProviders databaseProvider)
@@ -78,10 +85,28 @@ namespace DaJet.Metadata
             _SpecialParsers.Add("63405499-7491-4ce3-ac72-43433cbe4112", ParseMetadataObjectMeasures); // Коллекция ресурсов регистра бухгалтерского учёта
             _SpecialParsers.Add("9d28ee33-9c7e-4a1b-8f13-50aa9b36607b", ParseMetadataObjectProperties); // Коллекция реквизитов регистра бухгалтерского учёта
         }
+        private void ConfigureFileParsers()
+        {
+            FileParsers.Add(typeof(Account), null);
+            FileParsers.Add(typeof(AccountingRegister), null);
+            FileParsers.Add(typeof(AccumulationRegister), null);
+            FileParsers.Add(typeof(Catalog), null);
+            FileParsers.Add(typeof(Characteristic), null);
+            FileParsers.Add(typeof(Constant), null);
+            FileParsers.Add(typeof(Document), new DocumentFileParser(MetadataManager, this));
+            FileParsers.Add(typeof(Enumeration), null);
+            FileParsers.Add(typeof(InformationRegister), null);
+            FileParsers.Add(typeof(Publication), null);
+        }
 
         public void UseInfoBase(InfoBase infoBase)
         {
             InfoBase = infoBase;
+            foreach (var kvp in FileParsers)
+            {
+                if (kvp.Value == null) continue;
+                kvp.Value.UseInfoBase(InfoBase);
+            }
         }
         public void ParseMetaUuid(StreamReader reader, MetadataObject metaObject)
         {
@@ -96,233 +121,47 @@ namespace DaJet.Metadata
         }
         public void ParseMetadataObject(StreamReader reader, MetadataObject metaObject)
         {
+            if (FileParsers.TryGetValue(metaObject.GetType(), out IFileParser parser))
+            {
+                if (parser != null)
+                {
+                    parser.Parse(reader, metaObject);
+                    return;
+                }
+            }
+
             if (metaObject.GetType() == typeof(Constant))
             {
-                ParseConstant(reader, metaObject); return;
-            }
-            else if (metaObject.GetType() == typeof(Catalog))
-            {
-                // TODO: AddCatalogBasicProperties(metaObject); ?
-            }
-            string line = reader.ReadLine(); // 1. line
-
-            line = reader.ReadLine(); // 2. line
-            //string uuid = ParseMetadataObjectUuid(line, metaObject); // идентификатор объекта метаданных ParseMetaUuid
-            _ = reader.ReadLine(); // 3. line
-            line = reader.ReadLine(); // 4. line
-            if (metaObject.GetType() == typeof(Publication))
-            {
-                ParseMetadataObjectName(line, metaObject); // metaobject's UUID and Name
+                ParseConstant(reader, metaObject);
+                return;
             }
 
-            line = reader.ReadLine(); // 5. line
+            SkipLines(reader, 3); // 1-3 lines
+            
             if (metaObject.GetType() == typeof(Publication))
             {
-                ParseMetadataObjectAlias(line, metaObject); // metaobject's alias
+                ParseName(reader, metaObject); // 4. line - metaobject's UUID and Name
+                ParseAlias(reader, metaObject); // 5. line - metaobject's alias
+                ParseIsDistributed(reader.ReadLine(), metaObject); // 6. line
             }
             else
             {
-                ParseMetadataObjectName(line, metaObject); // metaobject's UUID and Name
+                SkipLines(reader, 1); // 4. line
+                ParseName(reader, metaObject); // 5. line - metaobject's UUID and Name
+                ParseAlias(reader, metaObject); // 6. line - metaobject's alias
             }
 
-            line = reader.ReadLine(); // 6. line
-            if (metaObject.GetType() == typeof(Publication))
-            {
-                ParseIsDistributed(line, metaObject);
-            }
-            else
-            {
-                ParseMetadataObjectAlias(line, metaObject); // metaobject's alias
-            }
-
-            _ = reader.ReadLine(); // 7. line
+            SkipLines(reader, 1); // 7. line
 
             if (metaObject.GetType() == typeof(Catalog))
             {
-                // starts from 8. line
-                ParseReferenceOwner(reader, metaObject); // свойство справочника "Владелец"
-            }
-            else if (metaObject.GetType() == typeof(Document))
-            {
-                // 8. line
-
-                // TODO: get DocumentFileParser and call method Parse
-
-                // 8. line - основния для заполнения документа {0,0},1,
-                // {0,3, // количество объектов-оснований
-                // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
-                // {1,e1f1df1a-5f4b-4269-9f67-4a5fa61df942}
-                // },
-                // ... 3 строки - блок описания объекта-основания
-                // },1,
-                //
-                // 9. line - регистры, для которых документ является регистратором {0,0},0,...
-                // {0,1, // количество регистров
-                // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
-                // {1,9da99f9d-0b68-48b9-ae53-bf9ce3b0d0ee}
-                // }
-                // },0,...
+                ParseReferenceOwner(reader, metaObject); // 8. line - свойство справочника "Владелец"
             }
 
-            int count = 0;
-            string UUID = null;
-            Match match = null;
-            while ((line = reader.ReadLine()) != null)
-            {
-                match = rxSpecialUUID.Match(line);
-                if (!match.Success) continue;
-
-                string[] lines = line.Split(',');
-                UUID = lines[0].Replace("{", string.Empty);
-                count = int.Parse(lines[1].Replace("}", string.Empty));
-                if (count == 0) continue;
-
-                if (_SpecialParsers.ContainsKey(UUID))
-                {
-                    _SpecialParsers[UUID](reader, line, metaObject);
-                }
-            }
+            ParsePropertiesAndTableParts(reader, metaObject);
         }
 
         #region "Basic properties"
-
-        #region "Catalogs"
-
-        private void AddCatalogBasicProperties(MetadataObject metaObject)
-        {
-            AddCatalogPropertyСсылка(metaObject);
-            AddCatalogPropertyВерсияДанных(metaObject);
-            AddCatalogPropertyПометкаУдаления(metaObject);
-            AddCatalogPropertyПредопределённый(metaObject);
-        }
-        private void AddCatalogPropertyСсылка(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "Ссылка").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "Ссылка",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_IDRRef",
-                Length = 16,
-                TypeName = "binary",
-                IsNullable = false,
-                KeyOrdinal = 1,
-                IsPrimaryKey = true
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void AddCatalogPropertyВерсияДанных(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "ВерсияДанных").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "ВерсияДанных",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsBinary = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_Version",
-                Length = 8,
-                TypeName = "timestamp"
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void AddCatalogPropertyПометкаУдаления(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "ПометкаУдаления").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "ПометкаУдаления",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.CanBeBoolean = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_Marked",
-                Length = 1,
-                TypeName = "binary"
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void AddCatalogPropertyПредопределённый(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "Предопределённый").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "Предопределённый",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_PredefinedID",
-                Length = 16,
-                TypeName = "binary"
-            });
-            metaObject.Properties.Add(property);
-        }
-
-        #endregion
-
-        #region "Publications"
-
-        private void PublicationAddPropertyНомерПринятого(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "НомерПринятого",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_ReceivedNo",
-                Length = 9,
-                Scale = 0,
-                Precision = 10,
-                TypeName = "numeric",
-                IsNullable = false
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void PublicationAddPropertyНомерОтправленного(MetadataObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "НомерОтправленного",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_SentNo",
-                Length = 9,
-                Scale = 0,
-                Precision = 10,
-                TypeName = "numeric",
-                IsNullable = false
-            });
-            metaObject.Properties.Add(property);
-        }
 
         private void ParseIsDistributed(string line, MetadataObject metaObject)
         {
@@ -335,28 +174,6 @@ namespace DaJet.Metadata
             publication.IsDistributed = (value == 1);
         }
 
-        #endregion
-
-        private string ParseMetadataObjectUuid(string line, MetadataObject metaObject)
-        {
-            if (!metaObject.IsReferenceType) return string.Empty;
-
-            string[] items = line.Split(',');
-
-            return (metaObject.GetType() == typeof(Enumeration) ? items[1] : items[3]);
-        }
-        private void ParseMetadataObjectName(string line, MetadataObject metaObject)
-        {
-            string[] lines = line.Split(',');
-            //string uuid = lines[2].Replace("}", string.Empty); // ParseMetadataObjectUuid
-            metaObject.Name = lines[3].Replace("\"", string.Empty);
-        }
-        private void ParseMetadataObjectAlias(string line, MetadataObject metaObject)
-        {
-            string[] lines = line.Split(',');
-            string alias = lines[2].Replace("}", string.Empty);
-            metaObject.Alias = alias.Replace("\"", string.Empty);
-        }
         private void ParseReferenceOwner(StreamReader reader, MetadataObject metaObject)
         {
             int count = 0;
@@ -400,6 +217,7 @@ namespace DaJet.Metadata
                 {
                     Name = "Владелец",
                     FileName = Guid.Empty,
+                    DbName = (DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID" : "_OwnerID".ToLowerInvariant()),
                     Purpose = PropertyPurpose.System, // PropertyPurpose.Hierarchy - !?
                 };
                 property.PropertyType.CanBeReference = true;
@@ -759,5 +577,55 @@ namespace DaJet.Metadata
         }
 
         #endregion
+
+        public void SkipLines(StreamReader reader, int count)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                _ = reader.ReadLine();
+            }
+        }
+        public void ParseName(StreamReader reader, MetadataObject metaObject)
+        {
+            string line = reader.ReadLine();
+            if (line == null) return;
+
+            string[] lines = line.Split(',');
+            //string uuid = lines[2].Replace("}", string.Empty); // ParseMetadataObjectUuid
+
+            metaObject.Name = lines[3].Replace("\"", string.Empty);
+        }
+        public void ParseAlias(StreamReader reader, MetadataObject metaObject)
+        {
+            string line = reader.ReadLine();
+            if (line == null) return;
+
+            string[] lines = line.Split(',');
+            string alias = lines[2].Replace("}", string.Empty);
+
+            metaObject.Alias = alias.Replace("\"", string.Empty);
+        }
+        public void ParsePropertiesAndTableParts(StreamReader reader, MetadataObject metaObject)
+        {
+            string line;
+            int count = 0;
+            string UUID = null;
+            Match match = null;
+            while ((line = reader.ReadLine()) != null)
+            {
+                match = rxSpecialUUID.Match(line);
+                if (!match.Success) continue;
+
+                string[] lines = line.Split(',');
+                UUID = lines[0].Replace("{", string.Empty);
+                count = int.Parse(lines[1].Replace("}", string.Empty));
+                if (count == 0) continue;
+
+                if (_SpecialParsers.ContainsKey(UUID))
+                {
+                    _SpecialParsers[UUID](reader, line, metaObject);
+                }
+            }
+        }
     }
 }

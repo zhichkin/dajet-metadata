@@ -8,15 +8,15 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("idrref", "Ссылка");
-            PropertyNameLookup.Add("version", "ВерсияДанных");
-            PropertyNameLookup.Add("marked", "ПометкаУдаления");
-            PropertyNameLookup.Add("predefinedid", "Предопределённый");
-            PropertyNameLookup.Add("parentidrref", "Родитель");
-            PropertyNameLookup.Add("folder", "ЭтоГруппа");
-            PropertyNameLookup.Add("code", "Код");
-            PropertyNameLookup.Add("description", "Наименование");
-            PropertyNameLookup.Add("type", "ТипЗначения");
+            PropertyNameLookup.Add("_idrref", "Ссылка");
+            PropertyNameLookup.Add("_version", "ВерсияДанных");
+            PropertyNameLookup.Add("_marked", "ПометкаУдаления");
+            PropertyNameLookup.Add("_predefinedid", "Предопределённый");
+            PropertyNameLookup.Add("_parentidrref", "Родитель"); // необязательный
+            PropertyNameLookup.Add("_folder", "ЭтоГруппа"); // необязательный
+            PropertyNameLookup.Add("_code", "Код"); // необязательный
+            PropertyNameLookup.Add("_description", "Наименование"); // необязательный
+            PropertyNameLookup.Add("_type", "ТипЗначения");
         }
     }
 }

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace DaJet.Metadata.Model
 {
-    public interface IMetadataObjectsManager
+    public interface IMetadataManager
     {
         DatabaseProviders DatabaseProvider { get; }
         void UseDatabaseProvider(DatabaseProviders databaseProvider);
@@ -15,7 +15,7 @@ namespace DaJet.Metadata.Model
         IMetadataObjectFactory GetFactory(string token);
         IMetadataObjectFactory GetFactory<T>() where T : MetadataObject, new();
     }
-    public sealed class MetadataObjectsManager: IMetadataObjectsManager
+    public sealed class MetadataManager: IMetadataManager
     {
         private readonly Dictionary<string, Type> MetadataTypes = new Dictionary<string, Type>()
         {

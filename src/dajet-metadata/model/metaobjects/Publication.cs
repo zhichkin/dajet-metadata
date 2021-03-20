@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
@@ -7,14 +8,59 @@ namespace DaJet.Metadata.Model
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("idrref", "Ссылка");
-            PropertyNameLookup.Add("marked", "ПометкаУдаления");
-            PropertyNameLookup.Add("version", "ВерсияДанных");
-            PropertyNameLookup.Add("predefinedid", "Предопределённый");
-            PropertyNameLookup.Add("code", "Код");
-            PropertyNameLookup.Add("description", "Наименование");
-            PropertyNameLookup.Add("sentno", "НомерОтправленного");
-            PropertyNameLookup.Add("receivedno", "НомерПринятого");
+            // все реквизиты обязательные
+            PropertyNameLookup.Add("_idrref", "Ссылка");
+            PropertyNameLookup.Add("_marked", "ПометкаУдаления");
+            PropertyNameLookup.Add("_version", "ВерсияДанных");
+            PropertyNameLookup.Add("_predefinedid", "Предопределённый");
+            PropertyNameLookup.Add("_code", "Код");
+            PropertyNameLookup.Add("_description", "Наименование");
+            PropertyNameLookup.Add("_sentno", "НомерОтправленного");
+            PropertyNameLookup.Add("_receivedno", "НомерПринятого");
+        }
+        private void PublicationAddPropertyНомерПринятого(MetadataObject metaObject)
+        {
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
+            if (property != null) return;
+            property = new MetadataProperty()
+            {
+                Name = "НомерПринятого",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = "_ReceivedNo",
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric",
+                IsNullable = false
+            });
+            metaObject.Properties.Add(property);
+        }
+        private void PublicationAddPropertyНомерОтправленного(MetadataObject metaObject)
+        {
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
+            if (property != null) return;
+            property = new MetadataProperty()
+            {
+                Name = "НомерОтправленного",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System
+            };
+            property.PropertyType.IsUuid = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = "_SentNo",
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric",
+                IsNullable = false
+            });
+            metaObject.Properties.Add(property);
         }
     }
     public sealed class Publication : MetadataObject

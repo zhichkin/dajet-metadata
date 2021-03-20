@@ -8,31 +8,47 @@ namespace DaJet.Metadata
 {
     public interface IFileParser
     {
+        void UseInfoBase(InfoBase infoBase);
         void Parse(StreamReader stream, MetadataObject metaObject);
     }
     public sealed class DocumentFileParser : IFileParser
     {
         private readonly Regex rxUUID = new Regex("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}"); // Example: eb3dfdc7-58b8-4b1f-b079-368c262364c9
 
-        private readonly IMetadataObjectsManager MetadataManager;
-        private readonly InfoBase InfoBase;
-        public DocumentFileParser(InfoBase infoBase, IMetadataObjectsManager manager)
+        private InfoBase InfoBase { get; set; }
+        private readonly IMetadataManager MetadataManager;
+        private readonly IMetadataObjectFileParser BasicParser;
+        public DocumentFileParser(IMetadataManager manager, IMetadataObjectFileParser parser)
+        {
+            BasicParser = parser;
+            MetadataManager = manager;
+        }
+        public void UseInfoBase(InfoBase infoBase)
         {
             InfoBase = infoBase;
-            MetadataManager = manager;
         }
         public void Parse(StreamReader stream, MetadataObject document)
         {
+            ParseBasicProperties(stream, document); // Чтение общих для всех объектов метаданных свойств
             ParseBasisForFillOut(stream, document); // Чтение объектов, на основании которых может быть заполнен данный документ
             ParseRegistersToPost(stream, document); // Чтение регистров, для которых данный документ является регистратором
+            BasicParser.ParsePropertiesAndTableParts(stream, document);
         }
-        public void ParseBasisForFillOut(StreamReader stream, MetadataObject document)
+        private void ParseBasicProperties(StreamReader stream, MetadataObject document)
+        {
+            BasicParser.SkipLines(stream, 4); // 1-4 lines
+            BasicParser.ParseName(stream, document); // 5. line - metaobject's UUID and Name
+            BasicParser.ParseAlias(stream, document); // 6. line - metaobject's alias
+            BasicParser.SkipLines(stream, 1); // 7. line
+        }
+        private void ParseBasisForFillOut(StreamReader stream, MetadataObject document)
         {
             string line = stream.ReadLine(); // 8. line - объекты-основания для заполнения документа
             if (line == null) return;
 
             string[] lines = line.Split(','); // {0,0},1, или {0,3,
             if (lines.Length < 2) return;
+            // Вычисляем количество блоков описания объектов метаданных
             if (!int.TryParse(lines[1].TrimEnd('}'), out int count))
             {
                 return;
@@ -40,21 +56,21 @@ namespace DaJet.Metadata
             if (count == 0) return;
 
             // Читаем блоки описания объектов метаданных (объектов-оснований)
-            for (int i = 0; i < count; i++) // цикл по количеству блоков
-            {
-                _ = stream.ReadLine(); // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
-                _ = stream.ReadLine(); // {1,e1f1df1a-5f4b-4269-9f67-4a5fa61df942}
-                _ = stream.ReadLine(); // },
-            }
-            _ = stream.ReadLine(); // },1, завершающая блок строка 
+            // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
+            // {1,e1f1df1a-5f4b-4269-9f67-4a5fa61df942}
+            // },
+            BasicParser.SkipLines(stream, (count * 3) + 1);
+            // },1, завершающая блок строка
         }
         public void ParseRegistersToPost(StreamReader stream, MetadataObject document)
         {
             string line = stream.ReadLine(); // начало блока описания регистров
             if (line == null) return;
-
+            
             string[] lines = line.Split(','); // {0,0},1, или {0,3,
             if (lines.Length < 2) return;
+
+            // Вычисляем количество блоков описания регистров
             if (!int.TryParse(lines[1].TrimEnd('}'), out int count))
             {
                 return;
@@ -74,7 +90,7 @@ namespace DaJet.Metadata
                 if (!match.Success) break; // нарушение формата потока
 
                 Guid uuid = new Guid(match.Value);
-                foreach (var collection in InfoBase.ValueTypes)
+                foreach (var collection in InfoBase.Registers)
                 {
                     // Ищем регистр в соответствующем наборе коллекций
                     if (collection.TryGetValue(uuid, out MetadataObject register))
@@ -89,70 +105,14 @@ namespace DaJet.Metadata
 
             if (registers.Count == 0) return;
 
-            // Добавляем свойство "Регистратор" в найденные регистры ! зачем 1С так сделала ???
-
-            IMetadataObjectFactory factory = MetadataManager.GetFactory(typeof(Document));
-            if (factory == null) return; // что-то очень сильно пошло не так ...
-
-            MetadataProperty property = factory.PropertyFactory.CreateProperty("Регистратор", PropertyPurpose.System);
-            property.PropertyType.CanBeReference = true;
-            property.PropertyType.ReferenceTypeCode = (registers.Count == 1) ? document.TypeCode : 0; // single or multiple type
-
-            if (property.PropertyType.IsMultipleType)
+            // Добавляем свойство "Регистратор" в найденные регистры
+            foreach (MetadataObject register in registers)
             {
-                // Multiple value type 
+                // Получаем ссылку на фабрику регистра
+                IMetadataObjectFactory factory = MetadataManager.GetFactory(register.GetType());
+                if (factory == null) break; // что-то очень сильно пошло не так ...
 
-                property.Fields.Add(new DatabaseField()
-                {
-                    Name = (MetadataManager.DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_TYPE" : "_OwnerID_TYPE".ToLowerInvariant()),
-                    Length = 1,
-                    TypeName = "binary",
-                    Scale = 0,
-                    Precision = 0,
-                    IsNullable = false,
-                    KeyOrdinal = 0,
-                    IsPrimaryKey = false,
-                    Purpose = FieldPurpose.Discriminator
-                });
-                property.Fields.Add(new DatabaseField()
-                {
-                    Name = (MetadataManager.DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_RTRef" : "_OwnerID_RTRef".ToLowerInvariant()),
-                    Length = 4,
-                    TypeName = "binary",
-                    Scale = 0,
-                    Precision = 0,
-                    IsNullable = false,
-                    KeyOrdinal = 0,
-                    IsPrimaryKey = false,
-                    Purpose = FieldPurpose.TypeCode
-                });
-                property.Fields.Add(new DatabaseField()
-                {
-                    Name = (MetadataManager.DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerID_RRRef" : "_OwnerID_RRRef".ToLowerInvariant()),
-                    Length = 16,
-                    TypeName = "binary",
-                    Scale = 0,
-                    Precision = 0,
-                    IsNullable = false,
-                    KeyOrdinal = 0,
-                    IsPrimaryKey = false,
-                    Purpose = FieldPurpose.Object
-                });
-            }
-            else // Single value type
-            {
-                property.Fields.Add(new DatabaseField()
-                {
-                    Name = (MetadataManager.DatabaseProvider == DatabaseProviders.SQLServer ? "_OwnerIDRRef" : "_OwnerIDRRef".ToLowerInvariant()),
-                    Length = 16,
-                    TypeName = "binary",
-                    Scale = 0,
-                    Precision = 0,
-                    IsNullable = false,
-                    KeyOrdinal = 0,
-                    IsPrimaryKey = false,
-                    Purpose = FieldPurpose.Value
-                });
+                factory.PropertyFactory.AddPropertyРегистратор(register, document, MetadataManager.DatabaseProvider);
             }
         }
     }

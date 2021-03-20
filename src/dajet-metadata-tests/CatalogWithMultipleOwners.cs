@@ -1,5 +1,6 @@
 ﻿using DaJet.Metadata.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace DaJet.Metadata.Tests
@@ -63,6 +64,23 @@ namespace DaJet.Metadata.Tests
             {
                 field = TestFieldExists(property, "_OwnerID_RRRef".ToLowerInvariant());
             }
+        }
+        [TestMethod("Подчинённый справочник: много владельцев")]
+        public void MultipleOwners()
+        {
+            SetupInfoBase();
+
+            MetadataObject register = InfoBase.Catalogs.Values.Where(r => r.Name == "СправочникПодчинённыйСоставной").FirstOrDefault();
+            Assert.IsNotNull(register);
+
+            ShowProperties(register);
+            metadataService.EnrichFromDatabase(register);
+            ShowProperties(register);
+
+            List<string> delete, insert;
+            bool result = metadataService.CompareWithDatabase(register, out delete, out insert);
+            ShowList("Delete list", delete);
+            ShowList("Insert list", insert);
         }
     }
 }

@@ -13,7 +13,7 @@ namespace DaJet.Metadata
     }
     public sealed class DBNamesFileParser : IDBNamesFileParser
     {
-        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
+        private readonly IMetadataManager MetadataManager = new MetadataManager();
         public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
         public void UseDatabaseProvider(DatabaseProviders databaseProvider)
         {

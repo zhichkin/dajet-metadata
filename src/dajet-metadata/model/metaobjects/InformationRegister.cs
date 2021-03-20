@@ -8,8 +8,13 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("period", "Период");
-            // TODO: добавить остальные свойства
+            // периодический регистр сведений
+            PropertyNameLookup.Add("_period", "Период"); // необязательный datetime2
+            // подчинённый регистратору
+            PropertyNameLookup.Add("_recorderrref", "Регистратор"); // необязательный binary(16)
+            PropertyNameLookup.Add("_recordertref", "Регистратор"); // необязательный binary(4)
+            PropertyNameLookup.Add("_lineno", "НомерЗаписи"); // необязательный numeric(9,0)
+            PropertyNameLookup.Add("_active", "Активность"); // необязательный binary(1)
         }
     }
 }

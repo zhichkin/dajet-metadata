@@ -6,11 +6,18 @@ namespace DaJet.Metadata.Model
 {
     public sealed class InfoBase
     {
+        public List<Dictionary<Guid, MetadataObject>> Registers { get; private set; }
         public List<Dictionary<Guid, MetadataObject>> ValueTypes { get; private set; }
         public List<Dictionary<Guid, MetadataObject>> ReferenceTypes { get; private set; }
         public Dictionary<Type, Dictionary<Guid, MetadataObject>> AllTypes { get; private set; }
         public InfoBase()
         {
+            Registers = new List<Dictionary<Guid, MetadataObject>>()
+            {
+                AccountingRegisters,
+                InformationRegisters,
+                AccumulationRegisters
+            };
             ValueTypes = new List<Dictionary<Guid, MetadataObject>>()
             {
                 Constants,

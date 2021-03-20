@@ -43,7 +43,7 @@ namespace DaJet.Metadata
     /// </summary>
     public sealed class MetadataCompareAndMergeService : IMetadataCompareAndMergeService
     {
-        private readonly IMetadataObjectsManager MetadataManager = new MetadataObjectsManager();
+        private readonly IMetadataManager MetadataManager = new MetadataManager();
         public void Compare(List<string> target_list, List<string> source_list, out List<string> delete_list, out List<string> insert_list)
         {
             delete_list = new List<string>();
@@ -216,16 +216,30 @@ namespace DaJet.Metadata
             f.Precision = field.NUMERIC_PRECISION;
             f.IsNullable = field.IS_NULLABLE;
         }
-        private void InsertPropertyField(MetadataObject metaObject, SqlFieldInfo field)
+        private void InsertPropertyField(MetadataObject metaObject, SqlFieldInfo fieldInfo)
         {
             IMetadataObjectFactory factory = MetadataManager.GetFactory(metaObject.GetType());
             if (factory == null) return;
 
-            MetadataProperty property = factory.PropertyFactory.CreateProperty(metaObject, field);
-            if (property != null)
+            string propertyName = factory.PropertyFactory.GetPropertyName(fieldInfo);
+            if (string.IsNullOrEmpty(propertyName))
             {
+                propertyName = fieldInfo.COLUMN_NAME;
+            }
+
+            // Проверка нужна для свойств, имеющих составной тип данных
+            MetadataProperty property = metaObject.Properties.Where(p => p.Name == propertyName).FirstOrDefault();
+            if (property == null)
+            {
+                property = factory.PropertyFactory.CreateProperty(metaObject, propertyName, fieldInfo);
                 metaObject.Properties.Add(property);
             }
+            else if (property.Fields.Where(f => f.Name == fieldInfo.COLUMN_NAME).FirstOrDefault() != null)
+            {
+                return; // поле добавлять не надо
+            }
+            
+            property.Fields.Add(factory.PropertyFactory.CreateField(fieldInfo));
         }
     }
 }

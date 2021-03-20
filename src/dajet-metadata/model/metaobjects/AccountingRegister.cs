@@ -8,8 +8,8 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("period", "Период");
-            PropertyNameLookup.Add("recorder", "Регистратор");
+            PropertyNameLookup.Add("_period", "Период");
+            PropertyNameLookup.Add("_recorder", "Регистратор");
             // TODO: добавить остальные свойства
         }
     }

@@ -8,15 +8,23 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("idrref", "Ссылка");
-            PropertyNameLookup.Add("version", "ВерсияДанных");
-            PropertyNameLookup.Add("marked", "ПометкаУдаления");
-            PropertyNameLookup.Add("predefinedid", "Предопределённый");
-            PropertyNameLookup.Add("code", "Код");
-            PropertyNameLookup.Add("description", "Наименование");
-            PropertyNameLookup.Add("folder", "ЭтоГруппа");
-            PropertyNameLookup.Add("parentidrref", "Родитель");
-            // TODO: учесть свойство "Владелец" для PostgreSQL
+            PropertyNameLookup.Add("_idrref", "Ссылка");
+            PropertyNameLookup.Add("_version", "ВерсияДанных");
+            PropertyNameLookup.Add("_marked", "ПометкаУдаления");
+            PropertyNameLookup.Add("_predefinedid", "Предопределённый");
+            PropertyNameLookup.Add("_code", "Код"); // необязательный
+            PropertyNameLookup.Add("_description", "Наименование"); // необязательный
+            PropertyNameLookup.Add("_folder", "ЭтоГруппа"); // необязательный
+            PropertyNameLookup.Add("_parentidrref", "Родитель"); // необязательный
+            PropertyNameLookup.Add("_owneridrref", "Владелец"); // необязательный
+            PropertyNameLookup.Add("_ownerid_type", "Владелец"); // необязательный
+            PropertyNameLookup.Add("_ownerid_rtref", "Владелец"); // необязательный
+            PropertyNameLookup.Add("_ownerid_rrref", "Владелец"); // необязательный
+            // TODO: свойство "Владелец" (необязательный)
+            // _OwnerIDRRef binary(16)
+            // _OwnerID_TYPE binary(1)
+            // _OwnerID_RTRef binary(4)
+            // _OwnerID_RRRef binary(16)
         }
     }
 }

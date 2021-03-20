@@ -148,9 +148,11 @@ namespace DaJet.Metadata
 
             CompareMergeService.Compare(targetFields, sourceFields, out delete, out insert);
 
-            int match = targetFields.Count - delete.Count;
-            int unmatch = sourceFields.Count - match;
-            return (insert.Count == unmatch);
+            //int match = targetFields.Count - delete.Count;
+            //int unmatch = sourceFields.Count - match;
+            //return (insert.Count == unmatch);
+
+            return (delete.Count + insert.Count) == 0;
         }
 
         public InfoBase LoadInfoBase()

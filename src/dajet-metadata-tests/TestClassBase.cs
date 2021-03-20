@@ -56,6 +56,15 @@ namespace DaJet.Metadata.Tests
             foreach (MetadataProperty property in metaObject.Properties)
             {
                 Console.WriteLine(" - " + property.Name + " (" + property.DbName + ")");
+                ShowFields(property);
+            }
+            Console.WriteLine();
+        }
+        private void ShowFields(MetadataProperty property)
+        {
+            foreach (DatabaseField field in property.Fields)
+            {
+                Console.WriteLine("      - " + field.Name + " (" + field.TypeName + ")");
             }
         }
         protected MetadataProperty TestPropertyExists(MetadataObject metaObject, string name)
