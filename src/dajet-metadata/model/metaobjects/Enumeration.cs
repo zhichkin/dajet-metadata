@@ -8,8 +8,8 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("idrref", "Ссылка");
-            PropertyNameLookup.Add("enumorder", "Порядок");
+            PropertyNameLookup.Add("_idrref", "Ссылка");
+            PropertyNameLookup.Add("_enumorder", "Порядок");
         }
     }
 }

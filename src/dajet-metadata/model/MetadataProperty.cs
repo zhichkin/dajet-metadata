@@ -11,11 +11,11 @@ namespace DaJet.Metadata.Model
         /// Идентификатор свойства объекта метаданных из файла DBNames таблицы Params.
         /// Используется для того, чтобы ссылаться на свойство в файле объекта метаданных из таблицы Config.
         ///</summary>
-        public Guid FileName { get; set; }
+        public Guid FileName { get; set; } = Guid.Empty;
         ///<summary>Имя свойства объекта метаданных</summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         ///<summary>Основа имени поля в таблице СУБД (может быть дополнено постфиксами в зависимости от типа данных свойства)</summary>
-        public string DbName { get; set; }
+        public string DbName { get; set; } = string.Empty;
         ///<summary>Коллекция для описания полей таблицы СУБД свойства объекта метаданных</summary>
         public List<DatabaseField> Fields { get; set; } = new List<DatabaseField>();
         ///<summary>Логический смысл свойства. Подробнее смотри перечисление <see cref="PropertyPurpose"/>.</summary>

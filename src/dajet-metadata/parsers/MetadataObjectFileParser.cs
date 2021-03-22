@@ -571,6 +571,11 @@ namespace DaJet.Metadata
 
             if (InfoBase.Properties.TryGetValue(new Guid(uuid), out MetadataProperty property))
             {
+                property.Name = "Value";
+                property.Fields.Add(new DatabaseField()
+                {
+                    Name = property.DbName
+                });
                 metaObject.Properties.Add(property);
             }
             ParseMetadataPropertyTypes(reader, property);

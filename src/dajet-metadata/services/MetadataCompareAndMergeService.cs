@@ -191,7 +191,7 @@ namespace DaJet.Metadata
         {
             for (int i = 0; i < property.Fields.Count; i++)
             {
-                if (property.Fields[i].Name == name)
+                if (property.Fields[i].Name.ToLowerInvariant() == name)
                 {
                     property.Fields.RemoveAt(i);
                     break;
@@ -205,7 +205,9 @@ namespace DaJet.Metadata
         private void UpdatePropertyField(MetadataProperty property, SqlFieldInfo field)
         {
             if (field.DATA_TYPE != "nchar"
+                && field.DATA_TYPE.StartsWith("mchar")
                 && field.DATA_TYPE != "nvarchar"
+                && field.DATA_TYPE.StartsWith("mvarchar")
                 && field.DATA_TYPE != "numeric") return;
 
             DatabaseField f = property.Fields.Where(f => f.Name == field.COLUMN_NAME).FirstOrDefault();

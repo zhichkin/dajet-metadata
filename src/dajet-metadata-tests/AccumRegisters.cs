@@ -1,86 +1,51 @@
 ﻿using DaJet.Metadata.Model;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace DaJet.Metadata.Tests
 {
-    [TestClass]
-    public sealed class AccumRegisters
+    [TestClass] public sealed class AccumRegisters
     {
-        private InfoBase InfoBase { get; set; }
-        private string ConnectionString { get; set; }
-        private IMetadataService MetadataService { get; set; } = new MetadataService();
-
-        public AccumRegisters()
+        [TestMethod("MS-01 Остатки")] public void MS_Balance()
         {
-            ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-            MetadataService.UseConnectionString(ConnectionString).UseDatabaseProvider(DatabaseProviders.SQLServer);
-
-            //ConnectionString = "Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;";
-            //metadataService.UseConnectionString(ConnectionString).UseDatabaseProvider(DatabaseProviders.PostgreSQL);
-
-            InfoBase = MetadataService.LoadInfoBase();
-        }
-        private void ShowList(string name, List<string> list)
-        {
-            Console.WriteLine(name + " (" + list.Count.ToString() + ")" + ":");
-            Console.WriteLine("---");
-            foreach (string item in list)
-            {
-                Console.WriteLine(" - " + item);
-            }
-            Console.WriteLine();
-        }
-        private void ShowProperties(MetadataObject metaObject)
-        {
-            Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
-            Console.WriteLine("---");
-            foreach (MetadataProperty property in metaObject.Properties)
-            {
-                Console.WriteLine("   - " + property.Name + " (" + property.DbName + ")");
-                ShowFields(property);
-            }
-            Console.WriteLine();
-        }
-        private void ShowFields(MetadataProperty property)
-        {
-            foreach (DatabaseField field in property.Fields)
-            {
-                Console.WriteLine("      - " + field.Name + " (" + field.TypeName + ")");
-            }
-        }
-
-        [TestMethod("01 Регистр накопления: остатки")]
-        public void Balance()
-        {
-            MetadataObject register = InfoBase.AccumulationRegisters.Values.Where(r => r.Name == "РегистрНакопленияОстатки").FirstOrDefault();
+            MetadataObject register = Test.MS_InfoBase
+                .AccumulationRegisters.Values
+                .Where(r => r.Name == "РегистрНакопленияОстатки")
+                .FirstOrDefault();
             Assert.IsNotNull(register);
 
-            ShowProperties(register);
-            MetadataService.EnrichFromDatabase(register);
-            ShowProperties(register);
-
-            List<string> delete, insert;
-            bool result = MetadataService.CompareWithDatabase(register, out delete, out insert);
-            ShowList("Delete list", delete);
-            ShowList("Insert list", insert);
+            Test.EnrichAndCompareWithDatabase(DatabaseProviders.SQLServer, register);
         }
-        [TestMethod("02 Регистр накопления: обороты")]
-        public void Turmover()
+        [TestMethod("MS-02 Обороты")] public void MS_Turnover()
         {
-            MetadataObject register = InfoBase.AccumulationRegisters.Values.Where(r => r.Name == "РегистрНакопленияОбороты").FirstOrDefault();
+            MetadataObject register = Test.MS_InfoBase
+                .AccumulationRegisters.Values
+                .Where(r => r.Name == "РегистрНакопленияОбороты")
+                .FirstOrDefault();
             Assert.IsNotNull(register);
 
-            ShowProperties(register);
-            MetadataService.EnrichFromDatabase(register);
-            ShowProperties(register);
+            Test.EnrichAndCompareWithDatabase(DatabaseProviders.SQLServer, register);
+        }
 
-            List<string> delete, insert;
-            bool result = MetadataService.CompareWithDatabase(register, out delete, out insert);
-            ShowList("Delete list", delete);
-            ShowList("Insert list", insert);
+        [TestMethod("PG-01 Остатки")] public void PG_Balance()
+        {
+            MetadataObject register = Test.PG_InfoBase
+                .AccumulationRegisters.Values
+                .Where(r => r.Name == "РегистрНакопленияОстатки")
+                .FirstOrDefault();
+            Assert.IsNotNull(register);
+
+            Test.EnrichAndCompareWithDatabase(DatabaseProviders.PostgreSQL, register);
+        }
+        [TestMethod("PG-02 Обороты")] public void PG_Turnover()
+        {
+            MetadataObject register = Test.PG_InfoBase
+                .AccumulationRegisters.Values
+                .Where(r => r.Name == "РегистрНакопленияОбороты")
+                .FirstOrDefault();
+            Assert.IsNotNull(register);
+
+            Test.EnrichAndCompareWithDatabase(DatabaseProviders.PostgreSQL, register);
         }
     }
 }

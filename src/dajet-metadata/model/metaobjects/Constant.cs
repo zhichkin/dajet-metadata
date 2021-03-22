@@ -8,7 +8,7 @@
     {
         protected override void InitializePropertyNameLookup()
         {
-            PropertyNameLookup.Add("recordkey", "КлючЗаписи"); // binary(1)
+            PropertyNameLookup.Add("_recordkey", "КлючЗаписи"); // binary(1)
         }
     }
 }
