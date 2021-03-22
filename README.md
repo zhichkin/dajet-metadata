@@ -10,6 +10,8 @@ Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL
 
 [NuGet package](https://www.nuget.org/packages/DaJet.Metadata/)
 
+[Конфигурация 1С для выполнения тестов](https://github.com/zhichkin/dajet-metadata/blob/main/1c/dajet-metadata-test-base.cf)
+
 Кроме метаданных 1С дополнительно можно выполнять чтение метаданных СУБД.
 
 <details>
