@@ -12,7 +12,7 @@
             PropertyNameLookup.Add("_version", "ВерсияДанных");
             PropertyNameLookup.Add("_marked", "ПометкаУдаления");
             PropertyNameLookup.Add("_predefinedid", "Предопределённый");
-            PropertyNameLookup.Add("_code", "Код"); // необязательный
+            PropertyNameLookup.Add("_code", "Код"); // необязательный 1.17 - длина кода, 1.18 - тип кода (0 - строка, 1 - число)
             PropertyNameLookup.Add("_description", "Наименование"); // необязательный
             PropertyNameLookup.Add("_folder", "ЭтоГруппа"); // необязательный
             PropertyNameLookup.Add("_parentidrref", "Родитель"); // необязательный
