@@ -2,7 +2,8 @@
 {
     public sealed class Catalog : MetadataObject
     {
-
+        // TODO: Добвить свойства, определяющие состав полей таблицы базы данных
+        // См. пути к нужным значениям ниже ...
     }
     public sealed class CatalogPropertyFactory : MetadataPropertyFactory
     {
@@ -12,19 +13,19 @@
             PropertyNameLookup.Add("_version", "ВерсияДанных");
             PropertyNameLookup.Add("_marked", "ПометкаУдаления");
             PropertyNameLookup.Add("_predefinedid", "Предопределённый");
-            PropertyNameLookup.Add("_code", "Код"); // необязательный 1.17 - длина кода, 1.18 - тип кода (0 - строка, 1 - число)
-            PropertyNameLookup.Add("_description", "Наименование"); // необязательный
-            PropertyNameLookup.Add("_folder", "ЭтоГруппа"); // необязательный
-            PropertyNameLookup.Add("_parentidrref", "Родитель"); // необязательный
-            PropertyNameLookup.Add("_owneridrref", "Владелец"); // необязательный
-            PropertyNameLookup.Add("_ownerid_type", "Владелец"); // необязательный
-            PropertyNameLookup.Add("_ownerid_rtref", "Владелец"); // необязательный
-            PropertyNameLookup.Add("_ownerid_rrref", "Владелец"); // необязательный
-            // TODO: свойство "Владелец" (необязательный)
-            // _OwnerIDRRef binary(16)
-            // _OwnerID_TYPE binary(1)
-            // _OwnerID_RTRef binary(4)
-            // _OwnerID_RRRef binary(16)
+            PropertyNameLookup.Add("_code", "Код"); // 1.17 - длина кода (0 - не используется), 1.18 - тип кода (0 - число, 1 - строка)
+            PropertyNameLookup.Add("_description", "Наименование"); // 1.19 - длина наименования (0 - не используется)
+            PropertyNameLookup.Add("_folder", "ЭтоГруппа");      // 1.36 (0 - иерархия групп и элементов, 1 - иерархия элементов)
+            PropertyNameLookup.Add("_parentidrref", "Родитель"); // 1.37 - иерархический (0 - нет, 1 - да)
+            PropertyNameLookup.Add("_owneridrref", "Владелец");   // 1.12.1 - количество владельцев справочника
+            PropertyNameLookup.Add("_ownerid_type", "Владелец");  // 1.12.2,     1.12.3,     1.12.N     - описание владельцев
+            PropertyNameLookup.Add("_ownerid_rtref", "Владелец"); // 1.12.2.2.1, 1.12.3.2.1, 1.12.N.2.1 - uuid'ы владельцев
+            PropertyNameLookup.Add("_ownerid_rrref", "Владелец");
+            // Свойство "Владелец"       (1.12.1 == 0) не используется
+            // _OwnerIDRRef binary(16)   (1.12.1 == 1)
+            // _OwnerID_TYPE binary(1)   (1.12.1 > 1)
+            // _OwnerID_RTRef binary(4)  (1.12.1 > 1)
+            // _OwnerID_RRRef binary(16) (1.12.1 > 1)
         }
     }
 }
