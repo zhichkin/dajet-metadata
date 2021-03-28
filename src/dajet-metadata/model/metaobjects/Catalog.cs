@@ -2,8 +2,12 @@
 {
     public sealed class Catalog : MetadataObject
     {
-        // TODO: Добвить свойства, определяющие состав полей таблицы базы данных
-        // См. пути к нужным значениям ниже ...
+        public int Owners { get; set; }
+        public CodeType CodeType { get; set; } = CodeType.String;
+        public int CodeLength { get; set; } = 9;
+        public int DescriptionLength { get; set; } = 25;
+        public bool IsHierarchical { get; set; } = false;
+        public HierarchyType HierarchyType { get; set; } = HierarchyType.Groups;
     }
     public sealed class CatalogPropertyFactory : MetadataPropertyFactory
     {

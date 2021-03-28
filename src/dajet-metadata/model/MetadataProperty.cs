@@ -14,6 +14,8 @@ namespace DaJet.Metadata.Model
         public Guid FileName { get; set; } = Guid.Empty;
         ///<summary>Имя свойства объекта метаданных</summary>
         public string Name { get; set; } = string.Empty;
+        ///<summary>Синоним свойства объекта метаданных</summary>
+        public string Alias { get; set; } = string.Empty;
         ///<summary>Основа имени поля в таблице СУБД (может быть дополнено постфиксами в зависимости от типа данных свойства)</summary>
         public string DbName { get; set; } = string.Empty;
         ///<summary>Коллекция для описания полей таблицы СУБД свойства объекта метаданных</summary>

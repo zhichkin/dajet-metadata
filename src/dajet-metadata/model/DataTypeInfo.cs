@@ -5,6 +5,8 @@
 // У не составных типов такого поля в базе данных нет, поэтому необходимо сохранить код типа в DataTypeInfo,
 // именно по этому значение свойства ReferenceTypeCode класса DataTypeInfo может быть больше ноля.
 
+using System;
+
 namespace DaJet.Metadata.Model
 {
     ///<summary>Класс для описания типов данных свойства объекта метаданных (реквизита, измерения или ресурса)</summary>
@@ -20,14 +22,28 @@ namespace DaJet.Metadata.Model
         public bool CanBeDateTime { get; set; } = false;
         ///<summary>Типом значения свойства может быть "Ссылка" (поддерживает составной тип данных)</summary>
         public bool CanBeReference { get; set; } = false;
-        ///<summary>Код ссылочного типа значения. По умолчанию равен 0 - многозначный ссылочный тип (составной тип данных).</summary>
-        public int ReferenceTypeCode { get; set; } = 0;  // 0 = multiple type by default
         ///<summary>Типом значения свойства является byte[8] - версия данных, timestamp, rowversion.Не поддерживает составной тип данных.</summary>
         public bool IsBinary { get; set; } = false;
         ///<summary>Тип значения свойства "УникальныйИдентификатор", binary(16). Не поддерживает составной тип данных.</summary>
         public bool IsUuid { get; set; } = false;
         ///<summary>Тип значения свойства "ХранилищеЗначения", varbinary(max). Не поддерживает составной тип данных.</summary>
         public bool IsValueStorage { get; set; } = false;
+        ///<summary>UUID ссылочного типа значения.</summary>
+        public Guid ReferenceTypeUuid { get; set; } = Guid.Empty;
+        ///<summary>Код ссылочного типа значения. По умолчанию равен 0 - многозначный ссылочный тип (составной тип данных).</summary>
+        private int _ReferenceTypeCode = 0;
+        public int ReferenceTypeCode
+        {
+            set { _ReferenceTypeCode = value; }
+            get
+            {
+                if (_ReferenceTypeCode == 0 && ReferenceTypeUuid != Guid.Empty)
+                {
+                    // TODO: lookup type code by type uuid
+                }
+                return _ReferenceTypeCode;
+            }
+        }
         ///<summary>Проверяет имеет ли свойство составной тип данных</summary>
         public bool IsMultipleType
         {
@@ -43,7 +59,7 @@ namespace DaJet.Metadata.Model
                 if (CanBeReference) count++;
                 if (count > 1) return true;
 
-                if (CanBeReference && ReferenceTypeCode == 0) return true;
+                if (CanBeReference && ReferenceTypeUuid == Guid.Empty) return true;
 
                 return false;
             }

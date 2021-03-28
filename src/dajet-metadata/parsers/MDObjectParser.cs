@@ -105,6 +105,60 @@ namespace DaJet.Metadata.Parsers
             }
             return mdo;
         }
+        public static MDObject GetObject(MDObject mdo, int[] path)
+        {
+            if (path.Length == 1)
+            {
+                return (MDObject)mdo.Values[path[0]];
+            }
+
+            int i = 0;
+            List<object> values = mdo.Values;
+            do
+            {
+                values = ((MDObject)values[path[i]]).Values;
+                i++;
+            }
+            while (i < path.Length - 1);
+
+            return (MDObject)values[path[i]];
+        }
+        public static string GetString(MDObject mdo, int[] path)
+        {
+            if (path.Length == 1)
+            {
+                return (string)mdo.Values[path[0]];
+            }
+
+            int i = 0;
+            List<object> values = mdo.Values;
+            do
+            {
+                values = ((MDObject)values[path[i]]).Values;
+                i++;
+            }
+            while (i < path.Length - 1);
+
+            return (string)values[path[i]];
+        }
+        public static int GetInt32(MDObject mdo, int[] path)
+        {
+            if (path.Length == 1)
+            {
+                return int.Parse((string)mdo.Values[path[0]]);
+            }
+
+            int i = 0;
+            List<object> values = mdo.Values;
+            do
+            {
+                values = ((MDObject)values[path[i]]).Values;
+                i++;
+            }
+            while (i < path.Length - 1);
+
+            return int.Parse((string)values[path[i]]);
+        }
         public static DiffObject CompareObjects(MDObject source, MDObject target)
         {
             DiffObject diff = new DiffObject()
