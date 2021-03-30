@@ -5,7 +5,7 @@ using System.Linq;
 namespace DaJet.Metadata.Model
 {
     ///<summary>Класс для описания свойств объекта метаданных <see cref="MetadataObject"> (реквизитов, измерений и ресурсов)</summary>
-    public sealed class MetadataProperty
+    public class MetadataProperty
     {
         ///<summary>
         /// Идентификатор свойства объекта метаданных из файла DBNames таблицы Params.

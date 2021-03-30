@@ -56,14 +56,17 @@ namespace DaJet.Metadata
     {
         private const string ROOT_FILE_NAME = "root"; // Config
         private const string DBNAMES_FILE_NAME = "DBNames"; // Params
+        private const string DBSCHEMA_FILE_NAME = "DBSchema"; // DBSchema
 
         private const string MS_IBVERSION_QUERY_SCRIPT = "SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];";
         private const string MS_PARAMS_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Params] WHERE [FileName] = @FileName;";
         private const string MS_CONFIG_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
+        private const string MS_DBSCHEMA_QUERY_SCRIPT = "SELECT TOP 1 [SerializedData] FROM [DBSchema];";
 
         private const string PG_IBVERSION_QUERY_SCRIPT = "SELECT platformversionreq FROM ibversion LIMIT 1;";
         private const string PG_PARAMS_QUERY_SCRIPT = "SELECT binarydata FROM params WHERE filename = '{filename}';";
         private const string PG_CONFIG_QUERY_SCRIPT = "SELECT binarydata FROM config WHERE filename = '{filename}';"; // Version 8.3 ORDER BY [PartNo] ASC";
+        private const string PG_DBSCHEMA_QUERY_SCRIPT = "SELECT serializeddata FROM dbschema LIMIT 1;";
 
         public string ConnectionString { get; private set; } = string.Empty;
         public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
@@ -224,6 +227,14 @@ namespace DaJet.Metadata
                     return ExecuteReader(MS_PARAMS_QUERY_SCRIPT, fileName);
                 }
                 return ExecuteReader(PG_PARAMS_QUERY_SCRIPT, fileName);
+            }
+            else if (fileName == DBSCHEMA_FILE_NAME)
+            {
+                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                {
+                    return ExecuteReader(MS_DBSCHEMA_QUERY_SCRIPT, fileName);
+                }
+                return ExecuteReader(PG_DBSCHEMA_QUERY_SCRIPT, fileName);
             }
             if (DatabaseProvider == DatabaseProviders.SQLServer)
             {

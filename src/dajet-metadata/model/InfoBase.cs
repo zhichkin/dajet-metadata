@@ -53,6 +53,8 @@ namespace DaJet.Metadata.Model
         public Dictionary<Guid, MetadataObject> TableParts { get; } = new Dictionary<Guid, MetadataObject>();
         ///<summary>Соответствие идентификаторов объектов метаданных типа "Реквизит", "Измерение", "Ресурс"</summary>
         public Dictionary<Guid, MetadataProperty> Properties { get; } = new Dictionary<Guid, MetadataProperty>();
+        ///<summary>Коллекция общих свойств конфигурации</summary>
+        public Dictionary<Guid, SharedProperty> SharedProperties { get; set; } = new Dictionary<Guid, SharedProperty>();
         ///<summary>Соответствие идентификаторов объектов метаданных ссылочного типа</summary>
         public ConcurrentDictionary<Guid, MetadataObject> MetaReferenceTypes { get; } = new ConcurrentDictionary<Guid, MetadataObject>();
 

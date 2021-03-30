@@ -3,7 +3,6 @@ using DaJet.Metadata.Parsers;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 
 namespace DaJet.Metadata
 {
@@ -69,6 +68,8 @@ namespace DaJet.Metadata
             {
                 ConfigureProperties(properties, catalog, infoBase);
             }
+
+            ConfigureSharedProperties(catalog, infoBase);
 
             // 5 - коллекция табличных частей справочника
             MDObject tableParts = MDObjectParser.GetObject(mdo, new int[] { 5 });
@@ -381,6 +382,26 @@ namespace DaJet.Metadata
             }
         }
 
+        private void ConfigureSharedProperties(MetadataObject metaObject, InfoBase infoBase)
+        {
+            foreach (SharedProperty property in infoBase.SharedProperties.Values)
+            {
+                if (property.UsageSettings.TryGetValue(metaObject.FileName, out SharedPropertyUsage usage))
+                {
+                    if (usage == SharedPropertyUsage.Use)
+                    {
+                        metaObject.Properties.Add(property);
+                    }
+                }
+                else // Auto
+                {
+                    if (property.AutomaticUsage == AutomaticUsage.Use)
+                    {
+                        metaObject.Properties.Add(property);
+                    }
+                }
+            }
+        }
 
         private void ConfigureTableParts(MDObject tableParts, MetadataObject owner, InfoBase infoBase, DatabaseProviders provider)
         {
@@ -490,8 +511,14 @@ namespace DaJet.Metadata
                 Guid propertyUuid = new Guid(MDObjectParser.GetString(properties, new int[] { p + propertyOffset, 0, 1, 1, 1, 1, 2 }));
                 // P.0.1.1.1.2 - property name
                 string propertyName = MDObjectParser.GetString(properties, new int[] { p + propertyOffset, 0, 1, 1, 1, 2 });
-                // P.0.1.1.1.3.2 - property alias
-                string propertyAlias = MDObjectParser.GetString(properties, new int[] { p + propertyOffset, 0, 1, 1, 1, 3, 2 });
+                // P.0.1.1.1.3 - property alias descriptor
+                string propertyAlias = string.Empty;
+                MDObject aliasDescriptor = MDObjectParser.GetObject(properties, new int[] { p + propertyOffset, 0, 1, 1, 1, 3 });
+                if (aliasDescriptor.Values.Count == 3)
+                {
+                    // P.0.1.1.1.3.2 - property alias
+                    propertyAlias = MDObjectParser.GetString(properties, new int[] { p + propertyOffset, 0, 1, 1, 1, 3, 2 });
+                }
                 // P.0.1.1.2 - property types
                 MDObject propertyTypes = MDObjectParser.GetObject(properties, new int[] { p + propertyOffset, 0, 1, 1, 2 });
                 // P.0.1.1.2.0 = "Pattern"
@@ -525,12 +552,20 @@ namespace DaJet.Metadata
                         }
                         else
                         {
+                            // TODO:
+                            // 1. check if it is DefinedType (since 8.3.3) определяемый тип
+                            // 2. ПланОбменаСсылка, ЛюбаяСсылка, ДокументСсылка, ПеречислениеСсылка,
+                            //    ПланВидовХарактеристикСсылка, ПланСчетовСсылка, СправочникСсылка
+                            // 3. 
                             typeInfo.CanBeReference = true;
                             typeUuids.Add(typeUuid);
                         }
                     }
                 }
-                if (typeUuids.Count == 1) typeInfo.ReferenceTypeUuid = typeUuids[0]; // single type value
+                if (typeUuids.Count == 1) // single type value
+                {
+                    typeInfo.ReferenceTypeUuid = typeUuids[0];
+                }
 
                 ConfigureProperty(infoBase, metaObject, propertyUuid, propertyName, propertyAlias, typeInfo);
             }
