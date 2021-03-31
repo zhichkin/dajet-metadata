@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Constant : MetadataObject
+    public sealed class Constant : ApplicationObject
     {
 
     }

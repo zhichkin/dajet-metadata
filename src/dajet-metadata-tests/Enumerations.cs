@@ -8,23 +8,23 @@ namespace DaJet.Metadata.Tests
     {
         [TestMethod("MS-01")] public void MS_01()
         {
-            MetadataObject enumeration = Test.MS_InfoBase
+            ApplicationObject enumeration = Test.MS_InfoBase
                 .Enumerations.Values
                 .Where(r => r.Name == "Перечисление1")
                 .FirstOrDefault();
             Assert.IsNotNull(enumeration);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.SQLServer, enumeration);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.SQLServer, enumeration);
         }
         [TestMethod("PG-01")] public void PG_01()
         {
-            MetadataObject enumeration = Test.PG_InfoBase
+            ApplicationObject enumeration = Test.PG_InfoBase
                 .Enumerations.Values
                 .Where(r => r.Name == "Перечисление1")
                 .FirstOrDefault();
             Assert.IsNotNull(enumeration);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.PostgreSQL, enumeration);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.PostgreSQL, enumeration);
         }
     }
 }

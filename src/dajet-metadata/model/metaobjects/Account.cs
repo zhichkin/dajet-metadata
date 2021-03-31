@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Account : MetadataObject
+    public sealed class Account : ApplicationObject
     {
     }
     public sealed class AccountPropertyFactory : MetadataPropertyFactory

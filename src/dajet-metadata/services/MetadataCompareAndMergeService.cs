@@ -35,7 +35,7 @@ namespace DaJet.Metadata
         /// </summary>
         /// <param name="metaObject">Объект метаданных, для которого выполняется сравнение и слияние</param>
         /// <param name="fields">Коллекция полей таблицы СУБД объекта метаданных, отсортированная по возрастанию имён полей</param>
-        void MergeProperties(MetadataObject metaObject, List<SqlFieldInfo> fields);
+        void MergeProperties(ApplicationObject metaObject, List<SqlFieldInfo> fields);
     }
     /// <summary>
     /// Класс реализует интерфейс <see cref="IMetadataCompareAndMergeService"/>,
@@ -134,7 +134,7 @@ namespace DaJet.Metadata
             }
             return fields;
         }
-        public void MergeProperties(MetadataObject metaObject, List<SqlFieldInfo> fields)
+        public void MergeProperties(ApplicationObject metaObject, List<SqlFieldInfo> fields)
         {
             SortedDictionary<string, MetadataProperty> lookup = PrepareMerging(metaObject.Properties);
 
@@ -218,9 +218,9 @@ namespace DaJet.Metadata
             f.Precision = field.NUMERIC_PRECISION;
             f.IsNullable = field.IS_NULLABLE;
         }
-        private void InsertPropertyField(MetadataObject metaObject, SqlFieldInfo fieldInfo)
+        private void InsertPropertyField(ApplicationObject metaObject, SqlFieldInfo fieldInfo)
         {
-            IMetadataObjectFactory factory = MetadataManager.GetFactory(metaObject.GetType());
+            IApplicationObjectFactory factory = MetadataManager.GetFactory(metaObject.GetType());
             if (factory == null) return;
 
             string propertyName = factory.PropertyFactory.GetPropertyName(fieldInfo);

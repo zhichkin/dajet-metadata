@@ -9,22 +9,23 @@ namespace DaJet.Metadata.Parsers
     {
         private InfoBase InfoBase { get; set; }
         private IMetadataManager MetadataManager { get; set; }
+        private readonly ConfigFileParser ConfigFileParser = new ConfigFileParser();
         public void Parse(StreamReader stream, InfoBase infoBase, IMetadataManager metadataManager)
         {
             InfoBase = infoBase;
             MetadataManager = metadataManager;
 
-            MDObject mdo = MDObjectParser.Parse(stream);
+            ConfigObject mdo = ConfigFileParser.Parse(stream);
 
-            int entryCount = MDObjectParser.GetInt32(mdo, new int[] { 1, 0 });
+            int entryCount = mdo.GetInt32(new int[] { 1, 0 });
 
             for (int i = 1; i < entryCount; i++)
             {
-                Guid uuid = new Guid(MDObjectParser.GetString(mdo, new int[] { 1, i, 0 }));
+                Guid uuid = mdo.GetUuid(new int[] { 1, i, 0 });
                 if (uuid == Guid.Empty) continue;
                 
-                string token = MDObjectParser.GetString(mdo, new int[] { 1, i, 1 });
-                int code = MDObjectParser.GetInt32(mdo, new int[] { 1, i, 2 });
+                string token = mdo.GetString(new int[] { 1, i, 1 });
+                int code = mdo.GetInt32(new int[] { 1, i, 2 });
                 
                 ParseEntry(uuid, token, code);
             }
@@ -40,7 +41,7 @@ namespace DaJet.Metadata.Parsers
             Type type = MetadataManager.GetTypeByToken(token);
             if (type == null) return; // unsupported type of metadata object
 
-            MetadataObject metaObject = MetadataManager.CreateObject(uuid, token, code);
+            ApplicationObject metaObject = MetadataManager.CreateObject(uuid, token, code);
             if (metaObject == null) return; // unsupported type of metadata object
 
             if (token == MetadataTokens.VT)
@@ -49,7 +50,7 @@ namespace DaJet.Metadata.Parsers
                 return;
             }
 
-            if (!InfoBase.AllTypes.TryGetValue(type, out Dictionary<Guid, MetadataObject> collection))
+            if (!InfoBase.AllTypes.TryGetValue(type, out Dictionary<Guid, ApplicationObject> collection))
             {
                 return; // unsupported collection of metadata objects
             }

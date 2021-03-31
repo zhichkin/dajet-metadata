@@ -23,7 +23,7 @@ namespace DaJet.Metadata.CLI
                 new Option<string>("--d", "Database name"),
                 new Option<string>("--u", "User name (Windows authentication is used if not defined)"),
                 new Option<string>("--p", "User password if SQL Server authentication is used"),
-                new Option<string>("--m", "MetadataObject name (example: \"Справочник.Номенклатура\")"),
+                new Option<string>("--m", "ApplicationObject name (example: \"Справочник.Номенклатура\")"),
                 new Option<FileInfo>("--out-file", "File path to save metaobject information"),
                 new Option<FileInfo>("--out-root", "File path to save configuration information")
             };
@@ -52,13 +52,13 @@ namespace DaJet.Metadata.CLI
             if (!string.IsNullOrWhiteSpace(ms))
             {
                 metadataService
-                    .UseDatabaseProvider(DatabaseProviders.SQLServer)
+                    .UseDatabaseProvider(DatabaseProvider.SQLServer)
                     .ConfigureConnectionString(ms, d, u, p);
             }
             else if (!string.IsNullOrWhiteSpace(pg))
             {
                 metadataService
-                    .UseDatabaseProvider(DatabaseProviders.PostgreSQL)
+                    .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
                     .ConfigureConnectionString(pg, d, u, p);
             }
 
@@ -82,7 +82,7 @@ namespace DaJet.Metadata.CLI
 
             if (outFile != null && !string.IsNullOrWhiteSpace(m))
             {
-                SaveMetadataObjectToFile(outFile.FullName, metadataService, m);
+                SaveApplicationObjectToFile(outFile.FullName, metadataService, m);
             }
         }
         private static void SaveConfigToFile(string filePath, IMetadataService metadataService)
@@ -95,15 +95,15 @@ namespace DaJet.Metadata.CLI
                 writer.Write(reader.ReadToEnd());
             }
         }
-        private static void SaveMetadataObjectToFile(string filePath, IMetadataService metadataService, string metadataName)
+        private static void SaveApplicationObjectToFile(string filePath, IMetadataService metadataService, string metadataName)
         {
             string[] names = metadataName.Split('.');
             if (names.Length != 2) return;
             string typeName = names[0];
             string objectName = names[1];
 
-            MetadataObject metaObject = null;
-            Dictionary<Guid, MetadataObject> collection = null;
+            ApplicationObject metaObject = null;
+            Dictionary<Guid, ApplicationObject> collection = null;
             InfoBase infoBase = metadataService.LoadInfoBase();
             if (typeName == "Справочник") collection = infoBase.Catalogs;
             else if (typeName == "Документ") collection = infoBase.Documents;

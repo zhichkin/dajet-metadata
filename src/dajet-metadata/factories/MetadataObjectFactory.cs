@@ -1,18 +1,18 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public interface IMetadataObjectFactory
+    public interface IApplicationObjectFactory
     {
-        MetadataObject CreateObject();
+        ApplicationObject CreateObject();
         IMetadataPropertyFactory PropertyFactory { get; }
     }
-    public sealed class MetadataObjectFactory<T> : IMetadataObjectFactory where T : MetadataObject, new()
+    public sealed class ApplicationObjectFactory<T> : IApplicationObjectFactory where T : ApplicationObject, new()
     {
         public IMetadataPropertyFactory PropertyFactory { get; private set; }
-        public MetadataObjectFactory(IMetadataPropertyFactory factory)
+        public ApplicationObjectFactory(IMetadataPropertyFactory factory)
         {
             PropertyFactory = factory;
         }
-        public MetadataObject CreateObject()
+        public ApplicationObject CreateObject()
         {
             return new T();
         }

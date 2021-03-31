@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
-    ///<summary>Класс для описания свойств объекта метаданных <see cref="MetadataObject"> (реквизитов, измерений и ресурсов)</summary>
+    ///<summary>Класс для описания свойств объекта метаданных <see cref="ApplicationObject"> (реквизитов, измерений и ресурсов)</summary>
     public class MetadataProperty
     {
         ///<summary>

@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class InformationRegister : MetadataObject
+    public sealed class InformationRegister : ApplicationObject
     {
 
     }

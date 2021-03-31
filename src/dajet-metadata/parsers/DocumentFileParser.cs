@@ -9,7 +9,7 @@ namespace DaJet.Metadata
     public interface IFileParser
     {
         void UseInfoBase(InfoBase infoBase);
-        void Parse(StreamReader stream, MetadataObject metaObject);
+        void Parse(StreamReader stream, ApplicationObject metaObject);
     }
     public sealed class DocumentFileParser : IFileParser
     {
@@ -17,8 +17,8 @@ namespace DaJet.Metadata
 
         private InfoBase InfoBase { get; set; }
         private readonly IMetadataManager MetadataManager;
-        private readonly IMetadataObjectFileParser BasicParser;
-        public DocumentFileParser(IMetadataManager manager, IMetadataObjectFileParser parser)
+        private readonly IApplicationObjectFileParser BasicParser;
+        public DocumentFileParser(IMetadataManager manager, IApplicationObjectFileParser parser)
         {
             BasicParser = parser;
             MetadataManager = manager;
@@ -27,21 +27,21 @@ namespace DaJet.Metadata
         {
             InfoBase = infoBase;
         }
-        public void Parse(StreamReader stream, MetadataObject document)
+        public void Parse(StreamReader stream, ApplicationObject document)
         {
             ParseBasicProperties(stream, document); // Чтение общих для всех объектов метаданных свойств
             ParseBasisForFillOut(stream, document); // Чтение объектов, на основании которых может быть заполнен данный документ
             ParseRegistersToPost(stream, document); // Чтение регистров, для которых данный документ является регистратором
             BasicParser.ParsePropertiesAndTableParts(stream, document);
         }
-        private void ParseBasicProperties(StreamReader stream, MetadataObject document)
+        private void ParseBasicProperties(StreamReader stream, ApplicationObject document)
         {
             BasicParser.SkipLines(stream, 4); // 1-4 lines
             BasicParser.ParseName(stream, document); // 5. line - metaobject's UUID and Name
             BasicParser.ParseAlias(stream, document); // 6. line - metaobject's alias
             BasicParser.SkipLines(stream, 1); // 7. line
         }
-        private void ParseBasisForFillOut(StreamReader stream, MetadataObject document)
+        private void ParseBasisForFillOut(StreamReader stream, ApplicationObject document)
         {
             string line = stream.ReadLine(); // 8. line - объекты-основания для заполнения документа
             if (line == null) return;
@@ -62,7 +62,7 @@ namespace DaJet.Metadata
             BasicParser.SkipLines(stream, (count * 3) + 1);
             // },1, завершающая блок строка
         }
-        public void ParseRegistersToPost(StreamReader stream, MetadataObject document)
+        public void ParseRegistersToPost(StreamReader stream, ApplicationObject document)
         {
             string line = stream.ReadLine(); // начало блока описания регистров
             if (line == null) return;
@@ -79,7 +79,7 @@ namespace DaJet.Metadata
 
             // Читаем блоки описания объектов метаданных (регистров)
             Match match;
-            List<MetadataObject> registers = new List<MetadataObject>();
+            List<ApplicationObject> registers = new List<ApplicationObject>();
             for (int i = 0; i < count; i++) // цикл по количеству блоков
             {
                 _ = stream.ReadLine();    // {"#",157fa490-4ce9-11d4-9415-008048da11f9,
@@ -93,7 +93,7 @@ namespace DaJet.Metadata
                 foreach (var collection in InfoBase.Registers)
                 {
                     // Ищем регистр в соответствующем наборе коллекций
-                    if (collection.TryGetValue(uuid, out MetadataObject register))
+                    if (collection.TryGetValue(uuid, out ApplicationObject register))
                     {
                         registers.Add(register);
                         break;
@@ -106,10 +106,10 @@ namespace DaJet.Metadata
             if (registers.Count == 0) return;
 
             // Добавляем свойство "Регистратор" в найденные регистры
-            foreach (MetadataObject register in registers)
+            foreach (ApplicationObject register in registers)
             {
                 // Получаем ссылку на фабрику регистра
-                IMetadataObjectFactory factory = MetadataManager.GetFactory(register.GetType());
+                IApplicationObjectFactory factory = MetadataManager.GetFactory(register.GetType());
                 if (factory == null) break; // что-то очень сильно пошло не так ...
 
                 factory.PropertyFactory.AddPropertyРегистратор(register, document, MetadataManager.DatabaseProvider);

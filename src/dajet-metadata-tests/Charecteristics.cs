@@ -8,23 +8,23 @@ namespace DaJet.Metadata.Tests
     {
         [TestMethod("MS-01 Обычный")] public void MS_01()
         {
-            MetadataObject characteristic = Test.MS_InfoBase
+            ApplicationObject characteristic = Test.MS_InfoBase
                 .Characteristics.Values
                 .Where(r => r.Name == "ПланВидовХарактеристик1")
                 .FirstOrDefault();
             Assert.IsNotNull(characteristic);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.SQLServer, characteristic);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.SQLServer, characteristic);
         }
         [TestMethod("PG-01 Обычный")] public void PG_01()
         {
-            MetadataObject characteristic = Test.PG_InfoBase
+            ApplicationObject characteristic = Test.PG_InfoBase
                 .Characteristics.Values
                 .Where(r => r.Name == "ПланВидовХарактеристик1")
                 .FirstOrDefault();
             Assert.IsNotNull(characteristic);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.PostgreSQL, characteristic);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.PostgreSQL, characteristic);
         }
     }
 }

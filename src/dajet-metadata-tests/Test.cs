@@ -18,11 +18,11 @@ namespace DaJet.Metadata.Tests
         static Test()
         {
             MS_ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True";
-            MS_MetadataService.UseConnectionString(MS_ConnectionString).UseDatabaseProvider(DatabaseProviders.SQLServer);
+            MS_MetadataService.UseConnectionString(MS_ConnectionString).UseDatabaseProvider(DatabaseProvider.SQLServer);
             MS_InfoBase = MS_MetadataService.LoadInfoBase();
 
             PG_ConnectionString = "Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;";
-            PG_MetadataService.UseConnectionString(PG_ConnectionString).UseDatabaseProvider(DatabaseProviders.PostgreSQL);
+            PG_MetadataService.UseConnectionString(PG_ConnectionString).UseDatabaseProvider(DatabaseProvider.PostgreSQL);
             PG_InfoBase = PG_MetadataService.LoadInfoBase();
         }
         public static void ShowList(string name, List<string> list)
@@ -35,7 +35,7 @@ namespace DaJet.Metadata.Tests
             }
             Console.WriteLine();
         }
-        public static void ShowProperties(MetadataObject metaObject)
+        public static void ShowProperties(ApplicationObject metaObject)
         {
             Console.WriteLine(metaObject.Name + " (" + metaObject.TableName + "):");
             Console.WriteLine("---");
@@ -53,9 +53,9 @@ namespace DaJet.Metadata.Tests
                 Console.WriteLine("      - " + field.Name + " (" + field.TypeName + ")");
             }
         }
-        public static void EnrichAndCompareWithDatabase(DatabaseProviders provider, MetadataObject metaObject)
+        public static void EnrichAndCompareWithDatabase(DatabaseProvider provider, ApplicationObject metaObject)
         {
-            if (provider == DatabaseProviders.SQLServer)
+            if (provider == DatabaseProvider.SQLServer)
             {
                 EnrichAndCompareWithDatabasePrivate(MS_MetadataService, metaObject);
             }
@@ -64,7 +64,7 @@ namespace DaJet.Metadata.Tests
                 EnrichAndCompareWithDatabasePrivate(PG_MetadataService, metaObject);
             }
         }
-        private static void EnrichAndCompareWithDatabasePrivate(IMetadataService metadataService, MetadataObject metaObject)
+        private static void EnrichAndCompareWithDatabasePrivate(IMetadataService metadataService, ApplicationObject metaObject)
         {
             ShowProperties(metaObject);
             metadataService.EnrichFromDatabase(metaObject);

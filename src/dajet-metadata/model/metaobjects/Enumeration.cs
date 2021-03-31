@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Enumeration : MetadataObject
+    public sealed class Enumeration : ApplicationObject
     {
 
     }

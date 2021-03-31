@@ -15,13 +15,13 @@ namespace DaJet.Metadata
     public interface IMetadataService
     {
         ///<summary>Используемый провайдер баз данных</summary>
-        DatabaseProviders DatabaseProvider { get; }
+        DatabaseProvider DatabaseProvider { get; }
         ///<summary>Строка подключения к базе данных СУБД</summary>
         string ConnectionString { get; }
         ///<summary>Устанавливает провайдера базы данных СУБД</summary>
-        ///<param name="provider">Значение перечисления <see cref="DatabaseProviders"/> (Microsoft SQL Server или PostgreSQL)</param>
+        ///<param name="provider">Значение перечисления <see cref="DatabaseProvider"/> (Microsoft SQL Server или PostgreSQL)</param>
         ///<returns>Возвращает ссылку на самого себя</returns>
-        IMetadataService UseDatabaseProvider(DatabaseProviders databaseProvider);
+        IMetadataService UseDatabaseProvider(DatabaseProvider databaseProvider);
         ///<summary>Устанавливает строку подключения к базе данных СУБД</summary>
         ///<param name="connectionString">Строка подключения к базе данных СУБД</param>
         ///<returns>Возвращает ссылку на самого себя</returns>
@@ -41,18 +41,18 @@ namespace DaJet.Metadata
         ConfigInfo ReadConfigurationProperties();
         ///<summary>Выполняет сравнение и слияние свойств объекта метаданных с полями таблицы СУБД</summary>
         ///<param name="metaObject">Объект метаданных</param>
-        void EnrichFromDatabase(MetadataObject metaObject);
+        void EnrichFromDatabase(ApplicationObject metaObject);
         ///<summary>Выполняет сравнение свойств объекта метаданных с полями таблицы СУБД на соответствие</summary>
         ///<param name="metaObject">Объект метаданных, для которого выполняется сравнение</param>
         ///<param name="delete">Список имён полей, которые есть в объекте метаданных, но нет в таблице базы данных</param>
         ///<param name="insert">Список имён полей, которые есть в таблице базы данных, но нет в объекте метаданных</param>
         ///<returns>Результат проверки на соответствие</returns>
-        bool CompareWithDatabase(MetadataObject metaObject, out List<string> delete, out List<string> insert);
+        bool CompareWithDatabase(ApplicationObject metaObject, out List<string> delete, out List<string> insert);
         ///<summary>Фасад для интерфейса <see cref="IConfigurationFileParser"/></summary>
         string GetConfigurationFileName();
-        ///<summary>Фасад для интерфейса <see cref="IMetadataFileReader"/></summary>
+        ///<summary>Фасад для интерфейса <see cref="IConfigFileReader"/></summary>
         byte[] ReadBytes(string fileName);
-        ///<summary>Фасад для интерфейса <see cref="IMetadataFileReader"/></summary>
+        ///<summary>Фасад для интерфейса <see cref="IConfigFileReader"/></summary>
         StreamReader CreateReader(byte[] fileData);
     }
     /// <summary>
@@ -63,61 +63,61 @@ namespace DaJet.Metadata
         private sealed class ReadMetaUuidParameters
         {
             internal InfoBase InfoBase { get; set; }
-            internal MetadataObject MetadataObject { get; set; }
+            internal ApplicationObject ApplicationObject { get; set; }
         }
 
         private const string DBNAMES_FILE_NAME = "DBNames";
 
         private readonly IDBNamesFileParser DBNamesFileParser;
-        private readonly IMetadataFileReader MetadataFileReader;
+        private readonly IConfigFileReader ConfigFileReader;
         private readonly IConfigurationFileParser ConfigurationFileParser;
-        private readonly IMetadataObjectFileParser MetadataObjectFileParser;
+        private readonly IApplicationObjectFileParser ApplicationObjectFileParser;
         private readonly ISqlMetadataReader SqlMetadataReader;
         private readonly MetadataCompareAndMergeService CompareMergeService;
 
         public string ConnectionString { get; private set; } = string.Empty;
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
 
         public MetadataService()
         {
             DBNamesFileParser = new DBNamesFileParser();
-            MetadataFileReader = new MetadataFileReader();
-            ConfigurationFileParser = new ConfigurationFileParser(MetadataFileReader);
-            MetadataObjectFileParser = new MetadataObjectFileParser();
+            ConfigFileReader = new ConfigFileReader();
+            ConfigurationFileParser = new ConfigurationFileParser(ConfigFileReader);
+            ApplicationObjectFileParser = new ApplicationObjectFileParser();
             SqlMetadataReader = new SqlMetadataReader();
             CompareMergeService = new MetadataCompareAndMergeService();
         }
-        public IMetadataService UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public IMetadataService UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
             DBNamesFileParser.UseDatabaseProvider(DatabaseProvider);
             SqlMetadataReader.UseDatabaseProvider(DatabaseProvider);
-            MetadataFileReader.UseDatabaseProvider(DatabaseProvider);
-            MetadataObjectFileParser.UseDatabaseProvider(DatabaseProvider);
+            ConfigFileReader.UseDatabaseProvider(DatabaseProvider);
+            ApplicationObjectFileParser.UseDatabaseProvider(DatabaseProvider);
             return this;
         }
         public IMetadataService UseConnectionString(string connectionString)
         {
             ConnectionString = connectionString;
             SqlMetadataReader.UseConnectionString(ConnectionString);
-            MetadataFileReader.UseConnectionString(ConnectionString);
+            ConfigFileReader.UseConnectionString(ConnectionString);
             return this;
         }
         public IMetadataService ConfigureConnectionString(string server, string database, string userName, string password)
         {
-            MetadataFileReader.ConfigureConnectionString(server, database, userName, password);
-            ConnectionString = MetadataFileReader.ConnectionString;
+            ConfigFileReader.ConfigureConnectionString(server, database, userName, password);
+            ConnectionString = ConfigFileReader.ConnectionString;
             SqlMetadataReader.UseConnectionString(ConnectionString);
             return this;
         }
 
         public byte[] ReadBytes(string fileName)
         {
-            return MetadataFileReader.ReadBytes(fileName);
+            return ConfigFileReader.ReadBytes(fileName);
         }
         public StreamReader CreateReader(byte[] fileData)
         {
-            return MetadataFileReader.CreateReader(fileData);
+            return ConfigFileReader.CreateReader(fileData);
         }
 
         public string GetConfigurationFileName()
@@ -129,13 +129,13 @@ namespace DaJet.Metadata
             return ConfigurationFileParser.ReadConfigurationProperties();
         }
 
-        public void EnrichFromDatabase(MetadataObject metaObject)
+        public void EnrichFromDatabase(ApplicationObject metaObject)
         {
             List<SqlFieldInfo> sqlFields = SqlMetadataReader.GetSqlFieldsOrderedByName(metaObject.TableName);
             if (sqlFields.Count == 0) return;
             CompareMergeService.MergeProperties(metaObject, sqlFields);
         }
-        public bool CompareWithDatabase(MetadataObject metaObject, out List<string> delete, out List<string> insert)
+        public bool CompareWithDatabase(ApplicationObject metaObject, out List<string> delete, out List<string> insert)
         {
             delete = new List<string>();
             insert = new List<string>();
@@ -159,15 +159,15 @@ namespace DaJet.Metadata
         {
             InfoBase infoBase = new InfoBase();
             ReadDBNames(infoBase);
-            MetadataObjectFileParser.UseInfoBase(infoBase);
+            ApplicationObjectFileParser.UseInfoBase(infoBase);
             ReadMetaUuids(infoBase);
-            ReadMetadataObjects(infoBase);
+            ReadApplicationObjects(infoBase);
             return infoBase;
         }
         private void ReadDBNames(InfoBase infoBase)
         {
-            byte[] fileData = MetadataFileReader.ReadBytes(DBNAMES_FILE_NAME);
-            using (StreamReader reader = MetadataFileReader.CreateReader(fileData))
+            byte[] fileData = ConfigFileReader.ReadBytes(DBNAMES_FILE_NAME);
+            using (StreamReader reader = ConfigFileReader.CreateReader(fileData))
             {
                 DBNamesFileParser.Parse(reader, infoBase);
             }
@@ -183,7 +183,7 @@ namespace DaJet.Metadata
                     ReadMetaUuidParameters parameters = new ReadMetaUuidParameters()
                     {
                         InfoBase = infoBase,
-                        MetadataObject = item.Value
+                        ApplicationObject = item.Value
                     };
                     tasks[i] = Task.Factory.StartNew(
                         ReadMetaUuid,
@@ -219,14 +219,14 @@ namespace DaJet.Metadata
         {
             if (!(parameters is ReadMetaUuidParameters input)) return;
 
-            byte[] fileData = MetadataFileReader.ReadBytes(input.MetadataObject.FileName.ToString());
-            using (StreamReader stream = MetadataFileReader.CreateReader(fileData))
+            byte[] fileData = ConfigFileReader.ReadBytes(input.ApplicationObject.FileName.ToString());
+            using (StreamReader stream = ConfigFileReader.CreateReader(fileData))
             {
-                MetadataObjectFileParser.ParseMetaUuid(stream, input.MetadataObject);
+                ApplicationObjectFileParser.ParseMetaUuid(stream, input.ApplicationObject);
             }
-            input.InfoBase.MetaReferenceTypes.TryAdd(input.MetadataObject.Uuid, input.MetadataObject);
+            input.InfoBase.MetaReferenceTypes.TryAdd(input.ApplicationObject.Uuid, input.ApplicationObject);
         }
-        private void ReadMetadataObjects(InfoBase infoBase)
+        private void ReadApplicationObjects(InfoBase infoBase)
         {
             ReadValueTypes(infoBase);
             ReadReferenceTypes(infoBase);
@@ -240,7 +240,7 @@ namespace DaJet.Metadata
                 foreach (var item in collection)
                 {
                     tasks[i] = Task.Factory.StartNew(
-                        ReadMetadataObject,
+                        ReadApplicationObject,
                         item.Value,
                         CancellationToken.None,
                         TaskCreationOptions.DenyChildAttach,
@@ -278,7 +278,7 @@ namespace DaJet.Metadata
                 foreach (var item in collection)
                 {
                     tasks[i] = Task.Factory.StartNew(
-                        ReadMetadataObject,
+                        ReadApplicationObject,
                         item.Value,
                         CancellationToken.None,
                         TaskCreationOptions.DenyChildAttach,
@@ -307,17 +307,17 @@ namespace DaJet.Metadata
                 }
             }
         }
-        private void ReadMetadataObject(object metaObject)
+        private void ReadApplicationObject(object metaObject)
         {
-            MetadataObject obj = (MetadataObject)metaObject;
-            byte[] fileData = MetadataFileReader.ReadBytes(obj.FileName.ToString());
+            ApplicationObject obj = (ApplicationObject)metaObject;
+            byte[] fileData = ConfigFileReader.ReadBytes(obj.FileName.ToString());
             if (fileData == null)
             {
                 return; // TODO: log error "Metadata file is not found"
             }
-            using (StreamReader stream = MetadataFileReader.CreateReader(fileData))
+            using (StreamReader stream = ConfigFileReader.CreateReader(fileData))
             {
-                MetadataObjectFileParser.ParseMetadataObject(stream, obj);
+                ApplicationObjectFileParser.ParseApplicationObject(stream, obj);
             }
         }
     }

@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
-    public sealed class Document : MetadataObject
+    public sealed class Document : ApplicationObject
     {
     }
     public sealed class DocumentPropertyFactory : MetadataPropertyFactory

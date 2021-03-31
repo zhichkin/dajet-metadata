@@ -1,8 +1,8 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class TablePart : MetadataObject
+    public sealed class TablePart : ApplicationObject
     {
-        public MetadataObject Owner { get; set; }
+        public ApplicationObject Owner { get; set; }
     }
     public sealed class TablePartPropertyFactory : MetadataPropertyFactory
     {

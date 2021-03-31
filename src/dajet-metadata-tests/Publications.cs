@@ -9,17 +9,17 @@ namespace DaJet.Metadata.Tests
     {
         [TestMethod("MS-01 Обычный")] public void MS_01()
         {
-            MetadataObject publication = Test.MS_InfoBase
+            ApplicationObject publication = Test.MS_InfoBase
                 .Publications.Values
                 .Where(r => r.Name == "ПланОбмена")
                 .FirstOrDefault();
             Assert.IsNotNull(publication);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.SQLServer, publication);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.SQLServer, publication);
         }
         [TestMethod("MS-02 Загрузка узлов")] public void MS_02()
         {
-            MetadataObject publication = Test.MS_InfoBase
+            ApplicationObject publication = Test.MS_InfoBase
                 .Publications.Values
                 .Where(r => r.Name == "ПланОбмена")
                 .FirstOrDefault();
@@ -27,7 +27,7 @@ namespace DaJet.Metadata.Tests
 
             PublicationDataMapper mapper = new PublicationDataMapper();
             mapper.UseConnectionString(Test.MS_ConnectionString);
-            mapper.UseDatabaseProvider(DatabaseProviders.SQLServer);
+            mapper.UseDatabaseProvider(DatabaseProvider.SQLServer);
             mapper.SelectSubscribers((Publication)publication);
 
             Assert.IsNotNull(((Publication)publication).Publisher);
@@ -35,17 +35,17 @@ namespace DaJet.Metadata.Tests
 
         [TestMethod("PG-01 Обычный")] public void PG_01()
         {
-            MetadataObject publication = Test.PG_InfoBase
+            ApplicationObject publication = Test.PG_InfoBase
                 .Publications.Values
                 .Where(r => r.Name == "ПланОбмена")
                 .FirstOrDefault();
             Assert.IsNotNull(publication);
 
-            Test.EnrichAndCompareWithDatabase(DatabaseProviders.PostgreSQL, publication);
+            Test.EnrichAndCompareWithDatabase(DatabaseProvider.PostgreSQL, publication);
         }
         [TestMethod("PG-02 Загрузка узлов")] public void PG_02()
         {
-            MetadataObject publication = Test.PG_InfoBase
+            ApplicationObject publication = Test.PG_InfoBase
                 .Publications.Values
                 .Where(r => r.Name == "ПланОбмена")
                 .FirstOrDefault();
@@ -53,7 +53,7 @@ namespace DaJet.Metadata.Tests
 
             PublicationDataMapper mapper = new PublicationDataMapper();
             mapper.UseConnectionString(Test.PG_ConnectionString);
-            mapper.UseDatabaseProvider(DatabaseProviders.PostgreSQL);
+            mapper.UseDatabaseProvider(DatabaseProvider.PostgreSQL);
             mapper.SelectSubscribers((Publication)publication);
 
             Assert.IsNotNull(((Publication)publication).Publisher);

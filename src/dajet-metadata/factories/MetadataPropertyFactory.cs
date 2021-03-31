@@ -8,9 +8,9 @@ namespace DaJet.Metadata.Model
     {
         string GetPropertyName(SqlFieldInfo field);
         DatabaseField CreateField(SqlFieldInfo field);
-        MetadataProperty CreateProperty(MetadataObject owner, string name, SqlFieldInfo field);
+        MetadataProperty CreateProperty(ApplicationObject owner, string name, SqlFieldInfo field);
 
-        void AddPropertyРегистратор(MetadataObject register, MetadataObject document, DatabaseProviders provider);
+        void AddPropertyРегистратор(ApplicationObject register, ApplicationObject document, DatabaseProvider provider);
 
         MetadataProperty CreateProperty(string name, PropertyPurpose purpose);
     }
@@ -52,7 +52,7 @@ namespace DaJet.Metadata.Model
                             : FieldPurpose.Value
             };
         }
-        public MetadataProperty CreateProperty(MetadataObject owner, string name, SqlFieldInfo field)
+        public MetadataProperty CreateProperty(ApplicationObject owner, string name, SqlFieldInfo field)
         {
             MetadataProperty property = new MetadataProperty()
             {
@@ -64,7 +64,7 @@ namespace DaJet.Metadata.Model
             SetupPropertyType(owner, property, field);
             return property;
         }
-        private void SetupPropertyType(MetadataObject owner, MetadataProperty property, SqlFieldInfo field)
+        private void SetupPropertyType(ApplicationObject owner, MetadataProperty property, SqlFieldInfo field)
         {
             // TODO: учесть именования типов PostgreSQL, например (mchar, mvarchar)
 
@@ -120,14 +120,14 @@ namespace DaJet.Metadata.Model
 
         // Используется для сихронизации добавления свойства "Регистратор" между документами
         private readonly object syncRegister = new object();
-        public void AddPropertyРегистратор(MetadataObject register, MetadataObject document, DatabaseProviders provider)
+        public void AddPropertyРегистратор(ApplicationObject register, ApplicationObject document, DatabaseProvider provider)
         {
             lock (syncRegister)
             {
                 AddPropertyРегистраторSynchronized(register, document, provider);
             }
         }
-        private void AddPropertyРегистраторSynchronized(MetadataObject register, MetadataObject document, DatabaseProviders provider)
+        private void AddPropertyРегистраторSynchronized(ApplicationObject register, ApplicationObject document, DatabaseProvider provider)
         {
             MetadataProperty property = register.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
 
@@ -135,12 +135,12 @@ namespace DaJet.Metadata.Model
             {
                 // добавляем новое свойство
                 property = CreateProperty("Регистратор", PropertyPurpose.System);
-                property.DbName = (provider == DatabaseProviders.SQLServer ? "_Recorder" : "_recorder");
+                property.DbName = (provider == DatabaseProvider.SQLServer ? "_Recorder" : "_recorder");
                 property.PropertyType.CanBeReference = true;
                 property.PropertyType.ReferenceTypeCode = document.TypeCode; // single type value
                 property.Fields.Add(new DatabaseField()
                 {
-                    Name = (provider == DatabaseProviders.SQLServer ? "_RecorderRRef" : "_recorderrref"),
+                    Name = (provider == DatabaseProvider.SQLServer ? "_RecorderRRef" : "_recorderrref"),
                     Length = 16,
                     TypeName = "binary",
                     Scale = 0,
@@ -165,7 +165,7 @@ namespace DaJet.Metadata.Model
             {
                 property.Fields.Add(new DatabaseField()
                 {
-                    Name = (provider == DatabaseProviders.SQLServer ? "_RecorderTRef" : "_recordertref"),
+                    Name = (provider == DatabaseProvider.SQLServer ? "_RecorderTRef" : "_recordertref"),
                     Length = 4,
                     TypeName = "binary",
                     Scale = 0,

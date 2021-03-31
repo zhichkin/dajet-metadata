@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Characteristic : MetadataObject
+    public sealed class Characteristic : ApplicationObject
     {
 
     }

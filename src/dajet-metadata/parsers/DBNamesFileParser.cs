@@ -8,14 +8,14 @@ namespace DaJet.Metadata
     public interface IDBNamesFileParser
     {
         void Parse(StreamReader stream, InfoBase infoBase);
-        DatabaseProviders DatabaseProvider { get; }
-        void UseDatabaseProvider(DatabaseProviders databaseProvider);
+        DatabaseProvider DatabaseProvider { get; }
+        void UseDatabaseProvider(DatabaseProvider databaseProvider);
     }
     public sealed class DBNamesFileParser : IDBNamesFileParser
     {
         private readonly IMetadataManager MetadataManager = new MetadataManager();
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
-        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
+        public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
             MetadataManager.UseDatabaseProvider(DatabaseProvider);
@@ -56,7 +56,7 @@ namespace DaJet.Metadata
             Type type = MetadataManager.GetTypeByToken(token);
             if (type == null) return; // unsupported type of metadata object
 
-            MetadataObject metaObject = MetadataManager.CreateObject(uuid, token, code);
+            ApplicationObject metaObject = MetadataManager.CreateObject(uuid, token, code);
             if (metaObject == null) return; // unsupported type of metadata object
 
             if (token == MetadataTokens.VT)
@@ -65,7 +65,7 @@ namespace DaJet.Metadata
                 return;
             }
 
-            if (!infoBase.AllTypes.TryGetValue(type, out Dictionary<Guid, MetadataObject> collection))
+            if (!infoBase.AllTypes.TryGetValue(type, out Dictionary<Guid, ApplicationObject> collection))
             {
                 return; // unsupported collection of metadata objects
             }
@@ -76,7 +76,7 @@ namespace DaJet.Metadata
         {
             // [ChngR, но не ConfigChngR]
             // Список объектов, которые могут иметь таблицы изменений в планах обмена 1С
-            List<Dictionary<Guid, MetadataObject>> list = new List<Dictionary<Guid, MetadataObject>>()
+            List<Dictionary<Guid, ApplicationObject>> list = new List<Dictionary<Guid, ApplicationObject>>()
             {
                 infoBase.Accounts,
                 infoBase.Catalogs,
@@ -88,12 +88,12 @@ namespace DaJet.Metadata
                 infoBase.InformationRegisters,
                 infoBase.AccumulationRegisters
             };
-            MetadataObject owner;
+            ApplicationObject owner;
             foreach (var item in list)
             {
                 if (item.TryGetValue(uuid, out owner))
                 {
-                    owner.MetadataObjects.Add(MetadataManager.CreateObject(uuid, token, code));
+                    owner.ApplicationObjects.Add(MetadataManager.CreateObject(uuid, token, code));
                     break;
                 }
             }

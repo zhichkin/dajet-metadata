@@ -1,4 +1,6 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using DaJet.Metadata.Model;
+using DaJet.Metadata.Parsers;
+using Microsoft.Data.SqlClient;
 using Npgsql;
 using System;
 using System.Data;
@@ -10,16 +12,16 @@ using System.Text;
 namespace DaJet.Metadata
 {
     /// <summary>
-    /// Интерфейс для чтения файлов конфигурации 1С из таблиц IBVersion, Params и Config
+    /// Интерфейс для чтения файлов конфигурации 1С из таблиц IBVersion, DBSchema, Params и Config
     /// </summary>
-    public interface IMetadataFileReader
+    public interface IConfigFileReader
     {
         ///<summary>Используемый провайдер баз данных</summary>
-        DatabaseProviders DatabaseProvider { get; }
+        DatabaseProvider DatabaseProvider { get; }
 
         ///<summary>Устанавливает провайдера базы данных СУБД</summary>
-        ///<param name="provider">Значение перечисления <see cref="DatabaseProviders"/> (Microsoft SQL Server или PostgreSQL)</param>
-        void UseDatabaseProvider(DatabaseProviders databaseProvider);
+        ///<param name="provider">Значение перечисления <see cref="DatabaseProvider"/> (Microsoft SQL Server или PostgreSQL)</param>
+        void UseDatabaseProvider(DatabaseProvider databaseProvider);
 
         ///<summary>Возвращает установленную ранее строку подключения к базе данных 1С</summary>
         string ConnectionString { get; }
@@ -48,12 +50,19 @@ namespace DaJet.Metadata
         ///<param name="fileData">Бинарные данные файла метаданных</param>
         ///<returns>Поток для чтения файла метаданных в формате UTF-8</returns>
         StreamReader CreateReader(byte[] fileData);
+
+        ///<summary>Читает файл конфигурации и формирует его данные в виде древовидной структуры</summary>
+        /// <param name="fileName">Имя файла метаданных: root, DBNames, DBSchema или UUID файла</param>
+        /// <returns>Дерево значений файла конфигурации</returns>
+        ConfigObject ReadConfigObject(string fileName);
     }
     /// <summary>
     /// Класс для чтения файлов конфигурации 1С из SQL Server
     /// </summary>
-    public sealed class MetadataFileReader : IMetadataFileReader
+    public sealed class ConfigFileReader : IConfigFileReader
     {
+        #region "Constants"
+
         private const string ROOT_FILE_NAME = "root"; // Config
         private const string DBNAMES_FILE_NAME = "DBNames"; // Params
         private const string DBSCHEMA_FILE_NAME = "DBSchema"; // DBSchema
@@ -68,8 +77,12 @@ namespace DaJet.Metadata
         private const string PG_CONFIG_QUERY_SCRIPT = "SELECT binarydata FROM config WHERE filename = '{filename}';"; // Version 8.3 ORDER BY [PartNo] ASC";
         private const string PG_DBSCHEMA_QUERY_SCRIPT = "SELECT serializeddata FROM dbschema LIMIT 1;";
 
+        #endregion
+
+        private readonly ConfigFileParser FileParser = new ConfigFileParser();
+
         public string ConnectionString { get; private set; } = string.Empty;
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
         private byte[] CombineArrays(byte[] a1, byte[] a2)
         {
             if (a1 == null) return a2;
@@ -81,7 +94,7 @@ namespace DaJet.Metadata
         }
         private DbConnection CreateDbConnection()
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return new SqlConnection(ConnectionString);
             }
@@ -91,7 +104,7 @@ namespace DaJet.Metadata
         {
             if (string.IsNullOrWhiteSpace(fileName)) return;
 
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 ((SqlCommand)command).Parameters.AddWithValue("FileName", fileName);
             }
@@ -139,13 +152,13 @@ namespace DaJet.Metadata
         {
             ConnectionString = connectionString;
         }
-        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
         }
         public void ConfigureConnectionString(string server, string database, string userName, string password)
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 ConfigureConnectionStringForSQLServer(server, database, userName, password);
             }
@@ -204,7 +217,7 @@ namespace DaJet.Metadata
         }
         public int GetPlatformRequiredVersion()
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return ExecuteScalar<int>(MS_IBVERSION_QUERY_SCRIPT, null);
             }
@@ -214,7 +227,7 @@ namespace DaJet.Metadata
         {
             if (fileName == ROOT_FILE_NAME)
             {
-                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                if (DatabaseProvider == DatabaseProvider.SQLServer)
                 {
                     return ExecuteReader(MS_CONFIG_QUERY_SCRIPT, fileName);
                 }
@@ -222,7 +235,7 @@ namespace DaJet.Metadata
             }
             else if (fileName == DBNAMES_FILE_NAME)
             {
-                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                if (DatabaseProvider == DatabaseProvider.SQLServer)
                 {
                     return ExecuteReader(MS_PARAMS_QUERY_SCRIPT, fileName);
                 }
@@ -230,13 +243,13 @@ namespace DaJet.Metadata
             }
             else if (fileName == DBSCHEMA_FILE_NAME)
             {
-                if (DatabaseProvider == DatabaseProviders.SQLServer)
+                if (DatabaseProvider == DatabaseProvider.SQLServer)
                 {
                     return ExecuteReader(MS_DBSCHEMA_QUERY_SCRIPT, fileName);
                 }
                 return ExecuteReader(PG_DBSCHEMA_QUERY_SCRIPT, fileName);
             }
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return ExecuteReader(MS_CONFIG_QUERY_SCRIPT, fileName);
             }
@@ -248,64 +261,26 @@ namespace DaJet.Metadata
             DeflateStream stream = new DeflateStream(memory, CompressionMode.Decompress);
             return new StreamReader(stream, Encoding.UTF8);
         }
-
-        //TODO: чтение исходного кода 1С общих модулей конфигурации
-        //private const string COMMON_MODULES_COLLECTION_UUID = "0fe48980-252d-11d6-a3c7-0050bae0a776";
-        //public List<CommonModuleInfo> GetCommonModules()
-        //{
-        //    List<CommonModuleInfo> list = new List<CommonModuleInfo>();
-        //    string fileName = GetRootConfigFileName();
-        //    string metadata = ReadConfigFile(fileName);
-        //    using (StringReader reader = new StringReader(metadata))
-        //    {
-        //        string line = reader.ReadLine();
-        //        while (!string.IsNullOrEmpty(line))
-        //        {
-        //            if (line.Substring(1, 36) == COMMON_MODULES_COLLECTION_UUID)
-        //            {
-        //                list = ParseCommonModules(line); break;
-        //            }
-        //            line = reader.ReadLine();
-        //        }
-        //    }
-        //    return list;
-        //}
-        //private List<CommonModuleInfo> ParseCommonModules(string line)
-        //{
-        //    List<CommonModuleInfo> list = new List<CommonModuleInfo>();
-        //    string[] fileNames = line.TrimStart('{').TrimEnd('}').Split(',');
-        //    if (int.TryParse(fileNames[1], out int count) && count == 0)
-        //    {
-        //        return list;
-        //    }
-        //    int offset = 2;
-        //    for (int i = 0; i < count; i++)
-        //    {
-        //        CommonModuleInfo moduleInfo = ReadCommonModuleMetadata(fileNames[i + offset]);
-        //        list.Add(moduleInfo);
-        //    }
-        //    return list;
-        //}
-        //private CommonModuleInfo ReadCommonModuleMetadata(string fileName)
-        //{
-        //    string metadata = ReadConfigFile(fileName);
-        //    string uuid = string.Empty;
-        //    string name = string.Empty;
-        //    using (StringReader reader = new StringReader(metadata))
-        //    {
-        //        _ = reader.ReadLine(); // 1. line
-        //        _ = reader.ReadLine(); // 2. line
-        //        _ = reader.ReadLine(); // 3. line
-        //        string line = reader.ReadLine(); // 4. line
-        //        string[] lines = line.Split(',');
-        //        uuid = lines[2].TrimEnd('}');
-        //        name = lines[3].Trim('"');
-        //    }
-        //    return new CommonModuleInfo(uuid, name);
-        //}
-        //public string ReadCommonModuleSourceCode(CommonModuleInfo module)
-        //{
-        //    return ReadConfigFile(module.UUID + ".0");
-        //}
+        public ConfigObject ReadConfigObject(string fileName)
+        {
+            ConfigObject configObject;
+            byte[] bytes = ReadBytes(fileName);
+            if (fileName == DBSCHEMA_FILE_NAME)
+            {
+                using (MemoryStream memory = new MemoryStream(bytes))
+                using (StreamReader stream = new StreamReader(memory, Encoding.UTF8))
+                {
+                    configObject = FileParser.Parse(stream);
+                }
+            }
+            else
+            {
+                using (StreamReader stream = CreateReader(bytes))
+                {
+                    configObject = FileParser.Parse(stream);
+                }
+            }
+            return configObject;
+        }
     }
 }

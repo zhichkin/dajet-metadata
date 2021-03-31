@@ -3,7 +3,7 @@
     /// <summary>
     /// Список поддерживаемых провайдеров баз данных (Microsoft SQL Server или PostgreSQL)
     /// </summary>
-    public enum DatabaseProviders
+    public enum DatabaseProvider
     {
         /// <summary>
         /// Microsoft SQL Server

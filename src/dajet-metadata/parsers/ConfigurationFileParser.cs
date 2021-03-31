@@ -5,7 +5,7 @@ namespace DaJet.Metadata
 {
     /// <summary>
     /// Интерфейс выполняет чтение и разбор файла, содержащего значения свойств конфигурации 1С.
-    /// Зависит от интерфейса IMetadataFileReader, обеспечивающего чтение файлов из базы данных SQL Server.
+    /// Зависит от интерфейса IConfigFileReader, обеспечивающего чтение файлов из базы данных SQL Server.
     /// </summary>
     public interface IConfigurationFileParser
     {
@@ -21,11 +21,11 @@ namespace DaJet.Metadata
     {
         private const string ROOT_FILE_NAME = "root";
 
-        private readonly IMetadataFileReader MetadataFileReader;
+        private readonly IConfigFileReader ConfigFileReader;
 
-        public ConfigurationFileParser(IMetadataFileReader metadataFileReader)
+        public ConfigurationFileParser(IConfigFileReader metadataFileReader)
         {
-            MetadataFileReader = metadataFileReader;
+            ConfigFileReader = metadataFileReader;
         }
 
         private string ParseRootFileName(StreamReader reader)
@@ -38,8 +38,8 @@ namespace DaJet.Metadata
         public string GetConfigurationFileName()
         {
             string fileName = null;
-            byte[] fileData = MetadataFileReader.ReadBytes(ROOT_FILE_NAME);
-            using (StreamReader reader = MetadataFileReader.CreateReader(fileData))
+            byte[] fileData = ConfigFileReader.ReadBytes(ROOT_FILE_NAME);
+            using (StreamReader reader = ConfigFileReader.CreateReader(fileData))
             {
                 fileName = ParseRootFileName(reader);
             }
@@ -49,11 +49,11 @@ namespace DaJet.Metadata
         {
             ConfigInfo config = new ConfigInfo();
 
-            int version = MetadataFileReader.GetPlatformRequiredVersion();
+            int version = ConfigFileReader.GetPlatformRequiredVersion();
 
             string fileName = GetConfigurationFileName();
-            byte[] fileData = MetadataFileReader.ReadBytes(fileName);
-            using (StreamReader reader = MetadataFileReader.CreateReader(fileData))
+            byte[] fileData = ConfigFileReader.ReadBytes(fileName);
+            using (StreamReader reader = ConfigFileReader.CreateReader(fileData))
             {
                 string line = ReadLines(reader, 8); // 8. line
                 config.Name = ParseConfigName(line);

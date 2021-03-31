@@ -18,7 +18,7 @@ namespace DaJet.Metadata.Model
             PropertyNameLookup.Add("_sentno", "НомерОтправленного");
             PropertyNameLookup.Add("_receivedno", "НомерПринятого");
         }
-        private void PublicationAddPropertyНомерПринятого(MetadataObject metaObject)
+        private void PublicationAddPropertyНомерПринятого(ApplicationObject metaObject)
         {
             MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
             if (property != null) return;
@@ -40,7 +40,7 @@ namespace DaJet.Metadata.Model
             });
             metaObject.Properties.Add(property);
         }
-        private void PublicationAddPropertyНомерОтправленного(MetadataObject metaObject)
+        private void PublicationAddPropertyНомерОтправленного(ApplicationObject metaObject)
         {
             MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
             if (property != null) return;
@@ -63,12 +63,12 @@ namespace DaJet.Metadata.Model
             metaObject.Properties.Add(property);
         }
     }
-    public sealed class Publication : MetadataObject
+    public sealed class Publication : ApplicationObject
     {
         public bool IsDistributed { get; set; }
         public Publisher Publisher { get; set; }
         public List<Subscriber> Subscribers { get; set; } = new List<Subscriber>();
-        public List<MetadataObject> Articles { get; set; } = new List<MetadataObject>();
+        public List<ApplicationObject> Articles { get; set; } = new List<ApplicationObject>();
     }
     public sealed class Publisher
     {

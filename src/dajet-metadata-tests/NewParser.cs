@@ -1,5 +1,7 @@
-﻿using DaJet.Metadata.Model;
+﻿using DaJet.Metadata.Enrichers;
+using DaJet.Metadata.Model;
 using DaJet.Metadata.Parsers;
+using DaJet.Metadata.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
@@ -11,28 +13,85 @@ namespace DaJet.Metadata.NewParser
 {
     [TestClass] public sealed class NewParser
     {
+        private const string ROOT_FILE_NAME = "root";
         private const string DBNAMES_FILE_NAME = "DBNames";
         private const string DBSCHEMA_FILE_NAME = "DBSchema";
 
+        private readonly ConfigFileParser FileParser = new ConfigFileParser();
+        private readonly IConfigFileReader FileReader = new ConfigFileReader();
+
+        [TestMethod] public void MS_ReadDBSchema()
+        {
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+
+            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
+            using (MemoryStream memory = new MemoryStream(fileData))
+            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema.txt", false, Encoding.UTF8))
+            {
+                stream.Write(reader.ReadToEnd());
+            }
+
+            ConfigObject schema;
+            using (MemoryStream memory = new MemoryStream(fileData))
+            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
+            {
+                schema = FileParser.Parse(reader);
+            }
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema_parsed.txt", false, Encoding.UTF8))
+            {
+                WriteToFile(stream, schema, 0, string.Empty);
+            }
+        }
+        [TestMethod] public void PG_ReadDBSchema()
+        {
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
+                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;");
+
+            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
+            using (MemoryStream memory = new MemoryStream(fileData))
+            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg.txt", false, Encoding.UTF8))
+            {
+                stream.Write(reader.ReadToEnd());
+            }
+
+            ConfigObject schema;
+            using (MemoryStream memory = new MemoryStream(fileData))
+            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
+            {
+                schema = FileParser.Parse(reader);
+            }
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg-parsed.txt", false, Encoding.UTF8))
+            {
+                WriteToFile(stream, schema, 0, string.Empty);
+            }
+        }
+
         [TestMethod] public void ParseDbNames()
         {
-            MDObject mdObject;
+            ConfigObject mdObject;
             using (StreamReader stream = new StreamReader(@"C:\temp\DbNames.txt", Encoding.UTF8))
             {
-                mdObject = MDObjectParser.Parse(stream);
+                mdObject = FileParser.Parse(stream);
             }
             using (StreamWriter stream = new StreamWriter(@"C:\temp\DbNames_parsed.txt", false, Encoding.UTF8))
             {
                 WriteToFile(stream, mdObject, 0, string.Empty);
             }
         }
-        [TestMethod] public void ParseMetadataFile()
+        [TestMethod] public void ParseConfigObject()
         {
-            MDObject mdObject;
+            ConfigObject mdObject;
             string filePath = @"C:\temp\original.txt";
             using (StreamReader stream = new StreamReader(filePath, Encoding.UTF8))
             {
-                mdObject = MDObjectParser.Parse(stream);
+                mdObject = FileParser.Parse(stream);
             }
             using (StreamWriter stream = new StreamWriter(@"C:\temp\original_parsed.txt", false, Encoding.UTF8))
             {
@@ -41,14 +100,14 @@ namespace DaJet.Metadata.NewParser
             filePath = @"C:\temp\changed.txt";
             using (StreamReader stream = new StreamReader(filePath, Encoding.UTF8))
             {
-                mdObject = MDObjectParser.Parse(stream);
+                mdObject = FileParser.Parse(stream);
             }
             using (StreamWriter stream = new StreamWriter(@"C:\temp\changed_parsed.txt", false, Encoding.UTF8))
             {
                 WriteToFile(stream, mdObject, 0, string.Empty);
             }
         }
-        private void WriteToFile(StreamWriter stream, MDObject mdObject, int level, string path)
+        private void WriteToFile(StreamWriter stream, ConfigObject mdObject, int level, string path)
         {
             string indent = level == 0 ? string.Empty : "-".PadLeft(level * 4, '-');
             for (int i = 0; i < mdObject.Values.Count; i++)
@@ -57,7 +116,7 @@ namespace DaJet.Metadata.NewParser
 
                 string thisPath = path + (string.IsNullOrEmpty(path) ? string.Empty : ".") + i.ToString();
 
-                if (value is MDObject child)
+                if (value is ConfigObject child)
                 {
                     stream.WriteLine(indent + "[" + level.ToString() + "] (" + thisPath + ") " + value.ToString());
                     WriteToFile(stream, child, level + 1, thisPath);
@@ -75,21 +134,21 @@ namespace DaJet.Metadata.NewParser
 
         [TestMethod] public void TestCompareObjects()
         {
-            MDObject mdSource;
-            MDObject mdTarget;
+            ConfigObject mdSource;
+            ConfigObject mdTarget;
             DiffObject diff;
             string sourceFile = @"C:\temp\original.txt";
             string targetFile = @"C:\temp\changed.txt";
             using (StreamReader stream = new StreamReader(sourceFile, Encoding.UTF8))
             {
-                mdSource = MDObjectParser.Parse(stream);
+                mdSource = FileParser.Parse(stream);
             }
             using (StreamReader stream = new StreamReader(targetFile, Encoding.UTF8))
             {
-                mdTarget = MDObjectParser.Parse(stream);
+                mdTarget = FileParser.Parse(stream);
             }
 
-            diff = MDObjectParser.CompareObjects(mdSource, mdTarget);
+            diff = mdSource.CompareTo(mdTarget);
 
             using (StreamWriter stream = new StreamWriter(@"C:\temp\DiffObject.txt", false, Encoding.UTF8))
             {
@@ -100,8 +159,8 @@ namespace DaJet.Metadata.NewParser
         {
             string indent = level == 0 ? string.Empty : "-".PadLeft(level * 4, '-');
 
-            MDObject mdSource = parent.SourceValue as MDObject;
-            MDObject mdTarget = parent.TargetValue as MDObject;
+            ConfigObject mdSource = parent.SourceValue as ConfigObject;
+            ConfigObject mdTarget = parent.TargetValue as ConfigObject;
 
             if (mdSource != null && mdTarget != null)
             {
@@ -195,27 +254,29 @@ namespace DaJet.Metadata.NewParser
                 dbNames.Parse(stream, infoBase, manager);
             }
 
-            if (!infoBase.Catalogs.TryGetValue(new Guid("e1f1df1a-5f4b-4269-9f67-4a5fa61df942"), out MetadataObject metaObject))
+            if (!infoBase.Catalogs.TryGetValue(new Guid("e1f1df1a-5f4b-4269-9f67-4a5fa61df942"), out ApplicationObject metaObject))
             {
                 Console.WriteLine("Catalog is not found!");
                 return;
             }
 
             Catalog catalog = (Catalog)metaObject;
-            CatalogFileParser parser = new CatalogFileParser();
-            IMetadataFileReader fileReader = new MetadataFileReader();
-            fileReader.UseDatabaseProvider(DatabaseProviders.SQLServer);
+            Configurator configurator = new Configurator(FileReader);
+            IContentEnricher enricher = configurator.GetEnricher<Catalog>();
+            IConfigFileReader fileReader = new ConfigFileReader();
+            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
             fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
             byte[] bytes = fileReader.ReadBytes("e1f1df1a-5f4b-4269-9f67-4a5fa61df942");
             using (StreamReader reader = fileReader.CreateReader(bytes))
             {
-                parser.Parse(reader, catalog, infoBase, DatabaseProviders.SQLServer);
+                ConfigObject cfo = FileParser.Parse(reader);
+                enricher.Enrich(catalog, cfo);
             }
 
             //filePath = @"C:\temp\e1f1df1a-5f4b-4269-9f67-4a5fa61df942.txt";
             //using (StreamReader stream = new StreamReader(filePath, Encoding.UTF8))
             //{
-            //    parser.Parse(stream, catalog, infoBase, DatabaseProviders.SQLServer);
+            //    parser.Parse(stream, catalog, infoBase, DatabaseProvider.SQLServer);
             //}
 
             Console.WriteLine("Uuid : " + catalog.Uuid.ToString());
@@ -233,14 +294,14 @@ namespace DaJet.Metadata.NewParser
 
             IMetadataService metadata = new MetadataService();
             metadata
-                .UseDatabaseProvider(DatabaseProviders.SQLServer)
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
             List<string> delete;
             List<string> insert;
             bool result = metadata.CompareWithDatabase(catalog, out delete, out insert);
             Console.WriteLine("Compare catalog with database = " + result.ToString());
 
-            MetadataObject tablePart = catalog.MetadataObjects.Where(t => t.Name == "ТабличнаяЧасть3").FirstOrDefault();
+            ApplicationObject tablePart = catalog.ApplicationObjects.Where(t => t.Name == "ТабличнаяЧасть3").FirstOrDefault();
             if (tablePart == null)
             {
                 Console.WriteLine("Table part is not found!");
@@ -252,29 +313,19 @@ namespace DaJet.Metadata.NewParser
 
         [TestMethod] public void TestSharedProperties()
         {
-            InfoBase infoBase = new InfoBase();
-            DbNamesParser dbNames = new DbNamesParser();
-            IMetadataManager manager = new MetadataManager();
-            
-            IMetadataFileReader fileReader = new MetadataFileReader();
-            fileReader.UseDatabaseProvider(DatabaseProviders.SQLServer);
+            IConfigFileReader fileReader = new ConfigFileReader();
+            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
             fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // dajet-metadata
+
+            Configurator configurator = new Configurator(fileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
-                .UseDatabaseProvider(DatabaseProviders.SQLServer)
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
 
-            byte[] fileData = metadata.ReadBytes(DBNAMES_FILE_NAME);
-            using (StreamReader reader = metadata.CreateReader(fileData))
-            {
-                dbNames.Parse(reader, infoBase, manager);
-            }
-
-            ConfigFileParser configParser = new ConfigFileParser(fileReader);
-            configParser.Parse(infoBase);
-
-            CatalogFileParser parser = new CatalogFileParser();
+            IContentEnricher enricher = configurator.GetEnricher<Catalog>();
             using (StreamWriter stream = new StreamWriter(@"C:\temp\TestCatalogs.txt", false, Encoding.UTF8))
             {
                 foreach (var kvp in infoBase.Catalogs)
@@ -285,11 +336,9 @@ namespace DaJet.Metadata.NewParser
                         stream.WriteLine("Catalog {" + kvp.Key.ToString() + "} is not found!");
                         continue;
                     }
-                    byte[] bytes = metadata.ReadBytes(catalog.FileName.ToString());
-                    using (StreamReader reader = metadata.CreateReader(bytes))
-                    {
-                        parser.Parse(reader, catalog, infoBase, DatabaseProviders.SQLServer);
-                    }
+                    
+                    ConfigObject cfo = fileReader.ReadConfigObject(catalog.FileName.ToString());
+                    enricher.Enrich(catalog, cfo);
 
                     List<string> delete;
                     List<string> insert;
@@ -315,60 +364,6 @@ namespace DaJet.Metadata.NewParser
                         }
                     }
                 }
-            }
-        }
-
-        [TestMethod] public void MS_ReadDBSchema()
-        {
-            IMetadataService metadata = new MetadataService();
-            metadata
-                .UseDatabaseProvider(DatabaseProviders.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-
-            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema.txt", false, Encoding.UTF8))
-            {
-                stream.Write(reader.ReadToEnd());
-            }
-
-            MDObject schema;
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            {
-                schema = MDObjectParser.Parse(reader);
-            }
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema_parsed.txt", false, Encoding.UTF8))
-            {
-                WriteToFile(stream, schema, 0, string.Empty);
-            }
-        }
-
-        [TestMethod] public void PG_ReadDBSchema()
-        {
-            IMetadataService metadata = new MetadataService();
-            metadata
-                .UseDatabaseProvider(DatabaseProviders.PostgreSQL)
-                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;");
-
-            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg.txt", false, Encoding.UTF8))
-            {
-                stream.Write(reader.ReadToEnd());
-            }
-
-            MDObject schema;
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            {
-                schema = MDObjectParser.Parse(reader);
-            }
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg-parsed.txt", false, Encoding.UTF8))
-            {
-                WriteToFile(stream, schema, 0, string.Empty);
             }
         }
     }

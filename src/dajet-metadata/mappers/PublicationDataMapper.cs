@@ -14,18 +14,18 @@ namespace DaJet.Metadata.Mappers
         private const string PG_SELECT_SUBSCRIBERS_QUERY_TEMPLATE =
             "SELECT _idrref, CAST(_code AS varchar), CAST(_description AS varchar), _marked, _predefinedid FROM {0};";
         public string ConnectionString { get; private set; } = string.Empty;
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
         public void UseConnectionString(string connectionString)
         {
             ConnectionString = connectionString;
         }
-        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
         }
         private string CreateSelectSubscribersScript(Publication publication)
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return string.Format(
                     MS_SELECT_SUBSCRIBERS_QUERY_TEMPLATE,
@@ -40,7 +40,7 @@ namespace DaJet.Metadata.Mappers
         }
         private DbConnection CreateDbConnection()
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return new SqlConnection(ConnectionString);
             }

@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Catalog : MetadataObject
+    public sealed class Catalog : ApplicationObject
     {
         public int Owners { get; set; }
         public CodeType CodeType { get; set; } = CodeType.String;

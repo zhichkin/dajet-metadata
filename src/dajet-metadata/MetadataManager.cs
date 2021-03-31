@@ -5,15 +5,15 @@ namespace DaJet.Metadata.Model
 {
     public interface IMetadataManager
     {
-        DatabaseProviders DatabaseProvider { get; }
-        void UseDatabaseProvider(DatabaseProviders databaseProvider);
+        DatabaseProvider DatabaseProvider { get; }
+        void UseDatabaseProvider(DatabaseProvider databaseProvider);
         Type GetTypeByToken(string token);
         string CreateDbName(string token, int code);
-        MetadataObject CreateObject(Guid uuid, string token, int code);
+        ApplicationObject CreateObject(Guid uuid, string token, int code);
         MetadataProperty CreateProperty(Guid uuid, string token, int code);
-        IMetadataObjectFactory GetFactory(Type type);
-        IMetadataObjectFactory GetFactory(string token);
-        IMetadataObjectFactory GetFactory<T>() where T : MetadataObject, new();
+        IApplicationObjectFactory GetFactory(Type type);
+        IApplicationObjectFactory GetFactory(string token);
+        IApplicationObjectFactory GetFactory<T>() where T : ApplicationObject, new();
     }
     public sealed class MetadataManager: IMetadataManager
     {
@@ -31,39 +31,39 @@ namespace DaJet.Metadata.Model
             { MetadataTokens.Node, typeof(Publication) },
             { MetadataTokens.VT, typeof(TablePart) }
         };
-        private readonly Dictionary<Type, IMetadataObjectFactory> ObjectFactories = new Dictionary<Type, IMetadataObjectFactory>()
+        private readonly Dictionary<Type, IApplicationObjectFactory> ObjectFactories = new Dictionary<Type, IApplicationObjectFactory>()
         {
-            { typeof(Account), new MetadataObjectFactory<Account>(new AccountPropertyFactory()) },
-            { typeof(AccountingRegister), new MetadataObjectFactory<AccountingRegister>(new AccountingRegisterPropertyFactory()) },
-            { typeof(AccumulationRegister), new MetadataObjectFactory<AccumulationRegister>(new AccumulationRegisterPropertyFactory()) },
-            { typeof(Catalog), new MetadataObjectFactory<Catalog>(new CatalogPropertyFactory()) },
-            { typeof(Characteristic), new MetadataObjectFactory<Characteristic>(new CharacteristicPropertyFactory()) },
-            { typeof(Constant), new MetadataObjectFactory<Constant>(new ConstantPropertyFactory()) },
-            { typeof(Document), new MetadataObjectFactory<Document>(new DocumentPropertyFactory()) },
-            { typeof(Enumeration), new MetadataObjectFactory<Enumeration>(new EnumerationPropertyFactory()) },
-            { typeof(InformationRegister), new MetadataObjectFactory<InformationRegister>(new InformationRegisterPropertyFactory()) },
-            { typeof(Publication), new MetadataObjectFactory<Publication>(new PublicationPropertyFactory()) },
-            { typeof(TablePart), new MetadataObjectFactory<TablePart>(new TablePartPropertyFactory()) }
+            { typeof(Account), new ApplicationObjectFactory<Account>(new AccountPropertyFactory()) },
+            { typeof(AccountingRegister), new ApplicationObjectFactory<AccountingRegister>(new AccountingRegisterPropertyFactory()) },
+            { typeof(AccumulationRegister), new ApplicationObjectFactory<AccumulationRegister>(new AccumulationRegisterPropertyFactory()) },
+            { typeof(Catalog), new ApplicationObjectFactory<Catalog>(new CatalogPropertyFactory()) },
+            { typeof(Characteristic), new ApplicationObjectFactory<Characteristic>(new CharacteristicPropertyFactory()) },
+            { typeof(Constant), new ApplicationObjectFactory<Constant>(new ConstantPropertyFactory()) },
+            { typeof(Document), new ApplicationObjectFactory<Document>(new DocumentPropertyFactory()) },
+            { typeof(Enumeration), new ApplicationObjectFactory<Enumeration>(new EnumerationPropertyFactory()) },
+            { typeof(InformationRegister), new ApplicationObjectFactory<InformationRegister>(new InformationRegisterPropertyFactory()) },
+            { typeof(Publication), new ApplicationObjectFactory<Publication>(new PublicationPropertyFactory()) },
+            { typeof(TablePart), new ApplicationObjectFactory<TablePart>(new TablePartPropertyFactory()) }
         };
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
-        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
+        public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
         }
         public string CreateDbName(string token, int code)
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return $"_{token}{code}";
             }
             return $"_{token}{code}".ToLowerInvariant();
         }
-        public MetadataObject CreateObject(Guid uuid, string token, int code)
+        public ApplicationObject CreateObject(Guid uuid, string token, int code)
         {
-            IMetadataObjectFactory factory = GetFactory(token);
+            IApplicationObjectFactory factory = GetFactory(token);
             if (factory == null) return null;
 
-            MetadataObject metaObject = factory.CreateObject();
+            ApplicationObject metaObject = factory.CreateObject();
             metaObject.FileName = uuid;
             metaObject.TypeCode = code;
             metaObject.TableName = CreateDbName(token, code);
@@ -89,22 +89,22 @@ namespace DaJet.Metadata.Model
 
             return null;
         }
-        public IMetadataObjectFactory GetFactory(string token)
+        public IApplicationObjectFactory GetFactory(string token)
         {
             return GetFactory(GetTypeByToken(token));
         }
-        public IMetadataObjectFactory GetFactory(Type type)
+        public IApplicationObjectFactory GetFactory(Type type)
         {
             if (type == null) return null;
 
-            if (ObjectFactories.TryGetValue(type, out IMetadataObjectFactory factory))
+            if (ObjectFactories.TryGetValue(type, out IApplicationObjectFactory factory))
             {
                 return factory;
             }
 
             return null;
         }
-        public IMetadataObjectFactory GetFactory<T>() where T : MetadataObject, new()
+        public IApplicationObjectFactory GetFactory<T>() where T : ApplicationObject, new()
         {
             return GetFactory(typeof(T));
         }

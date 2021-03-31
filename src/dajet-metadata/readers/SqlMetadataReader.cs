@@ -24,9 +24,9 @@ namespace DaJet.Metadata
     public interface ISqlMetadataReader
     {
         string ConnectionString { get; }
-        DatabaseProviders DatabaseProvider { get; }
+        DatabaseProvider DatabaseProvider { get; }
         void UseConnectionString(string connectionString);
-        void UseDatabaseProvider(DatabaseProviders databaseProvider);
+        void UseDatabaseProvider(DatabaseProvider databaseProvider);
         void ConfigureConnectionString(string server, string database, string userName, string password);
         List<SqlFieldInfo> GetSqlFieldsOrderedByName(string tableName);
     }
@@ -72,8 +72,8 @@ namespace DaJet.Metadata
             public bool IS_NULLABLE;
         }
         public string ConnectionString { get; private set; } = string.Empty;
-        public DatabaseProviders DatabaseProvider { get; private set; } = DatabaseProviders.SQLServer;
-        public void UseDatabaseProvider(DatabaseProviders databaseProvider)
+        public DatabaseProvider DatabaseProvider { get; private set; } = DatabaseProvider.SQLServer;
+        public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
         }
@@ -83,7 +83,7 @@ namespace DaJet.Metadata
         }
         public void ConfigureConnectionString(string server, string database, string userName, string password)
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 ConfigureConnectionStringForSQLServer(server, database, userName, password);
             }
@@ -247,7 +247,7 @@ namespace DaJet.Metadata
 
         private string SelectSqlFieldsOrderedByNameScript()
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return MS_SelectSqlFieldsOrderedByNameScript();
             }
@@ -295,7 +295,7 @@ namespace DaJet.Metadata
 
         public List<SqlFieldInfo> GetSqlFieldsOrderedByName(string tableName)
         {
-            if (DatabaseProvider == DatabaseProviders.SQLServer)
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
             {
                 return MS_GetSqlFieldsOrderedByName(tableName);
             }

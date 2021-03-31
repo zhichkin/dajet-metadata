@@ -4,28 +4,28 @@ using System.Collections.Generic;
 
 namespace DaJet.Metadata.Model
 {
-    public sealed class InfoBase
+    public sealed class InfoBase : MetadataObject
     {
-        public List<Dictionary<Guid, MetadataObject>> Registers { get; private set; }
-        public List<Dictionary<Guid, MetadataObject>> ValueTypes { get; private set; }
-        public List<Dictionary<Guid, MetadataObject>> ReferenceTypes { get; private set; }
-        public Dictionary<Type, Dictionary<Guid, MetadataObject>> AllTypes { get; private set; }
+        public List<Dictionary<Guid, ApplicationObject>> Registers { get; private set; }
+        public List<Dictionary<Guid, ApplicationObject>> ValueTypes { get; private set; }
+        public List<Dictionary<Guid, ApplicationObject>> ReferenceTypes { get; private set; }
+        public Dictionary<Type, Dictionary<Guid, ApplicationObject>> AllTypes { get; private set; }
         public InfoBase()
         {
-            Registers = new List<Dictionary<Guid, MetadataObject>>()
+            Registers = new List<Dictionary<Guid, ApplicationObject>>()
             {
                 AccountingRegisters,
                 InformationRegisters,
                 AccumulationRegisters
             };
-            ValueTypes = new List<Dictionary<Guid, MetadataObject>>()
+            ValueTypes = new List<Dictionary<Guid, ApplicationObject>>()
             {
                 Constants,
                 AccountingRegisters,
                 InformationRegisters,
                 AccumulationRegisters
             };
-            ReferenceTypes = new List<Dictionary<Guid, MetadataObject>>()
+            ReferenceTypes = new List<Dictionary<Guid, ApplicationObject>>()
             {
                 Accounts,
                 Catalogs,
@@ -34,7 +34,7 @@ namespace DaJet.Metadata.Model
                 Publications,
                 Characteristics
             };
-            AllTypes = new Dictionary<Type, Dictionary<Guid, MetadataObject>>()
+            AllTypes = new Dictionary<Type, Dictionary<Guid, ApplicationObject>>()
             {
                 { typeof(Account), Accounts },
                 { typeof(AccountingRegister), AccountingRegisters },
@@ -50,41 +50,41 @@ namespace DaJet.Metadata.Model
         }
         public ConfigInfo ConfigInfo { get; set; }
         ///<summary>Соответствие идентификаторов объектов метаданных типа "ТабличнаяЧасть"</summary>
-        public Dictionary<Guid, MetadataObject> TableParts { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> TableParts { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Соответствие идентификаторов объектов метаданных типа "Реквизит", "Измерение", "Ресурс"</summary>
         public Dictionary<Guid, MetadataProperty> Properties { get; } = new Dictionary<Guid, MetadataProperty>();
         ///<summary>Коллекция общих свойств конфигурации</summary>
         public Dictionary<Guid, SharedProperty> SharedProperties { get; set; } = new Dictionary<Guid, SharedProperty>();
         ///<summary>Соответствие идентификаторов объектов метаданных ссылочного типа</summary>
-        public ConcurrentDictionary<Guid, MetadataObject> MetaReferenceTypes { get; } = new ConcurrentDictionary<Guid, MetadataObject>();
+        public ConcurrentDictionary<Guid, ApplicationObject> MetaReferenceTypes { get; } = new ConcurrentDictionary<Guid, ApplicationObject>();
 
         #region "Коллекции ссылочных типов данных (Guid - имя файла объекта метаданных в таблице Config)"
 
         ///<summary>Коллекция планов счетов (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Accounts { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Accounts { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция справочников (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Catalogs { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Catalogs { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция документов (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Documents { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Documents { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция перечислений (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Enumerations { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Enumerations { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция планов обмена (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Publications { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Publications { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция планов видов характеристик (ссылочный тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Characteristics { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Characteristics { get; } = new Dictionary<Guid, ApplicationObject>();
 
         #endregion
 
         #region "Коллекции значимых типов данных (Guid - имя файла объекта метаданных в таблице Config)"
 
         ///<summary>Коллекция констант (значимый тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> Constants { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> Constants { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция регистров бухгалтерии (значимый тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> AccountingRegisters { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> AccountingRegisters { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция регистров сведений (значимый тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> InformationRegisters { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> InformationRegisters { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Коллекция регистров накопления (значимый тип данных)</summary>
-        public Dictionary<Guid, MetadataObject> AccumulationRegisters { get; } = new Dictionary<Guid, MetadataObject>();
+        public Dictionary<Guid, ApplicationObject> AccumulationRegisters { get; } = new Dictionary<Guid, ApplicationObject>();
 
         #endregion
     }

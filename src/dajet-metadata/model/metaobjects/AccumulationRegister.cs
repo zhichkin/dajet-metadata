@@ -1,6 +1,6 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class AccumulationRegister : MetadataObject
+    public sealed class AccumulationRegister : ApplicationObject
     {
     }
     public sealed class AccumulationRegisterPropertyFactory : MetadataPropertyFactory
