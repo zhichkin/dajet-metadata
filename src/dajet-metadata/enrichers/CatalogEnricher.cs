@@ -11,9 +11,11 @@ namespace DaJet.Metadata.Enrichers
         {
             Configurator = configurator;
         }
-        public void Enrich(MetadataObject metadataObject, ConfigObject configObject)
+        public void Enrich(MetadataObject metadataObject)
         {
             if (!(metadataObject is Catalog catalog)) throw new ArgumentOutOfRangeException();
+
+            ConfigObject configObject = Configurator.FileReader.ReadConfigObject(catalog.FileName.ToString());
 
             catalog.Uuid = configObject.GetUuid(new int[] { 1, 3 });
             catalog.Name = configObject.GetString(new int[] { 1, 9, 1, 2 });

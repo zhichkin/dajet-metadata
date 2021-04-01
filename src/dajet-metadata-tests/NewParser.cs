@@ -244,40 +244,17 @@ namespace DaJet.Metadata.NewParser
 
         [TestMethod] public void TestLoadingObject()
         {
-            InfoBase infoBase = new InfoBase();
-            DbNamesParser dbNames = new DbNamesParser();
-            IMetadataManager manager = new MetadataManager();
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
 
-            string filePath = @"C:\temp\DbNames.txt";
-            using (StreamReader stream = new StreamReader(filePath, Encoding.UTF8))
-            {
-                dbNames.Parse(stream, infoBase, manager);
-            }
-
-            if (!infoBase.Catalogs.TryGetValue(new Guid("e1f1df1a-5f4b-4269-9f67-4a5fa61df942"), out ApplicationObject metaObject))
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+            Catalog catalog = (Catalog)infoBase.Catalogs.Values.Where(c => c.Name == "ПростойСправочник").FirstOrDefault();
+            if (catalog == null)
             {
                 Console.WriteLine("Catalog is not found!");
                 return;
             }
-
-            Catalog catalog = (Catalog)metaObject;
-            Configurator configurator = new Configurator(FileReader);
-            IContentEnricher enricher = configurator.GetEnricher<Catalog>();
-            IConfigFileReader fileReader = new ConfigFileReader();
-            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
-            byte[] bytes = fileReader.ReadBytes("e1f1df1a-5f4b-4269-9f67-4a5fa61df942");
-            using (StreamReader reader = fileReader.CreateReader(bytes))
-            {
-                ConfigObject cfo = FileParser.Parse(reader);
-                enricher.Enrich(catalog, cfo);
-            }
-
-            //filePath = @"C:\temp\e1f1df1a-5f4b-4269-9f67-4a5fa61df942.txt";
-            //using (StreamReader stream = new StreamReader(filePath, Encoding.UTF8))
-            //{
-            //    parser.Parse(stream, catalog, infoBase, DatabaseProvider.SQLServer);
-            //}
 
             Console.WriteLine("Uuid : " + catalog.Uuid.ToString());
             Console.WriteLine("Name : " + catalog.Name);
@@ -301,7 +278,7 @@ namespace DaJet.Metadata.NewParser
             bool result = metadata.CompareWithDatabase(catalog, out delete, out insert);
             Console.WriteLine("Compare catalog with database = " + result.ToString());
 
-            ApplicationObject tablePart = catalog.ApplicationObjects.Where(t => t.Name == "ТабличнаяЧасть3").FirstOrDefault();
+            ApplicationObject tablePart = catalog.TableParts.Where(t => t.Name == "ТабличнаяЧасть3").FirstOrDefault();
             if (tablePart == null)
             {
                 Console.WriteLine("Table part is not found!");
@@ -337,8 +314,7 @@ namespace DaJet.Metadata.NewParser
                         continue;
                     }
                     
-                    ConfigObject cfo = fileReader.ReadConfigObject(catalog.FileName.ToString());
-                    enricher.Enrich(catalog, cfo);
+                    enricher.Enrich(catalog);
 
                     List<string> delete;
                     List<string> insert;

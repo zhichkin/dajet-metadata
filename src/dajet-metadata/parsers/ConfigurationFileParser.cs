@@ -68,11 +68,11 @@ namespace DaJet.Metadata
                 line = ReadLines(reader, 1); // 17. line
                 if (version < 80300)
                 {
-                    config.Version = ParseOldVersion(line);
+                    config.Version = int.Parse(ParseOldVersion(line));
                 }
                 else
                 {
-                    config.Version = ParseVersion(line);
+                    config.Version = int.Parse(ParseVersion(line));
                 }
                 line = ReadLines(reader, 4); // 21. line
                 config.ModalWindowMode = ParseModalWindowMode(line);

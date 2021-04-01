@@ -533,7 +533,7 @@ namespace DaJet.Metadata
                 }
                 nested.Name = objectName;
                 nested.TableName = owner.TableName + nested.TableName;
-                owner.ApplicationObjects.Add(nested);
+                owner.TableParts.Add((TablePart)nested);
             }
             ParseNestedMetaProperties(reader, nested);
         }

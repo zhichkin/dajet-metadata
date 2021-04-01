@@ -2,6 +2,7 @@
 {
     public sealed class Account : ApplicationObject
     {
+        //public List<TablePart> TableParts { get; set; } = new List<TablePart>();
     }
     public sealed class AccountPropertyFactory : MetadataPropertyFactory
     {

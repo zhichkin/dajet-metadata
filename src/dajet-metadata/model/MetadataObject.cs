@@ -10,5 +10,7 @@ namespace DaJet.Metadata.Model
         public Guid FileName { get; set; } = Guid.Empty;
         public string Name { get; set; } = string.Empty;
         public string Alias { get; set; } = string.Empty;
+        // TODO: add Comment property ?
+        public override string ToString() { return string.Format("{0}.{1}", GetType().Name, Name); }
     }
 }

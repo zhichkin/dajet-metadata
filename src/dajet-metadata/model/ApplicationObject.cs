@@ -10,7 +10,7 @@ namespace DaJet.Metadata.Model
         public int TypeCode { get; set; }
         public string TableName { get; set; }
         public List<MetadataProperty> Properties { get; set; } = new List<MetadataProperty>();
-        public List<ApplicationObject> ApplicationObjects { get; set; } = new List<ApplicationObject>();
+        public List<TablePart> TableParts { get; set; } = new List<TablePart>(); // TODO: not all of the metadata objects have table parts
         public bool IsReferenceType
         {
             get
@@ -24,6 +24,5 @@ namespace DaJet.Metadata.Model
                     || thisType == typeof(Characteristic);
             }
         }
-        public override string ToString() { return string.Format("{0}.{1}", GetType().Name, Name); }
     }
 }

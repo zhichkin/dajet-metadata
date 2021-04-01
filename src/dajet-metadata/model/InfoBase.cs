@@ -6,6 +6,8 @@ namespace DaJet.Metadata.Model
 {
     public sealed class InfoBase : MetadataObject
     {
+        public ConfigInfo ConfigInfo { get; set; }
+        public int PlatformRequiredVersion { get; set; }
         public List<Dictionary<Guid, ApplicationObject>> Registers { get; private set; }
         public List<Dictionary<Guid, ApplicationObject>> ValueTypes { get; private set; }
         public List<Dictionary<Guid, ApplicationObject>> ReferenceTypes { get; private set; }
@@ -48,13 +50,15 @@ namespace DaJet.Metadata.Model
                 { typeof(Publication), Publications }
             };
         }
-        public ConfigInfo ConfigInfo { get; set; }
+        
         ///<summary>Соответствие идентификаторов объектов метаданных типа "ТабличнаяЧасть"</summary>
         public Dictionary<Guid, ApplicationObject> TableParts { get; } = new Dictionary<Guid, ApplicationObject>();
         ///<summary>Соответствие идентификаторов объектов метаданных типа "Реквизит", "Измерение", "Ресурс"</summary>
         public Dictionary<Guid, MetadataProperty> Properties { get; } = new Dictionary<Guid, MetadataProperty>();
         ///<summary>Коллекция общих свойств конфигурации</summary>
         public Dictionary<Guid, SharedProperty> SharedProperties { get; set; } = new Dictionary<Guid, SharedProperty>();
+        ///<summary>Коллекция определяемых типов конфигурации</summary>
+        public Dictionary<Guid, CompoundType> CompoundTypes { get; set; } = new Dictionary<Guid, CompoundType>();
         ///<summary>Соответствие идентификаторов объектов метаданных ссылочного типа</summary>
         public ConcurrentDictionary<Guid, ApplicationObject> MetaReferenceTypes { get; } = new ConcurrentDictionary<Guid, ApplicationObject>();
 

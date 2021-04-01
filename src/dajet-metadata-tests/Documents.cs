@@ -34,7 +34,7 @@ namespace DaJet.Metadata.Tests
                 .FirstOrDefault();
             Assert.IsNotNull(document);
 
-            ApplicationObject tablePart = document.ApplicationObjects
+            ApplicationObject tablePart = document.TableParts
                 .Where(mo => mo.Name == "ТабличнаяЧасть1")
                 .FirstOrDefault();
             Assert.IsNotNull(tablePart);
@@ -70,7 +70,7 @@ namespace DaJet.Metadata.Tests
                 .FirstOrDefault();
             Assert.IsNotNull(document);
 
-            ApplicationObject tablePart = document.ApplicationObjects
+            ApplicationObject tablePart = document.TableParts
                 .Where(mo => mo.Name == "ТабличнаяЧасть1")
                 .FirstOrDefault();
             Assert.IsNotNull(tablePart);

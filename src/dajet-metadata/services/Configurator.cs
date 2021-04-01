@@ -1,62 +1,150 @@
-﻿using DaJet.Metadata.Enrichers;
+﻿using DaJet.Metadata.Converters;
+using DaJet.Metadata.Enrichers;
 using DaJet.Metadata.Model;
-using DaJet.Metadata.Parsers;
 using System;
 using System.Collections.Generic;
-using System.IO;
 
 namespace DaJet.Metadata.Services
 {
     public sealed class Configurator
     {
-        private const string ROOT_FILE_NAME = "root"; // Config
-        private const string DBNAMES_FILE_NAME = "DBNames"; // Params
-
         internal InfoBase InfoBase;
         internal readonly IConfigFileReader FileReader;
         private readonly Dictionary<Type, IContentEnricher> Enrichers = new Dictionary<Type, IContentEnricher>();
+        private readonly Dictionary<Type, IConfigObjectConverter> Converters = new Dictionary<Type, IConfigObjectConverter>();
+
+        private readonly Dictionary<string, Type> MetadataTypes = new Dictionary<string, Type>()
+        {
+            { MetadataTokens.Acc, typeof(Account) },
+            { MetadataTokens.AccRg, typeof(AccountingRegister) },
+            { MetadataTokens.AccumRg, typeof(AccumulationRegister) },
+            { MetadataTokens.Reference, typeof(Catalog) },
+            { MetadataTokens.Chrc, typeof(Characteristic) },
+            { MetadataTokens.Const, typeof(Constant) },
+            { MetadataTokens.Document, typeof(Document) },
+            { MetadataTokens.Enum, typeof(Enumeration) },
+            { MetadataTokens.InfoRg, typeof(InformationRegister) },
+            { MetadataTokens.Node, typeof(Publication) },
+            { MetadataTokens.VT, typeof(TablePart) }
+        };
+        private readonly Dictionary<Type, Func<ApplicationObject>> Factories = new Dictionary<Type, Func<ApplicationObject>>()
+        {
+            { typeof(Account), () => { return new Account(); } },
+            { typeof(AccountingRegister), () => { return new AccountingRegister(); } },
+            { typeof(AccumulationRegister), () => { return new AccumulationRegister(); } },
+            { typeof(Catalog), () => { return new Catalog(); } },
+            { typeof(Characteristic), () => { return new Characteristic(); } },
+            { typeof(Constant), () => { return new Constant(); } },
+            { typeof(Document), () => { return new Document(); } },
+            { typeof(Enumeration), () => { return new Enumeration(); } },
+            { typeof(InformationRegister), () => { return new InformationRegister(); } },
+            { typeof(Publication), () => { return new Publication(); } },
+            { typeof(TablePart), () => { return new TablePart(); } }
+        };
 
         public Configurator(IConfigFileReader fileReader)
         {
             FileReader = fileReader ?? throw new ArgumentNullException();
 
+            InitializeConverters();
             InitializeEnrichers();
+        }
+        private void InitializeConverters()
+        {
+            Converters.Add(typeof(DataTypeInfo), new DataTypeInfoConverter(this));
         }
         private void InitializeEnrichers()
         {
+            Enrichers.Add(typeof(DbNamesEnricher), new DbNamesEnricher(this));
             Enrichers.Add(typeof(InfoBase), new InfoBaseEnricher(this));
             Enrichers.Add(typeof(Catalog), new CatalogEnricher(this));
         }
+        
         public InfoBase OpenInfoBase()
         {
             InfoBase = new InfoBase();
 
-            DbNamesParser dbNames = new DbNamesParser();
-            IMetadataManager manager = new MetadataManager();
+            GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
+            GetEnricher<InfoBase>().Enrich(InfoBase);
 
-            byte[] fileData = FileReader.ReadBytes(DBNAMES_FILE_NAME);
-            using (StreamReader reader = FileReader.CreateReader(fileData))
+            IContentEnricher catalogEnricher = GetEnricher<Catalog>();
+            foreach (Catalog catalog in InfoBase.Catalogs.Values)
             {
-                dbNames.Parse(reader, InfoBase, manager);
+                catalogEnricher.Enrich(catalog);
             }
-
-            ConfigObject root = FileReader.ReadConfigObject(ROOT_FILE_NAME);
-            ConfigObject cfg = FileReader.ReadConfigObject(root.GetString(new int[] { 1 }));
-            IContentEnricher enricher = GetEnricher<InfoBase>();
-            enricher.Enrich(InfoBase, cfg);
 
             return InfoBase;
         }
 
-        
+        public string CreateDbName(string token, int code)
+        {
+            if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+            {
+                return $"_{token}{code}";
+            }
+            return $"_{token}{code}".ToLowerInvariant();
+        }
+        public Type GetTypeByToken(string token)
+        {
+            if (string.IsNullOrWhiteSpace(token)) return null;
 
+            if (MetadataTypes.TryGetValue(token, out Type type))
+            {
+                return type;
+            }
+            return null;
+        }
+        public Func<ApplicationObject> GetFactory(string token)
+        {
+            Type type = GetTypeByToken(token);
+            if (type == null) return null;
+
+            if (Factories.TryGetValue(type, out Func<ApplicationObject> factory))
+            {
+                return factory;
+            }
+            return null;
+        }
+        public ApplicationObject CreateObject(Guid uuid, string token, int code)
+        {
+            Func<ApplicationObject> factory = GetFactory(token);
+            if (factory == null) return null;
+
+            ApplicationObject metaObject = factory();
+            metaObject.FileName = uuid;
+            metaObject.TypeCode = code;
+            metaObject.TableName = CreateDbName(token, code);
+
+            return metaObject;
+        }
+        public MetadataProperty CreateProperty(Guid uuid, string token, int code)
+        {
+            return new MetadataProperty()
+            {
+                FileName = uuid,
+                DbName = CreateDbName(token, code)
+            };
+        }
+        
         public IContentEnricher GetEnricher<T>() where T : MetadataObject
         {
             return GetEnricher(typeof(T));
         }
         public IContentEnricher GetEnricher(Type type)
         {
-            if (Enrichers.TryGetValue(type, out IContentEnricher converter))
+            if (Enrichers.TryGetValue(type, out IContentEnricher enricher))
+            {
+                return enricher;
+            }
+            return null;
+        }
+        public IConfigObjectConverter GetConverter<T>()
+        {
+            return GetConverter(typeof(T));
+        }
+        public IConfigObjectConverter GetConverter(Type type)
+        {
+            if (Converters.TryGetValue(type, out IConfigObjectConverter converter))
             {
                 return converter;
             }
@@ -88,6 +176,9 @@ namespace DaJet.Metadata.Services
                 ConfigObject propertyTypes = properties.GetObject(new int[] { p + propertyOffset, 0, 1, 1, 2 });
                 // P.0.1.1.2.0 = "Pattern"
                 List<Guid> typeUuids = new List<Guid>();
+
+                // TODO: use DataTypeInfoConverter class !
+
                 DataTypeInfo typeInfo = new DataTypeInfo();
                 for (int t = 0; t < propertyTypes.Values.Count - 1; t++)
                 {
@@ -117,11 +208,7 @@ namespace DaJet.Metadata.Services
                         }
                         else
                         {
-                            // TODO:
-                            // 1. check if it is DefinedType (since 8.3.3) определяемый тип
-                            // 2. ПланОбменаСсылка, ЛюбаяСсылка, ДокументСсылка, ПеречислениеСсылка,
-                            //    ПланВидовХарактеристикСсылка, ПланСчетовСсылка, СправочникСсылка
-                            // 3. 
+                            // TODO: use DataTypeInfoConverter class !
                             typeInfo.CanBeReference = true;
                             typeUuids.Add(typeUuid);
                         }
@@ -146,53 +233,7 @@ namespace DaJet.Metadata.Services
 
             ConfigureDatabaseFields(property);
         }
-        public void ConfigurePropertyType(MetadataProperty property, ConfigObject propertyTypes)
-        {
-            // 0 = "Pattern"
-            int typeOffset = 1;
-            List<Guid> typeUuids = new List<Guid>();
-            DataTypeInfo typeInfo = new DataTypeInfo();
-            int count = propertyTypes.Values.Count - 1;
-
-            for (int t = 0; t < count; t++)
-            {
-                // T - type descriptor
-                ConfigObject descriptor = propertyTypes.GetObject(new int[] { t + typeOffset });
-
-                // T.Q - property type qualifiers
-                string[] qualifiers = new string[descriptor.Values.Count];
-                for (int q = 0; q < descriptor.Values.Count; q++)
-                {
-                    qualifiers[q] = propertyTypes.GetString(new int[] { t + typeOffset, q });
-                }
-                if (qualifiers[0] == MetadataTokens.B) typeInfo.CanBeBoolean = true; // {"B"}
-                else if (qualifiers[0] == MetadataTokens.S) typeInfo.CanBeString = true; // {"S"} | {"S",10,0} | {"S",10,1}
-                else if (qualifiers[0] == MetadataTokens.N) typeInfo.CanBeNumeric = true; // {"N",10,2,0} | {"N",10,2,1}
-                else if (qualifiers[0] == MetadataTokens.D) typeInfo.CanBeDateTime = true; // {"D"} | {"D","D"} | {"D","T"}
-                else if (qualifiers[0] == MetadataTokens.R) // {"#",70497451-981e-43b8-af46-fae8d65d16f2}
-                {
-                    Guid typeUuid = new Guid(qualifiers[1]);
-                    if (typeUuid == new Guid("e199ca70-93cf-46ce-a54b-6edc88c3a296")) // ХранилищеЗначения - varbinary(max)
-                    {
-                        typeInfo.IsValueStorage = true;
-                    }
-                    else if (typeUuid == new Guid("fc01b5df-97fe-449b-83d4-218a090e681e")) // УникальныйИдентификатор - binary(16)
-                    {
-                        typeInfo.IsUuid = true;
-                    }
-                    else
-                    {
-                        typeInfo.CanBeReference = true;
-                        typeUuids.Add(typeUuid);
-                    }
-                }
-            }
-            if (typeUuids.Count == 1) // single type value
-            {
-                typeInfo.ReferenceTypeUuid = typeUuids[0];
-            }
-            property.PropertyType = typeInfo;
-        }
+        
         public void ConfigureSharedProperties(ApplicationObject metaObject)
         {
             foreach (SharedProperty property in InfoBase.SharedProperties.Values)
@@ -234,7 +275,7 @@ namespace DaJet.Metadata.Services
                         tablePart.Name = name;
                         ((TablePart)tablePart).Owner = owner;
                         tablePart.TableName = owner.TableName + tablePart.TableName;
-                        owner.ApplicationObjects.Add(tablePart);
+                        owner.TableParts.Add((TablePart)tablePart);
 
                         // T.2 - коллекция реквизитов табличной части (ConfigObject)
                         // T.2.0 = 888744e1-b616-11d4-9436-004095e12fc7 - идентификатор коллекции реквизитов табличной части

@@ -72,31 +72,5 @@ namespace DaJet.Metadata
 
             _ = collection.TryAdd(uuid, metaObject);
         }
-        private void AttachChangeTrackingTable(InfoBase infoBase, Guid uuid, string token, int code)
-        {
-            // [ChngR, но не ConfigChngR]
-            // Список объектов, которые могут иметь таблицы изменений в планах обмена 1С
-            List<Dictionary<Guid, ApplicationObject>> list = new List<Dictionary<Guid, ApplicationObject>>()
-            {
-                infoBase.Accounts,
-                infoBase.Catalogs,
-                infoBase.Documents,
-                infoBase.Enumerations,
-                infoBase.Characteristics,
-                infoBase.Constants,
-                infoBase.AccountingRegisters,
-                infoBase.InformationRegisters,
-                infoBase.AccumulationRegisters
-            };
-            ApplicationObject owner;
-            foreach (var item in list)
-            {
-                if (item.TryGetValue(uuid, out owner))
-                {
-                    owner.ApplicationObjects.Add(MetadataManager.CreateObject(uuid, token, code));
-                    break;
-                }
-            }
-        }
     }
 }

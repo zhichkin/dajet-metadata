@@ -75,7 +75,7 @@ namespace DaJet.Metadata.Tests
                 .FirstOrDefault();
             Assert.IsNotNull(catalog);
 
-            ApplicationObject tablePart = catalog.ApplicationObjects
+            ApplicationObject tablePart = catalog.TableParts
                 .Where(mo => mo.Name == "ТабличнаяЧасть3")
                 .FirstOrDefault();
             Assert.IsNotNull(tablePart);
@@ -151,7 +151,7 @@ namespace DaJet.Metadata.Tests
                 .FirstOrDefault();
             Assert.IsNotNull(catalog);
 
-            ApplicationObject tablePart = catalog.ApplicationObjects
+            ApplicationObject tablePart = catalog.TableParts
                 .Where(mo => mo.Name == "ТабличнаяЧасть3")
                 .FirstOrDefault();
             Assert.IsNotNull(tablePart);

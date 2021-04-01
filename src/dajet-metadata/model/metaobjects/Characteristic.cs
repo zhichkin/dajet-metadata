@@ -2,7 +2,7 @@
 {
     public sealed class Characteristic : ApplicationObject
     {
-
+        
     }
     public sealed class CharacteristicPropertyFactory : MetadataPropertyFactory
     {
