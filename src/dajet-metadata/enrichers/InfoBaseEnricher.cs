@@ -151,7 +151,7 @@ namespace DaJet.Metadata.Enrichers
                         FileName = collection.GetUuid(new int[] { i + offset })
                     };
                     ConfigureCompoundType(compound, infoBase);
-                    infoBase.CompoundTypes.Add(compound.FileName, compound);
+                    infoBase.CompoundTypes.Add(compound.Uuid, compound);
                 }
             }
         }
@@ -159,11 +159,12 @@ namespace DaJet.Metadata.Enrichers
         {
             ConfigObject cfo = FileReader.ReadConfigObject(compound.FileName.ToString());
 
+            compound.Uuid = cfo.GetUuid(new int[] { 1, 1 });
             compound.Name = cfo.GetString(new int[] { 1, 3, 2 });
             ConfigObject alias = cfo.GetObject(new int[] { 1, 3, 3 });
             if (alias.Values.Count == 3)
             {
-                compound.Alias = cfo.GetString(new int[] { 1, 1, 1, 1, 3, 2 });
+                compound.Alias = cfo.GetString(new int[] { 1, 3, 3, 2 });
             }
             // 1.3.4 - комментарий
 

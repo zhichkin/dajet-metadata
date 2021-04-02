@@ -46,6 +46,7 @@ namespace DaJet.Metadata.Services
         {
             FileReader = fileReader ?? throw new ArgumentNullException();
 
+            InfoBase = new InfoBase();
             InitializeConverters();
             InitializeEnrichers();
         }
@@ -62,8 +63,7 @@ namespace DaJet.Metadata.Services
         
         public InfoBase OpenInfoBase()
         {
-            InfoBase = new InfoBase();
-
+            // TODO: InfoBase.Clear(); ???
             GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
             GetEnricher<InfoBase>().Enrich(InfoBase);
 
@@ -156,7 +156,6 @@ namespace DaJet.Metadata.Services
             int propertiesCount = properties.GetInt32(new int[] { 1 }); // количество реквизитов
             if (propertiesCount == 0) return;
 
-            int typeOffset = 1;
             int propertyOffset = 2;
             for (int p = 0; p < propertiesCount; p++)
             {
@@ -175,49 +174,7 @@ namespace DaJet.Metadata.Services
                 // P.0.1.1.2 - property types
                 ConfigObject propertyTypes = properties.GetObject(new int[] { p + propertyOffset, 0, 1, 1, 2 });
                 // P.0.1.1.2.0 = "Pattern"
-                List<Guid> typeUuids = new List<Guid>();
-
-                // TODO: use DataTypeInfoConverter class !
-
-                DataTypeInfo typeInfo = new DataTypeInfo();
-                for (int t = 0; t < propertyTypes.Values.Count - 1; t++)
-                {
-                    // P.0.1.1.2.T - property type descriptor
-                    ConfigObject propertyTypeInfo = properties.GetObject(new int[] { p + propertyOffset, 0, 1, 1, 2, t + typeOffset });
-
-                    // P.0.1.1.2.T.Q - property type qualifiers
-                    string[] qualifiers = new string[propertyTypeInfo.Values.Count];
-                    for (int q = 0; q < propertyTypeInfo.Values.Count; q++)
-                    {
-                        qualifiers[q] = properties.GetString(new int[] { p + propertyOffset, 0, 1, 1, 2, t + typeOffset, q });
-                    }
-                    if (qualifiers[0] == MetadataTokens.B) typeInfo.CanBeBoolean = true; // {"B"}
-                    else if (qualifiers[0] == MetadataTokens.S) typeInfo.CanBeString = true; // {"S"} | {"S",10,0} | {"S",10,1}
-                    else if (qualifiers[0] == MetadataTokens.N) typeInfo.CanBeNumeric = true; // {"N",10,2,0} | {"N",10,2,1}
-                    else if (qualifiers[0] == MetadataTokens.D) typeInfo.CanBeDateTime = true; // {"D"} | {"D","D"} | {"D","T"}
-                    else if (qualifiers[0] == MetadataTokens.R) // {"#",70497451-981e-43b8-af46-fae8d65d16f2}
-                    {
-                        Guid typeUuid = new Guid(qualifiers[1]);
-                        if (typeUuid == new Guid("e199ca70-93cf-46ce-a54b-6edc88c3a296")) // ХранилищеЗначения - varbinary(max)
-                        {
-                            typeInfo.IsValueStorage = true;
-                        }
-                        else if (typeUuid == new Guid("fc01b5df-97fe-449b-83d4-218a090e681e")) // УникальныйИдентификатор - binary(16)
-                        {
-                            typeInfo.IsUuid = true;
-                        }
-                        else
-                        {
-                            // TODO: use DataTypeInfoConverter class !
-                            typeInfo.CanBeReference = true;
-                            typeUuids.Add(typeUuid);
-                        }
-                    }
-                }
-                if (typeUuids.Count == 1) // single type value
-                {
-                    typeInfo.ReferenceTypeUuid = typeUuids[0];
-                }
+                DataTypeInfo typeInfo = (DataTypeInfo)GetConverter<DataTypeInfo>().Convert(propertyTypes);
 
                 ConfigureProperty(metaObject, propertyUuid, propertyName, propertyAlias, typeInfo);
             }

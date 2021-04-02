@@ -288,25 +288,28 @@ namespace DaJet.Metadata.NewParser
             Console.WriteLine("Compare table part with database = " + result.ToString());
         }
 
-        [TestMethod] public void TestSharedProperties()
+        [TestMethod] public void TestCatalogs()
         {
-            IConfigFileReader fileReader = new ConfigFileReader();
-            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // dajet-metadata
-
-            Configurator configurator = new Configurator(fileReader);
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True");
+            Configurator configurator = new Configurator(FileReader);
             InfoBase infoBase = configurator.OpenInfoBase();
-
+            
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
-            IContentEnricher enricher = configurator.GetEnricher<Catalog>();
+            List<string> delete;
+            List<string> insert;
             using (StreamWriter stream = new StreamWriter(@"C:\temp\TestCatalogs.txt", false, Encoding.UTF8))
             {
+                int count = 0;
                 foreach (var kvp in infoBase.Catalogs)
                 {
+                    //if (kvp.Value.Name != "ВнешниеПользователи") continue;
+
+                    count++;
                     Catalog catalog = kvp.Value as Catalog;
                     if (catalog == null)
                     {
@@ -314,10 +317,6 @@ namespace DaJet.Metadata.NewParser
                         continue;
                     }
                     
-                    enricher.Enrich(catalog);
-
-                    List<string> delete;
-                    List<string> insert;
                     bool result = metadata.CompareWithDatabase(catalog, out delete, out insert);
                     if (!result)
                     {
@@ -327,7 +326,7 @@ namespace DaJet.Metadata.NewParser
                             stream.WriteLine("  Delete fields:");
                             foreach (string field in delete)
                             {
-                                stream.WriteLine("   - " + field); // d896353a-b506-4161-9eba-376a6ccd9671 - default string ?
+                                stream.WriteLine("   - " + field);
                             }
                         }
                         if (insert.Count > 0)
@@ -340,6 +339,8 @@ namespace DaJet.Metadata.NewParser
                         }
                     }
                 }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " catalogs processed.");
             }
         }
     }

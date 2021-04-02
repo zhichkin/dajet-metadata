@@ -2,15 +2,24 @@
 using DaJet.Metadata.Services;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DaJet.Metadata.Converters
 {
     public sealed class DataTypeInfoConverter : IConfigObjectConverter
     {
+        private readonly Dictionary<Guid, Dictionary<Guid, ApplicationObject>> ReferenceBaseTypes = new Dictionary<Guid, Dictionary<Guid, ApplicationObject>>();
         private Configurator Configurator { get; }
         public DataTypeInfoConverter(Configurator configurator)
         {
             Configurator = configurator;
+            ReferenceBaseTypes.Add(new Guid("280f5f0e-9c8a-49cc-bf6d-4d296cc17a63"), null); // ЛюбаяСсылка
+            ReferenceBaseTypes.Add(new Guid("e61ef7b8-f3e1-4f4b-8ac7-676e90524997"), Configurator.InfoBase.Catalogs); // СправочникСсылка
+            ReferenceBaseTypes.Add(new Guid("38bfd075-3e63-4aaa-a93e-94521380d579"), Configurator.InfoBase.Documents); // ДокументСсылка
+            ReferenceBaseTypes.Add(new Guid("474c3bf6-08b5-4ddc-a2ad-989cedf11583"), Configurator.InfoBase.Enumerations); // ПеречислениеСсылка
+            ReferenceBaseTypes.Add(new Guid("0a52f9de-73ea-4507-81e8-66217bead73a"), Configurator.InfoBase.Publications); // ПланОбменаСсылка
+            ReferenceBaseTypes.Add(new Guid("99892482-ed55-4fb5-a7f7-20888820a758"), Configurator.InfoBase.Characteristics); // ПланВидовХарактеристикСсылка
+            ReferenceBaseTypes.Add(new Guid("ac606d60-0209-4159-8e4c-794bc091ce38"), Configurator.InfoBase.Accounts); // ПланСчетовСсылка
         }
         public object Convert(ConfigObject configObject)
         {
@@ -47,13 +56,37 @@ namespace DaJet.Metadata.Converters
                     {
                         typeInfo.IsUuid = true;
                     }
+                    else if (ReferenceBaseTypes.TryGetValue(typeUuid, out Dictionary<Guid, ApplicationObject> collection))
+                    {
+                        if (collection == null) // Любая ссылка
+                        {
+                            typeInfo.CanBeReference = true;
+                            typeUuids.Add(Guid.Empty);
+                        }
+                        else if (collection.Count == 1) // Единственный объект метаданных в коллекции
+                        {
+                            typeInfo.CanBeReference = true;
+                            typeUuids.Add(collection.Values.First().Uuid);
+                        }
+                        else // Множественный ссылочный тип данных
+                        {
+                            typeInfo.CanBeReference = true;
+                            typeUuids.Add(Guid.Empty);
+                        }
+                    }
+                    else if (Configurator.InfoBase.CompoundTypes.TryGetValue(typeUuid, out CompoundType compound))
+                    {
+                        // since 8.3.3
+                        ApplyCompoundType(typeInfo, compound);
+                        typeUuids.Add(compound.TypeInfo.ReferenceTypeUuid);
+                    }
+                    else if (1 == 0)
+                    {
+                        // TODO: найти характеристику
+                    }
                     else
                     {
-                        // TODO:
-                        // 1. check if it is DefinedType (since 8.3.3) определяемый тип
-                        // 2. ПланОбменаСсылка, ЛюбаяСсылка, ДокументСсылка, ПеречислениеСсылка,
-                        //    ПланВидовХарактеристикСсылка, ПланСчетовСсылка, СправочникСсылка
-                        // 3. 
+                        // неизвестный тип данных
                         typeInfo.CanBeReference = true;
                         typeUuids.Add(typeUuid);
                     }
@@ -65,6 +98,18 @@ namespace DaJet.Metadata.Converters
             }
 
             return typeInfo;
+        }
+        private void ApplyCompoundType(DataTypeInfo typeInfo, CompoundType compound)
+        {
+            // TODO: add internal flags field to the DataTypeInfo class so as to use bitwise operations
+            if (!typeInfo.CanBeString && compound.TypeInfo.CanBeString) typeInfo.CanBeString = true;
+            if (!typeInfo.CanBeBoolean && compound.TypeInfo.CanBeBoolean) typeInfo.CanBeBoolean = true;
+            if (!typeInfo.CanBeNumeric && compound.TypeInfo.CanBeNumeric) typeInfo.CanBeNumeric = true;
+            if (!typeInfo.CanBeDateTime && compound.TypeInfo.CanBeDateTime) typeInfo.CanBeDateTime = true;
+            if (!typeInfo.CanBeReference && compound.TypeInfo.CanBeReference) typeInfo.CanBeReference = true;
+            if (!typeInfo.IsUuid && compound.TypeInfo.IsUuid) typeInfo.IsUuid = true;
+            if (!typeInfo.IsValueStorage && compound.TypeInfo.IsValueStorage) typeInfo.IsValueStorage = true;
+            if (!typeInfo.IsBinary && compound.TypeInfo.IsBinary) typeInfo.IsBinary = true;
         }
     }
 }
