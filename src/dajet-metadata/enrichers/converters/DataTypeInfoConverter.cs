@@ -42,9 +42,43 @@ namespace DaJet.Metadata.Converters
                     qualifiers[q] = configObject.GetString(new int[] { t + typeOffset, q });
                 }
                 if (qualifiers[0] == MetadataTokens.B) typeInfo.CanBeBoolean = true; // {"B"}
-                else if (qualifiers[0] == MetadataTokens.S) typeInfo.CanBeString = true; // {"S"} | {"S",10,0} | {"S",10,1}
-                else if (qualifiers[0] == MetadataTokens.N) typeInfo.CanBeNumeric = true; // {"N",10,2,0} | {"N",10,2,1}
-                else if (qualifiers[0] == MetadataTokens.D) typeInfo.CanBeDateTime = true; // {"D"} | {"D","D"} | {"D","T"}
+                else if (qualifiers[0] == MetadataTokens.S)
+                {
+                    typeInfo.CanBeString = true; // {"S"} | {"S",10,0} | {"S",10,1}
+                    if (qualifiers.Length == 1)
+                    {
+                        typeInfo.StringLength = -1;
+                        typeInfo.StringKind = StringKind.Unlimited;
+                    }
+                    else
+                    {
+                        typeInfo.StringLength = int.Parse(qualifiers[1]);
+                        typeInfo.StringKind = (StringKind)int.Parse(qualifiers[2]);
+                    }
+                }
+                else if (qualifiers[0] == MetadataTokens.N)
+                {
+                    typeInfo.CanBeNumeric = true; // {"N",10,2,0} | {"N",10,2,1}
+                    typeInfo.NumericPrecision = int.Parse(qualifiers[1]);
+                    typeInfo.NumericScale = int.Parse(qualifiers[2]);
+                    typeInfo.NumericKind = (NumericKind)int.Parse(qualifiers[3]);
+                }
+                else if (qualifiers[0] == MetadataTokens.D)
+                {
+                    typeInfo.CanBeDateTime = true; // {"D"} | {"D","D"} | {"D","T"}
+                    if (qualifiers.Length == 1)
+                    {
+                        typeInfo.DateTimePart = DateTimePart.DateTime;
+                    }
+                    else if (qualifiers[1] == MetadataTokens.D)
+                    {
+                        typeInfo.DateTimePart = DateTimePart.Date;
+                    }
+                    else
+                    {
+                        typeInfo.DateTimePart = DateTimePart.Time;
+                    }
+                }
                 else if (qualifiers[0] == MetadataTokens.R) // {"#",70497451-981e-43b8-af46-fae8d65d16f2}
                 {
                     Guid typeUuid = new Guid(qualifiers[1]);
@@ -77,16 +111,26 @@ namespace DaJet.Metadata.Converters
                     else if (Configurator.InfoBase.CompoundTypes.TryGetValue(typeUuid, out CompoundType compound))
                     {
                         // since 8.3.3
-                        ApplyCompoundType(typeInfo, compound);
+                        Configurator.InfoBase.ApplyCompoundType(typeInfo, compound);
                         typeUuids.Add(compound.TypeInfo.ReferenceTypeUuid);
                     }
-                    else if (1 == 0)
+                    else if (Configurator.InfoBase.CharacteristicTypes.TryGetValue(typeUuid, out Characteristic characteristic))
                     {
-                        // TODO: найти характеристику
+                        Configurator.InfoBase.ApplyCharacteristic(typeInfo, characteristic);
+                        typeUuids.Add(characteristic.TypeInfo.ReferenceTypeUuid);
                     }
+                    //else if (Configurator.InfoBase.MetaReferenceTypes.TryGetValue(typeUuid, out ApplicationObject metaObject))
+                    //{
+                    //    typeInfo.CanBeReference = true;
+                    //    typeUuids.Add(typeUuid);
+                    //}
                     else
                     {
-                        // неизвестный тип данных
+                        // идентификатор ссылочного типа данных (см. закомментированную ветку выше)
+                        // или
+                        // идентификатор типа данных (определяемый или характеристика) ещё не загружен
+                        // или
+                        // неизвестный тип данных (работа с этим типом данных не реализована)
                         typeInfo.CanBeReference = true;
                         typeUuids.Add(typeUuid);
                     }
@@ -98,18 +142,6 @@ namespace DaJet.Metadata.Converters
             }
 
             return typeInfo;
-        }
-        private void ApplyCompoundType(DataTypeInfo typeInfo, CompoundType compound)
-        {
-            // TODO: add internal flags field to the DataTypeInfo class so as to use bitwise operations
-            if (!typeInfo.CanBeString && compound.TypeInfo.CanBeString) typeInfo.CanBeString = true;
-            if (!typeInfo.CanBeBoolean && compound.TypeInfo.CanBeBoolean) typeInfo.CanBeBoolean = true;
-            if (!typeInfo.CanBeNumeric && compound.TypeInfo.CanBeNumeric) typeInfo.CanBeNumeric = true;
-            if (!typeInfo.CanBeDateTime && compound.TypeInfo.CanBeDateTime) typeInfo.CanBeDateTime = true;
-            if (!typeInfo.CanBeReference && compound.TypeInfo.CanBeReference) typeInfo.CanBeReference = true;
-            if (!typeInfo.IsUuid && compound.TypeInfo.IsUuid) typeInfo.IsUuid = true;
-            if (!typeInfo.IsValueStorage && compound.TypeInfo.IsValueStorage) typeInfo.IsValueStorage = true;
-            if (!typeInfo.IsBinary && compound.TypeInfo.IsBinary) typeInfo.IsBinary = true;
         }
     }
 }

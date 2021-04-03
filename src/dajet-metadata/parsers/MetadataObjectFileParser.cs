@@ -373,7 +373,7 @@ namespace DaJet.Metadata
                     {
                         typeInfo.IsUuid = true;
                     }
-                    else if (InfoBase.MetaReferenceTypes.TryGetValue(new Guid(uuid), out ApplicationObject type))
+                    else if (InfoBase.ReferenceTypeUuids.TryGetValue(new Guid(uuid), out ApplicationObject type))
                     {
                         typeInfo.CanBeReference = true;
                         typeCodes.Add(type.TypeCode); // требуется для определения многозначности типа данных (см. комментарий ниже)

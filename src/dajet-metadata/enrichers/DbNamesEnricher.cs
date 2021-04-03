@@ -21,7 +21,7 @@ namespace DaJet.Metadata.Enrichers
 
             int entryCount = configObject.GetInt32(new int[] { 1, 0 });
 
-            for (int i = 1; i < entryCount; i++)
+            for (int i = 1; i <= entryCount; i++)
             {
                 Guid uuid = configObject.GetUuid(new int[] { 1, i, 0 });
                 if (uuid == Guid.Empty) continue;

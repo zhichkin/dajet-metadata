@@ -1,10 +1,10 @@
 ﻿namespace DaJet.Metadata.Model
 {
-    public sealed class Catalog : ApplicationObject
+    public sealed class Catalog : ApplicationObject, IReferenceCode, IDescription, IReferenceHierarchy
     {
         public int Owners { get; set; }
-        public CodeType CodeType { get; set; } = CodeType.String;
         public int CodeLength { get; set; } = 9;
+        public CodeType CodeType { get; set; } = CodeType.String;
         public int DescriptionLength { get; set; } = 25;
         public bool IsHierarchical { get; set; } = false;
         public HierarchyType HierarchyType { get; set; } = HierarchyType.Groups;

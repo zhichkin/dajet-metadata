@@ -12,14 +12,22 @@ namespace DaJet.Metadata.Model
     ///<summary>Класс для описания типов данных свойства объекта метаданных (реквизита, измерения или ресурса)</summary>
     public sealed class DataTypeInfo
     {
+        // TODO: add internal flags field "types" so as to use bitwise operations
+
         ///<summary>Типом значения свойства может быть "Строка" (поддерживает составной тип данных)</summary>
         public bool CanBeString { get; set; } = false;
+        public int StringLength { get; set; } = 10;
+        public StringKind StringKind { get; set; } = StringKind.Unlimited;
         ///<summary>Типом значения свойства может быть "Булево" (поддерживает составной тип данных)</summary>
         public bool CanBeBoolean { get; set; } = false;
         ///<summary>Типом значения свойства может быть "Число" (поддерживает составной тип данных)</summary>
         public bool CanBeNumeric { get; set; } = false;
+        public int NumericScale { get; set; } = 0;
+        public int NumericPrecision { get; set; } = 10;
+        public NumericKind NumericKind { get; set; } = NumericKind.Unsigned;
         ///<summary>Типом значения свойства может быть "Дата" (поддерживает составной тип данных)</summary>
         public bool CanBeDateTime { get; set; } = false;
+        public DateTimePart DateTimePart { get; set; } = DateTimePart.Date;
         ///<summary>Типом значения свойства может быть "Ссылка" (поддерживает составной тип данных)</summary>
         public bool CanBeReference { get; set; } = false;
         ///<summary>Типом значения свойства является byte[8] - версия данных, timestamp, rowversion.Не поддерживает составной тип данных.</summary>
@@ -39,7 +47,7 @@ namespace DaJet.Metadata.Model
             {
                 if (_ReferenceTypeCode == 0 && ReferenceTypeUuid != Guid.Empty)
                 {
-                    // TODO: lookup type code by type uuid
+                    // TODO: lookup type code by type uuid - it can be reference type, compound type or characteristic
                 }
                 return _ReferenceTypeCode;
             }

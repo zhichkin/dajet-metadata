@@ -1,5 +1,4 @@
-﻿using DaJet.Metadata.Converters;
-using DaJet.Metadata.Model;
+﻿using DaJet.Metadata.Model;
 using DaJet.Metadata.Services;
 using System;
 
@@ -20,7 +19,11 @@ namespace DaJet.Metadata.Enrichers
 
             catalog.Uuid = configObject.GetUuid(new int[] { 1, 3 });
             catalog.Name = configObject.GetString(new int[] { 1, 9, 1, 2 });
-            catalog.Alias = configObject.GetString(new int[] { 1, 9, 1, 3, 2 });
+            ConfigObject alias = configObject.GetObject(new int[] { 1, 9, 1, 3 });
+            if (alias.Values.Count == 3)
+            {
+                catalog.Alias = configObject.GetString(new int[] { 1, 9, 1, 3, 2 });
+            }
             catalog.CodeType = (CodeType)configObject.GetInt32(new int[] { 1, 18 });
             catalog.CodeLength = configObject.GetInt32(new int[] { 1, 17 });
             catalog.DescriptionLength = configObject.GetInt32(new int[] { 1, 19 });

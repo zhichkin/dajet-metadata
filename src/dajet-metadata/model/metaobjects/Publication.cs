@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
@@ -18,57 +17,19 @@ namespace DaJet.Metadata.Model
             PropertyNameLookup.Add("_sentno", "НомерОтправленного");
             PropertyNameLookup.Add("_receivedno", "НомерПринятого");
         }
-        private void PublicationAddPropertyНомерПринятого(ApplicationObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерПринятого").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "НомерПринятого",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_ReceivedNo",
-                Length = 9,
-                Scale = 0,
-                Precision = 10,
-                TypeName = "numeric",
-                IsNullable = false
-            });
-            metaObject.Properties.Add(property);
-        }
-        private void PublicationAddPropertyНомерОтправленного(ApplicationObject metaObject)
-        {
-            MetadataProperty property = metaObject.Properties.Where(p => p.Name == "НомерОтправленного").FirstOrDefault();
-            if (property != null) return;
-            property = new MetadataProperty()
-            {
-                Name = "НомерОтправленного",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.IsUuid = true;
-            property.Fields.Add(new DatabaseField()
-            {
-                Name = "_SentNo",
-                Length = 9,
-                Scale = 0,
-                Precision = 10,
-                TypeName = "numeric",
-                IsNullable = false
-            });
-            metaObject.Properties.Add(property);
-        }
     }
-    public sealed class Publication : ApplicationObject
+    public sealed class Publication : ApplicationObject, IReferenceCode, IDescription
     {
+        public int CodeLength { get; set; } = 9; // min 1
+        public CodeType CodeType { get; set; } = CodeType.String; // always
+        public int DescriptionLength { get; set; } = 25; // min 1
         public bool IsDistributed { get; set; }
         public Publisher Publisher { get; set; }
         public List<Subscriber> Subscribers { get; set; } = new List<Subscriber>();
-        public List<ApplicationObject> Articles { get; set; } = new List<ApplicationObject>();
+        /// <summary>
+        /// Состав плана обмена. Ключ словаря - идентификатор файла объекта метаданных (<see cref="MetadataObject.FileName"/>).
+        /// </summary>
+        public Dictionary<Guid, AutoPublication> Articles { get; set; } = new Dictionary<Guid, AutoPublication>();
     }
     public sealed class Publisher
     {

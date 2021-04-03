@@ -3,6 +3,7 @@ using DaJet.Metadata.Enrichers;
 using DaJet.Metadata.Model;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DaJet.Metadata.Services
 {
@@ -59,6 +60,9 @@ namespace DaJet.Metadata.Services
             Enrichers.Add(typeof(DbNamesEnricher), new DbNamesEnricher(this));
             Enrichers.Add(typeof(InfoBase), new InfoBaseEnricher(this));
             Enrichers.Add(typeof(Catalog), new CatalogEnricher(this));
+            Enrichers.Add(typeof(Characteristic), new CharacteristicEnricher(this));
+            Enrichers.Add(typeof(Document), new DocumentEnricher(this));
+            Enrichers.Add(typeof(Publication), new PublicationEnricher(this));
         }
         
         public InfoBase OpenInfoBase()
@@ -67,10 +71,37 @@ namespace DaJet.Metadata.Services
             GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
             GetEnricher<InfoBase>().Enrich(InfoBase);
 
-            IContentEnricher catalogEnricher = GetEnricher<Catalog>();
+            IContentEnricher enricher = GetEnricher<Characteristic>();
+            foreach (Characteristic characteristic in InfoBase.Characteristics.Values)
+            {
+                enricher.Enrich(characteristic);
+                InfoBase.CharacteristicTypes.Add(characteristic.TypeUuid, characteristic);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(characteristic.Uuid, characteristic);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(characteristic.TypeCode, characteristic);
+            }
+
+            enricher = GetEnricher<Catalog>();
             foreach (Catalog catalog in InfoBase.Catalogs.Values)
             {
-                catalogEnricher.Enrich(catalog);
+                enricher.Enrich(catalog);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(catalog.Uuid, catalog);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(catalog.TypeCode, catalog);
+            }
+
+            enricher = GetEnricher<Document>();
+            foreach (Document document in InfoBase.Documents.Values)
+            {
+                enricher.Enrich(document);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(document.Uuid, document);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(document.TypeCode, document);
+            }
+
+            enricher = GetEnricher<Publication>();
+            foreach (Publication publication in InfoBase.Publications.Values)
+            {
+                enricher.Enrich(publication);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(publication.Uuid, publication);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(publication.TypeCode, publication);
             }
 
             return InfoBase;
@@ -323,70 +354,201 @@ namespace DaJet.Metadata.Services
         {
             if (property.PropertyType.IsUuid)
             {
-                property.Fields.Add(new DatabaseField(property.DbName, "binary", 16));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "binary", 16));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "bytea", 16));
+                }
             }
             else if (property.PropertyType.IsBinary)
             {
                 // is used only for system properties of system types
-                // TODO: log if it eventually happens
+                // TODO: log if it happens eventually
             }
             else if (property.PropertyType.IsValueStorage)
             {
-                property.Fields.Add(new DatabaseField(property.DbName, "varbinary", -1));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "varbinary", -1));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "bytea", -1));
+                }
             }
             else if (property.PropertyType.CanBeString)
             {
-                // should be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName, "nvarchar", 10));
+                if (property.PropertyType.StringKind == StringKind.Fixed)
+                {
+                    if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName, "nchar", property.PropertyType.StringLength));
+                    }
+                    else
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName, "mchar", property.PropertyType.StringLength));
+                    }
+                }
+                else
+                {
+                    if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName, "nvarchar", property.PropertyType.StringLength));
+                    }
+                    else
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName, "mvarchar", property.PropertyType.StringLength));
+                    }
+                }
             }
             else if (property.PropertyType.CanBeNumeric)
             {
-                // should be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName, "numeric", 9, 10, 0));
+                // length can be updated from database
+                property.Fields.Add(new DatabaseField(
+                    property.DbName,
+                    "numeric", 9,
+                    property.PropertyType.NumericPrecision,
+                    property.PropertyType.NumericScale));
             }
             else if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new DatabaseField(property.DbName, "binary", 1));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "binary", 1));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "boolean", 1));
+                }
             }
             else if (property.PropertyType.CanBeDateTime)
             {
-                // can be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName, "datetime2", 6, 19, 0));
+                // length, precision and scale can be updated from database
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "datetime2", 6, 19, 0));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName, "timestamp without time zone", 6, 19, 0));
+                }
             }
             else if (property.PropertyType.CanBeReference)
             {
-                property.Fields.Add(new DatabaseField(property.DbName + MetadataTokens.RRef, "binary", 16));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + MetadataTokens.RRef, "binary", 16));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + MetadataTokens.RRef, "bytea", 16));
+                }
             }
         }
         private void ConfigureDatabaseFieldsForMultipleType(MetadataProperty property)
         {
-            property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "binary", 1));
+            if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+            {
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "binary", 1));
+            }
+            else
+            {
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "bytea", 1));
+            }
             if (property.PropertyType.CanBeString)
             {
-                // should be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.S, "nvarchar", 10));
+                if (property.PropertyType.StringKind == StringKind.Fixed)
+                {
+                    if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                    {
+                        property.Fields.Add(new DatabaseField(
+                            property.DbName + "_" + MetadataTokens.S,
+                            "nchar",
+                            property.PropertyType.StringLength));
+                    }
+                    else
+                    {
+                        property.Fields.Add(new DatabaseField(
+                            property.DbName + "_" + MetadataTokens.S,
+                            "mchar",
+                            property.PropertyType.StringLength));
+                    }
+                }
+                else
+                {
+                    if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                    {
+                        property.Fields.Add(new DatabaseField(
+                            property.DbName + "_" + MetadataTokens.S,
+                            "nvarchar",
+                            property.PropertyType.StringLength));
+                    }
+                    else
+                    {
+                        property.Fields.Add(new DatabaseField(
+                            property.DbName + "_" + MetadataTokens.S,
+                            "mvarchar",
+                            property.PropertyType.StringLength));
+                    }
+                }
             }
             if (property.PropertyType.CanBeNumeric)
             {
-                // should be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.N, "numeric", 9, 10, 0));
+                // length can be updated from database
+                property.Fields.Add(new DatabaseField(
+                    property.DbName + "_" + MetadataTokens.N,
+                    "numeric", 9,
+                    property.PropertyType.NumericPrecision,
+                    property.PropertyType.NumericScale));
+
             }
             if (property.PropertyType.CanBeBoolean)
             {
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "binary", 1));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "binary", 1));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "boolean", 1));
+                }
             }
             if (property.PropertyType.CanBeDateTime)
             {
-                // can be updated from database
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+                // length, precision and scale can be updated from database
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "timestamp without time zone", 6, 19, 0));
+                }
             }
             if (property.PropertyType.CanBeReference)
             {
                 if (property.PropertyType.ReferenceTypeUuid == Guid.Empty) // miltiple refrence type
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "binary", 4));
+                    if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "binary", 4));
+                    }
+                    else
+                    {
+                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "bytea", 4));
+                    }
                 }
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "binary", 16));
+                if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "binary", 16));
+                }
+                else
+                {
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "bytea", 16));
+                }
             }
         }
 
@@ -466,8 +628,10 @@ namespace DaJet.Metadata.Services
             });
             metaObject.Properties.Add(property);
         }
-        public void ConfigurePropertyКод(Catalog catalog)
+        public void ConfigurePropertyКод(ApplicationObject metaObject)
         {
+            if (!(metaObject is IReferenceCode code)) throw new ArgumentOutOfRangeException();
+
             MetadataProperty property = new MetadataProperty()
             {
                 Name = "Код",
@@ -475,13 +639,13 @@ namespace DaJet.Metadata.Services
                 Purpose = PropertyPurpose.System,
                 DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Code" : "_code")
             };
-            if (catalog.CodeType == CodeType.String)
+            if (code.CodeType == CodeType.String)
             {
                 property.PropertyType.CanBeString = true;
                 property.Fields.Add(new DatabaseField()
                 {
                     Name = property.DbName,
-                    Length = catalog.CodeLength,
+                    Length = code.CodeLength,
                     TypeName = "nvarchar"
                 });
             }
@@ -491,14 +655,16 @@ namespace DaJet.Metadata.Services
                 property.Fields.Add(new DatabaseField()
                 {
                     Name = property.DbName,
-                    Precision = catalog.CodeLength,
+                    Precision = code.CodeLength,
                     TypeName = "numeric"
                 });
             }
-            catalog.Properties.Add(property);
+            metaObject.Properties.Add(property);
         }
-        public void ConfigurePropertyНаименование(Catalog catalog)
+        public void ConfigurePropertyНаименование(ApplicationObject metaObject)
         {
+            if (!(metaObject is IDescription description)) throw new ArgumentOutOfRangeException();
+
             MetadataProperty property = new MetadataProperty()
             {
                 Name = "Наименование",
@@ -510,12 +676,12 @@ namespace DaJet.Metadata.Services
             property.Fields.Add(new DatabaseField()
             {
                 Name = property.DbName,
-                Length = catalog.DescriptionLength,
+                Length = description.DescriptionLength,
                 TypeName = "nvarchar"
             });
-            catalog.Properties.Add(property);
+            metaObject.Properties.Add(property);
         }
-        public void ConfigurePropertyРодитель(Catalog catalog)
+        public void ConfigurePropertyРодитель(ApplicationObject metaObject)
         {
             MetadataProperty property = new MetadataProperty()
             {
@@ -525,17 +691,17 @@ namespace DaJet.Metadata.Services
                 DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_ParentIDRRef" : "_parentidrref")
             };
             property.PropertyType.CanBeReference = true;
-            property.PropertyType.ReferenceTypeUuid = catalog.Uuid;
-            property.PropertyType.ReferenceTypeCode = catalog.TypeCode;
+            property.PropertyType.ReferenceTypeUuid = metaObject.Uuid;
+            property.PropertyType.ReferenceTypeCode = metaObject.TypeCode;
             property.Fields.Add(new DatabaseField()
             {
                 Name = property.DbName,
                 Length = 16,
                 TypeName = "binary"
             });
-            catalog.Properties.Add(property);
+            metaObject.Properties.Add(property);
         }
-        public void ConfigurePropertyЭтоГруппа(Catalog catalog)
+        public void ConfigurePropertyЭтоГруппа(ApplicationObject metaObject)
         {
             MetadataProperty property = new MetadataProperty()
             {
@@ -551,7 +717,7 @@ namespace DaJet.Metadata.Services
                 Length = 1,
                 TypeName = "binary"
             });
-            catalog.Properties.Add(property);
+            metaObject.Properties.Add(property);
         }
         public void ConfigurePropertyВладелец(Catalog catalog, Guid owner)
         {
@@ -600,6 +766,248 @@ namespace DaJet.Metadata.Services
             }
 
             catalog.Properties.Add(property);
+        }
+
+        #endregion
+
+        #region "Characteristic properties"
+
+        public void ConfigurePropertyТипЗначения(Characteristic characteristic)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "ТипЗначения",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Type" : "_type")
+            };
+            property.PropertyType.IsBinary = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = -1,
+                IsNullable = true,
+                TypeName = "varbinary"
+            });
+            characteristic.Properties.Add(property);
+        }
+
+        #endregion
+
+        #region "Document system properties"
+
+        public void ConfigurePropertyДата(Document document)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Дата",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Date_Time" : "_date_time")
+            };
+            property.PropertyType.CanBeDateTime = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 6,
+                Precision = 19,
+                TypeName = "datetime2"
+            });
+            document.Properties.Add(property);
+        }
+        public void ConfigurePropertyПериодичность(Document document)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "ПериодНомера",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_NumberPrefix" : "_numberprefix")
+            };
+            property.PropertyType.CanBeDateTime = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 6,
+                Precision = 19,
+                TypeName = "datetime2"
+            });
+            document.Properties.Add(property);
+        }
+        public void ConfigurePropertyПроведён(Document document)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Проведён",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Posted" : "_posted")
+            };
+            property.PropertyType.CanBeDateTime = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 1,
+                TypeName = "binary"
+            });
+            document.Properties.Add(property);
+        }
+        public void ConfigurePropertyНомер(Document document)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Номер",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Number" : "_number")
+            };
+            property.PropertyType.CanBeDateTime = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 6,
+                Precision = 19,
+                TypeName = "numeric"
+            });
+            document.Properties.Add(property);
+        }
+        // Используется для сихронизации добавления свойства "Регистратор" между документами
+        private readonly object syncRegister = new object();
+        public void ConfigurePropertyРегистратор(ApplicationObject register, Document document)
+        {
+            lock (syncRegister)
+            {
+                ConfigurePropertyРегистраторSynchronized(register, document);
+            }
+        }
+        private void ConfigurePropertyРегистраторSynchronized(ApplicationObject register, Document document)
+        {
+            MetadataProperty property = register.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+            if (property == null)
+            {
+                // добавляем новое свойство
+                property = new MetadataProperty()
+                {
+                    Name = "Регистратор",
+                    Purpose = PropertyPurpose.System,
+                    FileName = Guid.Empty,
+                    DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Recorder" : "_recorder")
+                };
+                property.PropertyType.CanBeReference = true;
+                property.PropertyType.ReferenceTypeUuid = document.Uuid; // single type value
+                property.PropertyType.ReferenceTypeCode = document.TypeCode; // single type value
+                property.Fields.Add(new DatabaseField()
+                {
+                    Name = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_RecorderRRef" : "_recorderrref"),
+                    Length = 16,
+                    TypeName = "binary",
+                    Scale = 0,
+                    Precision = 0,
+                    IsNullable = false,
+                    KeyOrdinal = 0,
+                    IsPrimaryKey = true,
+                    Purpose = FieldPurpose.Value
+                });
+                register.Properties.Add(property);
+                return;
+            }
+
+            // На всякий случай проверям повторное обращение одного и того же документа
+            if (property.PropertyType.ReferenceTypeUuid == document.Uuid) return;
+
+            // Проверям необходимость добавления поля для хранения кода типа документа
+            if (property.PropertyType.ReferenceTypeUuid == Guid.Empty) return;
+
+            // Добавляем поле для хранения кода типа документа, предварительно убеждаясь в его отсутствии
+            if (property.Fields.Where(f => f.Name.ToLowerInvariant() == "_recordertref").FirstOrDefault() == null)
+            {
+                property.Fields.Add(new DatabaseField()
+                {
+                    Name = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_RecorderTRef" : "_recordertref"),
+                    Length = 4,
+                    TypeName = "binary",
+                    Scale = 0,
+                    Precision = 0,
+                    IsNullable = false,
+                    KeyOrdinal = 0,
+                    IsPrimaryKey = true,
+                    Purpose = FieldPurpose.TypeCode
+                });
+            }
+
+            // Устанавливаем признак множественного типа значения (составного типа данных)
+            property.PropertyType.ReferenceTypeCode = 0; // multiple type value
+            property.PropertyType.ReferenceTypeUuid = Guid.Empty; // multiple type value
+        }
+        public void ConfigureRegistersToPost(Document document, ConfigObject registers)
+        {
+            int registersCount = registers.GetInt32(new int[] { 1 }); // количество регистров
+            if (registersCount == 0) return;
+
+            int offset = 2;
+            for (int r = 0; r < registersCount; r++)
+            {
+                // R.2.1 - uuid файла регистра
+                Guid fileName = registers.GetUuid(new int[] { r + offset, 2, 1 });
+                foreach (var collection in InfoBase.Registers)
+                {
+                    if (collection.TryGetValue(fileName, out ApplicationObject register))
+                    {
+                        ConfigurePropertyРегистратор(register, document);
+                        break;
+                    }
+                }
+            }
+        }
+
+        #endregion
+
+        #region "Publication system properties"
+
+        public void ConfigurePropertyНомерОтправленного(Publication publication)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "НомерОтправленного",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_SentNo" : "_sentno")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.PropertyType.NumericScale = 0;
+            property.PropertyType.NumericPrecision = 10;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric"
+            });
+            publication.Properties.Add(property);
+        }
+        public void ConfigurePropertyНомерПринятого(Publication publication)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "НомерПринятого",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_ReceivedNo" : "_receivedno")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.PropertyType.NumericScale = 0;
+            property.PropertyType.NumericPrecision = 10;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric"
+            });
+            publication.Properties.Add(property);
         }
 
         #endregion

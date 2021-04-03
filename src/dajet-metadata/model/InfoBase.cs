@@ -59,8 +59,12 @@ namespace DaJet.Metadata.Model
         public Dictionary<Guid, SharedProperty> SharedProperties { get; set; } = new Dictionary<Guid, SharedProperty>();
         ///<summary>Коллекция определяемых типов конфигурации</summary>
         public Dictionary<Guid, CompoundType> CompoundTypes { get; set; } = new Dictionary<Guid, CompoundType>();
+        ///<summary>Коллекция типов определяемых характеристиками</summary>
+        public Dictionary<Guid, Characteristic> CharacteristicTypes { get; set; } = new Dictionary<Guid, Characteristic>();
         ///<summary>Соответствие идентификаторов объектов метаданных ссылочного типа</summary>
-        public ConcurrentDictionary<Guid, ApplicationObject> MetaReferenceTypes { get; } = new ConcurrentDictionary<Guid, ApplicationObject>();
+        public ConcurrentDictionary<Guid, ApplicationObject> ReferenceTypeUuids { get; } = new ConcurrentDictionary<Guid, ApplicationObject>();
+        ///<summary>Соответствие кодов типов объектов метаданных ссылочного типа</summary>
+        public ConcurrentDictionary<int, ApplicationObject> ReferenceTypeCodes { get; } = new ConcurrentDictionary<int, ApplicationObject>();
 
         #region "Коллекции ссылочных типов данных (Guid - имя файла объекта метаданных в таблице Config)"
 
@@ -91,5 +95,30 @@ namespace DaJet.Metadata.Model
         public Dictionary<Guid, ApplicationObject> AccumulationRegisters { get; } = new Dictionary<Guid, ApplicationObject>();
 
         #endregion
+
+        public void ApplyCompoundType(DataTypeInfo typeInfo, CompoundType compound)
+        {
+            // TODO: add internal flags field to the DataTypeInfo class so as to use bitwise operations
+            if (!typeInfo.CanBeString && compound.TypeInfo.CanBeString) typeInfo.CanBeString = true;
+            if (!typeInfo.CanBeBoolean && compound.TypeInfo.CanBeBoolean) typeInfo.CanBeBoolean = true;
+            if (!typeInfo.CanBeNumeric && compound.TypeInfo.CanBeNumeric) typeInfo.CanBeNumeric = true;
+            if (!typeInfo.CanBeDateTime && compound.TypeInfo.CanBeDateTime) typeInfo.CanBeDateTime = true;
+            if (!typeInfo.CanBeReference && compound.TypeInfo.CanBeReference) typeInfo.CanBeReference = true;
+            if (!typeInfo.IsUuid && compound.TypeInfo.IsUuid) typeInfo.IsUuid = true;
+            if (!typeInfo.IsValueStorage && compound.TypeInfo.IsValueStorage) typeInfo.IsValueStorage = true;
+            if (!typeInfo.IsBinary && compound.TypeInfo.IsBinary) typeInfo.IsBinary = true;
+        }
+        public void ApplyCharacteristic(DataTypeInfo typeInfo, Characteristic characteristic)
+        {
+            // TODO: add internal flags field to the DataTypeInfo class so as to use bitwise operations
+            if (!typeInfo.CanBeString && characteristic.TypeInfo.CanBeString) typeInfo.CanBeString = true;
+            if (!typeInfo.CanBeBoolean && characteristic.TypeInfo.CanBeBoolean) typeInfo.CanBeBoolean = true;
+            if (!typeInfo.CanBeNumeric && characteristic.TypeInfo.CanBeNumeric) typeInfo.CanBeNumeric = true;
+            if (!typeInfo.CanBeDateTime && characteristic.TypeInfo.CanBeDateTime) typeInfo.CanBeDateTime = true;
+            if (!typeInfo.CanBeReference && characteristic.TypeInfo.CanBeReference) typeInfo.CanBeReference = true;
+            if (!typeInfo.IsUuid && characteristic.TypeInfo.IsUuid) typeInfo.IsUuid = true;
+            if (!typeInfo.IsValueStorage && characteristic.TypeInfo.IsValueStorage) typeInfo.IsValueStorage = true;
+            if (!typeInfo.IsBinary && characteristic.TypeInfo.IsBinary) typeInfo.IsBinary = true;
+        }
     }
 }

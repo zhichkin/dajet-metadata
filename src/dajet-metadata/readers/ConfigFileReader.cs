@@ -265,6 +265,8 @@ namespace DaJet.Metadata
         {
             ConfigObject configObject;
             byte[] bytes = ReadBytes(fileName);
+            if (bytes == null) return null; // file name is not found
+
             if (fileName == DBSCHEMA_FILE_NAME)
             {
                 using (MemoryStream memory = new MemoryStream(bytes))

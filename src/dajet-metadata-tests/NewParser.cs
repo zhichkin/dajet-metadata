@@ -1,5 +1,4 @@
-﻿using DaJet.Metadata.Enrichers;
-using DaJet.Metadata.Model;
+﻿using DaJet.Metadata.Model;
 using DaJet.Metadata.Parsers;
 using DaJet.Metadata.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -11,10 +10,9 @@ using System.Text;
 
 namespace DaJet.Metadata.NewParser
 {
-    [TestClass] public sealed class NewParser
+    [TestClass]
+    public sealed class NewParser
     {
-        private const string ROOT_FILE_NAME = "root";
-        private const string DBNAMES_FILE_NAME = "DBNames";
         private const string DBSCHEMA_FILE_NAME = "DBSchema";
 
         private readonly ConfigFileParser FileParser = new ConfigFileParser();
@@ -288,17 +286,37 @@ namespace DaJet.Metadata.NewParser
             Console.WriteLine("Compare table part with database = " + result.ToString());
         }
 
+        private void LogResult(StreamWriter stream, ApplicationObject model, List<string> delete, List<string> insert)
+        {
+            stream.WriteLine("\"" + model.Name + "\" (" + model.TableName + "):");
+            if (delete.Count > 0)
+            {
+                stream.WriteLine("  Delete fields:");
+                foreach (string field in delete)
+                {
+                    stream.WriteLine("   - " + field);
+                }
+            }
+            if (insert.Count > 0)
+            {
+                stream.WriteLine("  Insert fields:");
+                foreach (string field in insert)
+                {
+                    stream.WriteLine("   - " + field);
+                }
+            }
+        }
         [TestMethod] public void TestCatalogs()
         {
             FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True");
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
             Configurator configurator = new Configurator(FileReader);
             InfoBase infoBase = configurator.OpenInfoBase();
-            
+
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
             List<string> delete;
             List<string> insert;
@@ -310,37 +328,168 @@ namespace DaJet.Metadata.NewParser
                     //if (kvp.Value.Name != "ВнешниеПользователи") continue;
 
                     count++;
-                    Catalog catalog = kvp.Value as Catalog;
-                    if (catalog == null)
+                    Catalog model = kvp.Value as Catalog;
+                    if (model == null)
                     {
                         stream.WriteLine("Catalog {" + kvp.Key.ToString() + "} is not found!");
                         continue;
                     }
-                    
-                    bool result = metadata.CompareWithDatabase(catalog, out delete, out insert);
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
                     if (!result)
                     {
-                        stream.WriteLine("Catalog \"" + catalog.Name + "\" (" + catalog.TableName + "):");
-                        if (delete.Count > 0)
+                        LogResult(stream, model, delete, insert);
+                    }
+
+                    foreach (TablePart tablePart in model.TableParts)
+                    {
+                        result = metadata.CompareWithDatabase(model, out delete, out insert);
+                        if (!result)
                         {
-                            stream.WriteLine("  Delete fields:");
-                            foreach (string field in delete)
-                            {
-                                stream.WriteLine("   - " + field);
-                            }
-                        }
-                        if (insert.Count > 0)
-                        {
-                            stream.WriteLine("  Insert fields:");
-                            foreach (string field in insert)
-                            {
-                                stream.WriteLine("   - " + field);
-                            }
+                            LogResult(stream, tablePart, delete, insert);
                         }
                     }
                 }
                 stream.WriteLine("*******************************");
-                stream.WriteLine(count.ToString() + " catalogs processed.");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
+        [TestMethod] public void TestCharacteristics()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestCharacteristics.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.Characteristics)
+                {
+                    count++;
+                    Characteristic model = kvp.Value as Characteristic;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+
+                    foreach (TablePart tablePart in model.TableParts)
+                    {
+                        result = metadata.CompareWithDatabase(model, out delete, out insert);
+                        if (!result)
+                        {
+                            LogResult(stream, tablePart, delete, insert);
+                        }
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
+        [TestMethod] public void TestDocuments()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestDocuments.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.Documents)
+                {
+                    count++;
+                    Document model = kvp.Value as Document;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+
+                    foreach (TablePart tablePart in model.TableParts)
+                    {
+                        result = metadata.CompareWithDatabase(model, out delete, out insert);
+                        if (!result)
+                        {
+                            LogResult(stream, tablePart, delete, insert);
+                        }
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
+        [TestMethod] public void TestPublications()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestPublications.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.Publications)
+                {
+                    count++;
+                    Publication model = kvp.Value as Publication;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+
+                    foreach (TablePart tablePart in model.TableParts)
+                    {
+                        result = metadata.CompareWithDatabase(model, out delete, out insert);
+                        if (!result)
+                        {
+                            LogResult(stream, tablePart, delete, insert);
+                        }
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
             }
         }
     }

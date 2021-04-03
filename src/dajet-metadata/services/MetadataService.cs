@@ -224,7 +224,7 @@ namespace DaJet.Metadata
             {
                 ApplicationObjectFileParser.ParseMetaUuid(stream, input.ApplicationObject);
             }
-            input.InfoBase.MetaReferenceTypes.TryAdd(input.ApplicationObject.Uuid, input.ApplicationObject);
+            input.InfoBase.ReferenceTypeUuids.TryAdd(input.ApplicationObject.Uuid, input.ApplicationObject);
         }
         private void ReadApplicationObjects(InfoBase infoBase)
         {

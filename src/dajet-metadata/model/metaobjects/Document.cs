@@ -1,10 +1,12 @@
 ﻿using System;
-using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
     public sealed class Document : ApplicationObject
     {
+        public int NumberLength { get; set; } = 8;
+        public NumberType NumberType { get; set; } = NumberType.String;
+        public Periodicity Periodicity { get; set; } = Periodicity.None;
     }
     public sealed class DocumentPropertyFactory : MetadataPropertyFactory
     {
@@ -16,24 +18,6 @@ namespace DaJet.Metadata.Model
             PropertyNameLookup.Add("_date_time", "Дата");
             PropertyNameLookup.Add("_number", "Номер"); // необязательный
             PropertyNameLookup.Add("_posted", "Проведён");
-        }
-        private MetadataProperty CreateProperty_Дата()
-        {
-            MetadataProperty property = new MetadataProperty()
-            {
-                Name = "Дата",
-                FileName = Guid.Empty,
-                Purpose = PropertyPurpose.System
-            };
-            property.PropertyType.CanBeDateTime = true;
-            property.Fields.Add(new DatabaseField() // TODO: учесть тип СУБД
-            {
-                Name = "_Date_Time",
-                Length = 6,
-                Precision = 19,
-                TypeName = "datetime2"
-            });
-            return property;
         }
     }
 }
