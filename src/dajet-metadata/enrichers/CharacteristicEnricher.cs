@@ -65,7 +65,7 @@ namespace DaJet.Metadata.Enrichers
             Guid propertiesUuid = configObject.GetUuid(new int[] { 3, 0 });
             if (propertiesUuid == new Guid("31182525-9346-4595-81f8-6f91a72ebe06"))
             {
-                Configurator.ConfigureProperties(model, properties);
+                Configurator.ConfigureProperties(model, properties, PropertyPurpose.Property);
             }
 
             Configurator.ConfigureSharedProperties(model);

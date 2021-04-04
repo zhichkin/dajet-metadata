@@ -492,5 +492,116 @@ namespace DaJet.Metadata.NewParser
                 stream.WriteLine(count.ToString() + " objects processed.");
             }
         }
+        [TestMethod] public void TestEnumerations()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestEnumerations.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.Enumerations)
+                {
+                    count++;
+                    Enumeration model = kvp.Value as Enumeration;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
+        [TestMethod] public void TestInformationRegisters()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestInformationRegisters.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.InformationRegisters)
+                {
+                    count++;
+                    InformationRegister model = kvp.Value as InformationRegister;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
+        [TestMethod] public void TestAccumulationRegisters()
+        {
+            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            Configurator configurator = new Configurator(FileReader);
+            InfoBase infoBase = configurator.OpenInfoBase();
+
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            List<string> delete;
+            List<string> insert;
+            using (StreamWriter stream = new StreamWriter(@"C:\temp\TestAccumulationRegisters.txt", false, Encoding.UTF8))
+            {
+                int count = 0;
+                foreach (var kvp in infoBase.AccumulationRegisters)
+                {
+                    count++;
+                    AccumulationRegister model = kvp.Value as AccumulationRegister;
+                    if (model == null)
+                    {
+                        stream.WriteLine("{" + kvp.Key.ToString() + "} is not found!");
+                        continue;
+                    }
+
+                    bool result = metadata.CompareWithDatabase(model, out delete, out insert);
+                    if (!result)
+                    {
+                        LogResult(stream, model, delete, insert);
+                    }
+                }
+                stream.WriteLine("*******************************");
+                stream.WriteLine(count.ToString() + " objects processed.");
+            }
+        }
     }
 }

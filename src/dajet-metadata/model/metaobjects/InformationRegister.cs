@@ -2,7 +2,8 @@
 {
     public sealed class InformationRegister : ApplicationObject
     {
-
+        public bool UseRecorder { get; set; }
+        public RegisterPeriodicity Periodicity { get; set; } = RegisterPeriodicity.None;
     }
     public sealed class InformationRegisterPropertyFactory : MetadataPropertyFactory
     {

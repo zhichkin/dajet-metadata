@@ -59,10 +59,13 @@ namespace DaJet.Metadata.Services
         {
             Enrichers.Add(typeof(DbNamesEnricher), new DbNamesEnricher(this));
             Enrichers.Add(typeof(InfoBase), new InfoBaseEnricher(this));
+            Enrichers.Add(typeof(Enumeration), new EnumerationEnricher(this));
             Enrichers.Add(typeof(Catalog), new CatalogEnricher(this));
             Enrichers.Add(typeof(Characteristic), new CharacteristicEnricher(this));
             Enrichers.Add(typeof(Document), new DocumentEnricher(this));
             Enrichers.Add(typeof(Publication), new PublicationEnricher(this));
+            Enrichers.Add(typeof(InformationRegister), new InformationRegisterEnricher(this));
+            Enrichers.Add(typeof(AccumulationRegister), new AccumulationRegisterEnricher(this));
         }
         
         public InfoBase OpenInfoBase()
@@ -71,7 +74,15 @@ namespace DaJet.Metadata.Services
             GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
             GetEnricher<InfoBase>().Enrich(InfoBase);
 
-            IContentEnricher enricher = GetEnricher<Characteristic>();
+            IContentEnricher enricher = GetEnricher<Enumeration>();
+            foreach (Enumeration enumeration in InfoBase.Enumerations.Values)
+            {
+                enricher.Enrich(enumeration);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(enumeration.Uuid, enumeration);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(enumeration.TypeCode, enumeration);
+            }
+
+            enricher = GetEnricher<Characteristic>();
             foreach (Characteristic characteristic in InfoBase.Characteristics.Values)
             {
                 enricher.Enrich(characteristic);
@@ -102,6 +113,18 @@ namespace DaJet.Metadata.Services
                 enricher.Enrich(publication);
                 _ = InfoBase.ReferenceTypeUuids.TryAdd(publication.Uuid, publication);
                 _ = InfoBase.ReferenceTypeCodes.TryAdd(publication.TypeCode, publication);
+            }
+
+            enricher = GetEnricher<InformationRegister>();
+            foreach (InformationRegister register in InfoBase.InformationRegisters.Values)
+            {
+                enricher.Enrich(register);
+            }
+
+            enricher = GetEnricher<AccumulationRegister>();
+            foreach (AccumulationRegister register in InfoBase.AccumulationRegisters.Values)
+            {
+                enricher.Enrich(register);
             }
 
             return InfoBase;
@@ -182,7 +205,7 @@ namespace DaJet.Metadata.Services
             return null;
         }
         
-        public void ConfigureProperties(ApplicationObject metaObject, ConfigObject properties)
+        public void ConfigureProperties(ApplicationObject metaObject, ConfigObject properties, PropertyPurpose purpose)
         {
             int propertiesCount = properties.GetInt32(new int[] { 1 }); // количество реквизитов
             if (propertiesCount == 0) return;
@@ -207,15 +230,16 @@ namespace DaJet.Metadata.Services
                 // P.0.1.1.2.0 = "Pattern"
                 DataTypeInfo typeInfo = (DataTypeInfo)GetConverter<DataTypeInfo>().Convert(propertyTypes);
 
-                ConfigureProperty(metaObject, propertyUuid, propertyName, propertyAlias, typeInfo);
+                ConfigureProperty(metaObject, purpose, propertyUuid, propertyName, propertyAlias, typeInfo);
             }
         }
-        public void ConfigureProperty(ApplicationObject metaObject, Guid fileName, string name, string alias, DataTypeInfo type)
+        public void ConfigureProperty(ApplicationObject metaObject, PropertyPurpose purpose, Guid fileName, string name, string alias, DataTypeInfo type)
         {
             if (!InfoBase.Properties.TryGetValue(fileName, out MetadataProperty property)) return;
 
             property.Name = name;
             property.Alias = alias;
+            property.Purpose = purpose;
             property.PropertyType = type;
             metaObject.Properties.Add(property);
 
@@ -276,7 +300,7 @@ namespace DaJet.Metadata.Services
                             ConfigurePropertyНомерСтроки(tablePart);
 
                             ConfigObject properties = tableParts.GetObject(new int[] { t + offset, 2 });
-                            ConfigureProperties(tablePart, properties);
+                            ConfigureProperties(tablePart, properties, PropertyPurpose.Property);
                         }
                     }
                 }
@@ -843,7 +867,7 @@ namespace DaJet.Metadata.Services
                 Purpose = PropertyPurpose.System,
                 DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Posted" : "_posted")
             };
-            property.PropertyType.CanBeDateTime = true;
+            property.PropertyType.CanBeBoolean = true;
             property.Fields.Add(new DatabaseField()
             {
                 Name = property.DbName,
@@ -861,7 +885,7 @@ namespace DaJet.Metadata.Services
                 Purpose = PropertyPurpose.System,
                 DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Number" : "_number")
             };
-            property.PropertyType.CanBeDateTime = true;
+            property.PropertyType.CanBeNumeric = true;
             property.Fields.Add(new DatabaseField()
             {
                 Name = property.DbName,
@@ -871,6 +895,7 @@ namespace DaJet.Metadata.Services
             });
             document.Properties.Add(property);
         }
+
         // Используется для сихронизации добавления свойства "Регистратор" между документами
         private readonly object syncRegister = new object();
         public void ConfigurePropertyРегистратор(ApplicationObject register, Document document)
@@ -1008,6 +1033,137 @@ namespace DaJet.Metadata.Services
                 TypeName = "numeric"
             });
             publication.Properties.Add(property);
+        }
+
+        #endregion
+
+        #region "Enumeration system properties"
+
+        public void ConfigurePropertyПорядок(Enumeration enumeration)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Порядок",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_EnumOrder" : "_enumorder")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.PropertyType.NumericScale = 0;
+            property.PropertyType.NumericPrecision = 10;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 9,
+                Scale = 0,
+                Precision = 10,
+                TypeName = "numeric"
+            });
+            enumeration.Properties.Add(property);
+        }
+
+        #endregion
+
+        #region "Information register system properties"
+
+        public void ConfigurePropertyПериод(ApplicationObject register)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Период",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Period" : "_period")
+            };
+            property.PropertyType.CanBeDateTime = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 6,
+                Precision = 19,
+                TypeName = "datetime2"
+            });
+            register.Properties.Add(property);
+        }
+        public void ConfigurePropertyНомерЗаписи(ApplicationObject register)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "НомерСтроки",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_LineNo" : "_lineno")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 5,
+                Precision = 9,
+                TypeName = "numeric"
+            });
+            register.Properties.Add(property);
+        }
+        public void ConfigurePropertyАктивность(ApplicationObject register)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "Активность",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Active" : "_active")
+            };
+            property.PropertyType.CanBeBoolean = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 1,
+                TypeName = "binary"
+            });
+            register.Properties.Add(property);
+        }
+
+        #endregion
+
+        #region "Accumulation register system properties"
+
+        public void ConfigurePropertyВидДвижения(AccumulationRegister register)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "ВидДвижения",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_RecordKind" : "_recordkind")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 5,
+                Precision = 1,
+                TypeName = "numeric"
+            });
+            register.Properties.Add(property);
+        }
+        public void ConfigurePropertyDimHash(AccumulationRegister register)
+        {
+            MetadataProperty property = new MetadataProperty()
+            {
+                Name = "DimHash",
+                FileName = Guid.Empty,
+                Purpose = PropertyPurpose.System,
+                DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_DimHash" : "_dimhash")
+            };
+            property.PropertyType.CanBeNumeric = true;
+            property.Fields.Add(new DatabaseField()
+            {
+                Name = property.DbName,
+                Length = 9,
+                Precision = 10,
+                TypeName = "numeric"
+            });
+            register.Properties.Add(property);
         }
 
         #endregion

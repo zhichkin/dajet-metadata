@@ -52,7 +52,7 @@ namespace DaJet.Metadata.Enrichers
             Guid propertiesUuid = configObject.GetUuid(new int[] { 5, 0 });
             if (propertiesUuid == new Guid("45e46cbc-3e24-4165-8b7b-cc98a6f80211"))
             {
-                Configurator.ConfigureProperties(document, properties);
+                Configurator.ConfigureProperties(document, properties, PropertyPurpose.Property);
             }
 
             Configurator.ConfigureSharedProperties(document);
