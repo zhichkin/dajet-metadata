@@ -1,4 +1,5 @@
 ﻿using DaJet.Metadata.Model;
+using DaJet.Metadata.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,6 +55,8 @@ namespace DaJet.Metadata
         byte[] ReadBytes(string fileName);
         ///<summary>Фасад для интерфейса <see cref="IConfigFileReader"/></summary>
         StreamReader CreateReader(byte[] fileData);
+
+        InfoBase OpenInfoBase();
     }
     /// <summary>
     /// Класс, реализующий интерфейс <see cref="IMetadataReader"/>, для чтения метаданных из таблиц СУБД
@@ -157,13 +160,22 @@ namespace DaJet.Metadata
 
         public InfoBase LoadInfoBase()
         {
-            InfoBase infoBase = new InfoBase();
-            ReadDBNames(infoBase);
-            ApplicationObjectFileParser.UseInfoBase(infoBase);
-            ReadMetaUuids(infoBase);
-            ReadApplicationObjects(infoBase);
-            return infoBase;
+            //InfoBase infoBase = new InfoBase();
+            //ReadDBNames(infoBase);
+            //ApplicationObjectFileParser.UseInfoBase(infoBase);
+            //ReadMetaUuids(infoBase);
+            //ReadApplicationObjects(infoBase);
+            //return infoBase;
+
+            Configurator configurator = new Configurator(ConfigFileReader);
+            return configurator.OpenInfoBase();
         }
+        public InfoBase OpenInfoBase()
+        {
+            Configurator configurator = new Configurator(ConfigFileReader, true);
+            return configurator.OpenInfoBase();
+        }
+
         private void ReadDBNames(InfoBase infoBase)
         {
             byte[] fileData = ConfigFileReader.ReadBytes(DBNAMES_FILE_NAME);

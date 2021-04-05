@@ -4,6 +4,7 @@ using DaJet.Metadata.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -308,15 +309,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestCatalogs()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -356,15 +359,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestCharacteristics()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -402,15 +407,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestDocuments()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -448,15 +455,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestPublications()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -494,15 +503,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestEnumerations()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -531,15 +542,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestInformationRegisters()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -568,15 +581,17 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestAccumulationRegisters()
         {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
+            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
+            //Configurator configurator = new Configurator(FileReader);
+            //InfoBase infoBase = configurator.OpenInfoBase();
 
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+
+            InfoBase infoBase = metadata.LoadInfoBase();
 
             List<string> delete;
             List<string> insert;
@@ -602,6 +617,67 @@ namespace DaJet.Metadata.NewParser
                 stream.WriteLine("*******************************");
                 stream.WriteLine(count.ToString() + " objects processed.");
             }
+        }
+
+        [TestMethod] public void TestPerformanceSingleThead()
+        {
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+
+            Stopwatch stopwatch = new Stopwatch();
+
+            int samples = 10;
+            InfoBase infoBase;
+            List<long> stats = new List<long>(samples);
+
+            for (int i = 0; i < samples; i++)
+            {
+                stopwatch.Start();
+                infoBase = metadata.LoadInfoBase();
+                stopwatch.Stop();
+                stats.Add(stopwatch.ElapsedMilliseconds);
+                stopwatch.Reset();
+            }
+
+            long sum = 0;
+            for (int i = 0; i < samples; i++)
+            {
+                sum += stats[i];
+                Console.WriteLine((i + 1).ToString() + " : " + stats[i].ToString() + " ms");
+            }
+            Console.WriteLine("Avg: " + (sum / samples).ToString() + " ms");
+        }
+        [TestMethod] public void TestPerformanceParallel()
+        {
+            IMetadataService metadata = new MetadataService();
+            metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+
+            Stopwatch stopwatch = new Stopwatch();
+
+            int samples = 10;
+            InfoBase infoBase;
+            List<long> stats = new List<long>(samples);
+
+            for (int i = 0; i < samples; i++)
+            {
+                stopwatch.Start();
+                infoBase = metadata.OpenInfoBase();
+                stopwatch.Stop();
+                stats.Add(stopwatch.ElapsedMilliseconds);
+                stopwatch.Reset();
+            }
+
+            long sum = 0;
+            for (int i = 0; i < samples; i++)
+            {
+                sum += stats[i];
+                Console.WriteLine((i + 1).ToString() + " : " + stats[i].ToString() + " ms");
+            }
+            Console.WriteLine("Avg: " + (sum / samples).ToString() + " ms");
         }
     }
 }

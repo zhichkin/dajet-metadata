@@ -4,6 +4,7 @@ using DaJet.Metadata.Model;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace DaJet.Metadata.Services
 {
@@ -43,6 +44,8 @@ namespace DaJet.Metadata.Services
             { typeof(TablePart), () => { return new TablePart(); } }
         };
 
+        private readonly bool IsParallel = false;
+
         public Configurator(IConfigFileReader fileReader)
         {
             FileReader = fileReader ?? throw new ArgumentNullException();
@@ -50,6 +53,10 @@ namespace DaJet.Metadata.Services
             InfoBase = new InfoBase();
             InitializeConverters();
             InitializeEnrichers();
+        }
+        public Configurator(IConfigFileReader fileReader, bool isParallel) : this(fileReader)
+        {
+            IsParallel = isParallel;
         }
         private void InitializeConverters()
         {
@@ -74,6 +81,19 @@ namespace DaJet.Metadata.Services
             GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
             GetEnricher<InfoBase>().Enrich(InfoBase);
 
+            if (IsParallel)
+            {
+                OpenInfoBaseInParallel();
+            }
+            else
+            {
+                OpenInfoBaseSynchronously();
+            }
+
+            return InfoBase;
+        }
+        private void OpenInfoBaseSynchronously()
+        {
             IContentEnricher enricher = GetEnricher<Enumeration>();
             foreach (Enumeration enumeration in InfoBase.Enumerations.Values)
             {
@@ -126,9 +146,37 @@ namespace DaJet.Metadata.Services
             {
                 enricher.Enrich(register);
             }
-
-            return InfoBase;
         }
+        private void OpenInfoBaseInParallel()
+        {
+            ParallelOptions options = new ParallelOptions()
+            {
+                MaxDegreeOfParallelism = Environment.ProcessorCount
+            };
+            Parallel.ForEach(InfoBase.Enumerations, options, EnrichObjectInBackground);
+            IContentEnricher enricher = GetEnricher<Characteristic>();
+            foreach (Characteristic characteristic in InfoBase.Characteristics.Values)
+            {
+                enricher.Enrich(characteristic);
+                InfoBase.CharacteristicTypes.Add(characteristic.TypeUuid, characteristic);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(characteristic.Uuid, characteristic);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(characteristic.TypeCode, characteristic);
+            }
+            Parallel.ForEach(InfoBase.Catalogs, options, EnrichObjectInBackground);
+            Parallel.ForEach(InfoBase.Documents, options, EnrichObjectInBackground);
+            Parallel.ForEach(InfoBase.Publications, options, EnrichObjectInBackground);
+            Parallel.ForEach(InfoBase.InformationRegisters, options, EnrichObjectInBackground);
+            Parallel.ForEach(InfoBase.AccumulationRegisters, options, EnrichObjectInBackground);
+        }
+        private void EnrichObjectInBackground(KeyValuePair<Guid, ApplicationObject> info)
+        {
+            IContentEnricher enricher = GetEnricher(info.Value.GetType());
+            enricher.Enrich(info.Value);
+            _ = InfoBase.ReferenceTypeUuids.TryAdd(info.Value.Uuid, info.Value);
+            _ = InfoBase.ReferenceTypeCodes.TryAdd(info.Value.TypeCode, info.Value);
+        }
+
+        #region "DbNames"
 
         public string CreateDbName(string token, int code)
         {
@@ -179,7 +227,9 @@ namespace DaJet.Metadata.Services
                 DbName = CreateDbName(token, code)
             };
         }
-        
+
+        #endregion
+
         public IContentEnricher GetEnricher<T>() where T : MetadataObject
         {
             return GetEnricher(typeof(T));
