@@ -1,7 +1,7 @@
 ﻿using DaJet.Metadata.Model;
 using System.IO;
 
-namespace DaJet.Metadata.Parsers
+namespace DaJet.Metadata.Services
 {
     public sealed class ConfigFileParser
     {

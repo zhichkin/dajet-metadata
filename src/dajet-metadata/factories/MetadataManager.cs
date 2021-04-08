@@ -8,9 +8,6 @@ namespace DaJet.Metadata.Model
         DatabaseProvider DatabaseProvider { get; }
         void UseDatabaseProvider(DatabaseProvider databaseProvider);
         Type GetTypeByToken(string token);
-        string CreateDbName(string token, int code);
-        ApplicationObject CreateObject(Guid uuid, string token, int code);
-        MetadataProperty CreateProperty(Guid uuid, string token, int code);
         IApplicationObjectFactory GetFactory(Type type);
         IApplicationObjectFactory GetFactory(string token);
         IApplicationObjectFactory GetFactory<T>() where T : ApplicationObject, new();
@@ -49,34 +46,6 @@ namespace DaJet.Metadata.Model
         public void UseDatabaseProvider(DatabaseProvider databaseProvider)
         {
             DatabaseProvider = databaseProvider;
-        }
-        public string CreateDbName(string token, int code)
-        {
-            if (DatabaseProvider == DatabaseProvider.SQLServer)
-            {
-                return $"_{token}{code}";
-            }
-            return $"_{token}{code}".ToLowerInvariant();
-        }
-        public ApplicationObject CreateObject(Guid uuid, string token, int code)
-        {
-            IApplicationObjectFactory factory = GetFactory(token);
-            if (factory == null) return null;
-
-            ApplicationObject metaObject = factory.CreateObject();
-            metaObject.FileName = uuid;
-            metaObject.TypeCode = code;
-            metaObject.TableName = CreateDbName(token, code);
-
-            return metaObject;
-        }
-        public MetadataProperty CreateProperty(Guid uuid, string token, int code)
-        {
-            return new MetadataProperty()
-            {
-                FileName = uuid,
-                DbName = CreateDbName(token, code)
-            };
         }
         public Type GetTypeByToken(string token)
         {

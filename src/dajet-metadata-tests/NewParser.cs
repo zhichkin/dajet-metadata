@@ -1,12 +1,10 @@
 ﻿using DaJet.Metadata.Model;
-using DaJet.Metadata.Parsers;
 using DaJet.Metadata.Services;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace DaJet.Metadata.NewParser
@@ -14,76 +12,8 @@ namespace DaJet.Metadata.NewParser
     [TestClass]
     public sealed class NewParser
     {
-        private const string DBSCHEMA_FILE_NAME = "DBSchema";
-
         private readonly ConfigFileParser FileParser = new ConfigFileParser();
-        private readonly IConfigFileReader FileReader = new ConfigFileReader();
 
-        [TestMethod] public void MS_ReadDBSchema()
-        {
-            IMetadataService metadata = new MetadataService();
-            metadata
-                .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-
-            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema.txt", false, Encoding.UTF8))
-            {
-                stream.Write(reader.ReadToEnd());
-            }
-
-            ConfigObject schema;
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            {
-                schema = FileParser.Parse(reader);
-            }
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema_parsed.txt", false, Encoding.UTF8))
-            {
-                WriteToFile(stream, schema, 0, string.Empty);
-            }
-        }
-        [TestMethod] public void PG_ReadDBSchema()
-        {
-            IMetadataService metadata = new MetadataService();
-            metadata
-                .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
-                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=trade_11_2_3_159_demo;Username=postgres;Password=postgres;");
-
-            byte[] fileData = metadata.ReadBytes(DBSCHEMA_FILE_NAME);
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg.txt", false, Encoding.UTF8))
-            {
-                stream.Write(reader.ReadToEnd());
-            }
-
-            ConfigObject schema;
-            using (MemoryStream memory = new MemoryStream(fileData))
-            using (StreamReader reader = new StreamReader(memory, Encoding.UTF8, false))
-            {
-                schema = FileParser.Parse(reader);
-            }
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbSchema-pg-parsed.txt", false, Encoding.UTF8))
-            {
-                WriteToFile(stream, schema, 0, string.Empty);
-            }
-        }
-
-        [TestMethod] public void ParseDbNames()
-        {
-            ConfigObject mdObject;
-            using (StreamReader stream = new StreamReader(@"C:\temp\DbNames.txt", Encoding.UTF8))
-            {
-                mdObject = FileParser.Parse(stream);
-            }
-            using (StreamWriter stream = new StreamWriter(@"C:\temp\DbNames_parsed.txt", false, Encoding.UTF8))
-            {
-                WriteToFile(stream, mdObject, 0, string.Empty);
-            }
-        }
         [TestMethod] public void ParseConfigObject()
         {
             ConfigObject mdObject;
@@ -241,52 +171,6 @@ namespace DaJet.Metadata.NewParser
             return presentation;
         }
 
-        [TestMethod] public void TestLoadingObject()
-        {
-            FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
-
-            Configurator configurator = new Configurator(FileReader);
-            InfoBase infoBase = configurator.OpenInfoBase();
-            Catalog catalog = (Catalog)infoBase.Catalogs.Values.Where(c => c.Name == "ПростойСправочник").FirstOrDefault();
-            if (catalog == null)
-            {
-                Console.WriteLine("Catalog is not found!");
-                return;
-            }
-
-            Console.WriteLine("Uuid : " + catalog.Uuid.ToString());
-            Console.WriteLine("Name : " + catalog.Name);
-            Console.WriteLine("Alias : " + catalog.Alias);
-            Console.WriteLine("TypeCode : " + catalog.TypeCode.ToString());
-            Console.WriteLine("FileName : " + catalog.FileName.ToString());
-            Console.WriteLine("TableName : " + catalog.TableName);
-            Console.WriteLine("Owners : " + catalog.Owners.ToString());
-            Console.WriteLine("CodeType : " + catalog.CodeType.ToString());
-            Console.WriteLine("CodeLength : " + catalog.CodeLength);
-            Console.WriteLine("DescriptionLength : " + catalog.DescriptionLength);
-            Console.WriteLine("HierarchyType : " + catalog.HierarchyType.ToString());
-            Console.WriteLine("IsHierarchical : " + catalog.IsHierarchical.ToString());
-
-            IMetadataService metadata = new MetadataService();
-            metadata
-                .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
-            List<string> delete;
-            List<string> insert;
-            bool result = metadata.CompareWithDatabase(catalog, out delete, out insert);
-            Console.WriteLine("Compare catalog with database = " + result.ToString());
-
-            ApplicationObject tablePart = catalog.TableParts.Where(t => t.Name == "ТабличнаяЧасть3").FirstOrDefault();
-            if (tablePart == null)
-            {
-                Console.WriteLine("Table part is not found!");
-                return;
-            }
-            result = metadata.CompareWithDatabase(tablePart, out delete, out insert);
-            Console.WriteLine("Compare table part with database = " + result.ToString());
-        }
-
         private void LogResult(StreamWriter stream, ApplicationObject model, List<string> delete, List<string> insert)
         {
             stream.WriteLine("\"" + model.Name + "\" (" + model.TableName + "):");
@@ -309,11 +193,6 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestCatalogs()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
@@ -359,11 +238,6 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestCharacteristics()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
@@ -407,15 +281,10 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestDocuments()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -455,15 +324,10 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestPublications()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -503,11 +367,6 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestEnumerations()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
@@ -542,15 +401,10 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestInformationRegisters()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -581,15 +435,10 @@ namespace DaJet.Metadata.NewParser
         }
         [TestMethod] public void TestAccumulationRegisters()
         {
-            //FileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            //FileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // trade_11_2_3_159_demo
-            //Configurator configurator = new Configurator(FileReader);
-            //InfoBase infoBase = configurator.OpenInfoBase();
-
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=trade_11_2_3_159_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 

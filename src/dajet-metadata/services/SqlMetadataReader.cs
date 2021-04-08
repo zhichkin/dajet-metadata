@@ -3,7 +3,7 @@ using Npgsql;
 using System.Collections.Generic;
 using System.Text;
 
-namespace DaJet.Metadata
+namespace DaJet.Metadata.Services
 {
     public sealed class SqlFieldInfo
     {

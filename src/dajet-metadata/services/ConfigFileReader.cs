@@ -1,5 +1,4 @@
 ﻿using DaJet.Metadata.Model;
-using DaJet.Metadata.Parsers;
 using Microsoft.Data.SqlClient;
 using Npgsql;
 using System;
@@ -9,7 +8,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text;
 
-namespace DaJet.Metadata
+namespace DaJet.Metadata.Services
 {
     /// <summary>
     /// Интерфейс для чтения файлов конфигурации 1С из таблиц IBVersion, DBSchema, Params и Config

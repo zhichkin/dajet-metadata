@@ -10,7 +10,7 @@
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.</Description>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>Version 3.0 uses new parsing approach. The entry class is still DaJet.Metadata.MetadataService.</PackageReleaseNotes>
+    <PackageReleaseNotes>Version 3.0 (beta) uses new parsing and building metadata objects approach. This version of the library builds properties of the metadata objects based on the metadata information, not from database as before. Correctness of this approach is tested by the IMetadataService.CompareWithDatabase method.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

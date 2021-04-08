@@ -1,9 +1,8 @@
 ﻿using DaJet.Metadata.Model;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace DaJet.Metadata
+namespace DaJet.Metadata.Services
 {
     /// <summary>
     /// Интерфейс для сравнения и слияния объектов метаданных
@@ -122,6 +121,9 @@ namespace DaJet.Metadata
             list.Sort();
             return list;
         }
+
+
+
         private SortedDictionary<string, MetadataProperty> PrepareMerging(List<MetadataProperty> properties)
         {
             SortedDictionary<string, MetadataProperty> fields = new SortedDictionary<string, MetadataProperty>();
