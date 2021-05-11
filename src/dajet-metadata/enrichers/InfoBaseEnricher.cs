@@ -27,8 +27,7 @@ namespace DaJet.Metadata.Enrichers
             ConfigObject config = FileReader.ReadConfigObject(root.GetString(new int[] { 1 }));
 
             ConfigureConfigInfo(infoBase, config);
-            ConfigureSharedProperties(infoBase, config); // Общие реквизиты
-            ConfigureCompoundTypes(infoBase, config); // Определяемые типы
+            ConfigureCommonObjects(infoBase, config);
         }
 
         private void ConfigureConfigInfo(InfoBase infoBase, ConfigObject config)
@@ -64,30 +63,48 @@ namespace DaJet.Metadata.Enrichers
             infoBase.ConfigInfo = info;
         }
 
-        private void ConfigureSharedProperties(InfoBase infoBase, ConfigObject config)
+        private void ConfigureCommonObjects(InfoBase infoBase, ConfigObject config)
         {
-            // 3.1.8.0 = 15794563-ccec-41f6-a83c-ec5f7b9a5bc1 - идентификатор коллекции общих реквизитов
-            Guid collectionUuid = config.GetUuid(new int[] { 3, 1, 8, 0 });
-            if (collectionUuid == new Guid("15794563-ccec-41f6-a83c-ec5f7b9a5bc1"))
+            // 3.1.2 - количество объектов метаданных ветки "Общие" для данной версии платформы
+            int count = config.GetInt32(new int[] { 3, 1, 2 });
+            int offset = 3;
+            for (int i = 0; i < count; i++)
             {
-                // количество объектов в коллекции
-                int count = config.GetInt32(new int[] { 3, 1, 8, 1 });
-                if (count == 0) return;
+                ConfigObject collection = config.GetObject(new int[] { 3, 1, i + offset }); // узел объекта метаданных
+                
+                Guid uuid = collection.GetUuid(new int[] { 0 }); // идентификатор типа объекта метаданных
 
-                // 3.1.8 - коллекция общих реквизитов
-                ConfigObject collection = config.GetObject(new int[] { 3, 1, 8 });
-
-                int offset = 2;
-                SharedProperty property;
-                for (int i = 0; i < count; i++)
+                if (uuid == new Guid("15794563-ccec-41f6-a83c-ec5f7b9a5bc1")) // идентификатор коллекции общих реквизитов
                 {
-                    property = new SharedProperty()
-                    {
-                        FileName = collection.GetUuid(new int[] { i + offset })
-                    };
-                    ConfigureSharedProperty(property, infoBase);
-                    infoBase.SharedProperties.Add(property.FileName, property);
+                    ConfigureSharedProperties(infoBase, collection); // Общие реквизиты
                 }
+                else if (uuid == new Guid("c045099e-13b9-4fb6-9d50-fca00202971e")) // идентификатор коллекции определяемых типов
+                {
+                    ConfigureCompoundTypes(infoBase, collection); // Определяемые типы
+                }
+                else
+                {
+                    continue;
+                }
+            }
+        }
+
+        private void ConfigureSharedProperties(InfoBase infoBase, ConfigObject collection)
+        {
+            // количество объектов в коллекции
+            int count = collection.GetInt32(new int[] { 1 });
+            if (count == 0) return;
+
+            int offset = 2;
+            SharedProperty property;
+            for (int i = 0; i < count; i++)
+            {
+                property = new SharedProperty()
+                {
+                    FileName = collection.GetUuid(new int[] { i + offset })
+                };
+                ConfigureSharedProperty(property, infoBase);
+                infoBase.SharedProperties.Add(property.FileName, property);
             }
         }
         private void ConfigureSharedProperty(SharedProperty property, InfoBase infoBase)
@@ -128,31 +145,23 @@ namespace DaJet.Metadata.Enrichers
             }
         }
 
-        private void ConfigureCompoundTypes(InfoBase infoBase, ConfigObject config)
+        private void ConfigureCompoundTypes(InfoBase infoBase, ConfigObject collection)
         {
-            // 3.1.23.0 = c045099e-13b9-4fb6-9d50-fca00202971e - идентификатор коллекции определяемых типов
-            Guid collectionUuid = config.GetUuid(new int[] { 3, 1, 23, 0 });
-            if (collectionUuid == new Guid("c045099e-13b9-4fb6-9d50-fca00202971e"))
+            // количество объектов в коллекции
+            int count = collection.GetInt32(new int[] { 1 });
+            if (count == 0) return;
+
+            // 3.1.23.N - идентификаторы файлов определяемых типов
+            int offset = 2;
+            CompoundType compound;
+            for (int i = 0; i < count; i++)
             {
-                // 3.1.23.1 - количество объектов в коллекции
-                int count = config.GetInt32(new int[] { 3, 1, 23, 1 });
-                if (count == 0) return;
-
-                // 3.1.23 - коллекция определяемых типов
-                ConfigObject collection = config.GetObject(new int[] { 3, 1, 23 });
-
-                // 3.1.23.N - идентификаторы файлов определяемых типов
-                int offset = 2;
-                CompoundType compound;
-                for (int i = 0; i < count; i++)
+                compound = new CompoundType()
                 {
-                    compound = new CompoundType()
-                    {
-                        FileName = collection.GetUuid(new int[] { i + offset })
-                    };
-                    ConfigureCompoundType(compound, infoBase);
-                    infoBase.CompoundTypes.Add(compound.Uuid, compound);
-                }
+                    FileName = collection.GetUuid(new int[] { i + offset })
+                };
+                ConfigureCompoundType(compound, infoBase);
+                infoBase.CompoundTypes.Add(compound.Uuid, compound);
             }
         }
         private void ConfigureCompoundType(CompoundType compound, InfoBase infoBase)
