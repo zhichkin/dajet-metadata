@@ -28,6 +28,11 @@ namespace DaJet.Metadata.Enrichers
 
             ConfigureConfigInfo(infoBase, config);
             ConfigureCommonObjects(infoBase, config);
+
+            if (string.IsNullOrWhiteSpace(infoBase.Name) && infoBase.ConfigInfo != null)
+            {
+                infoBase.Name = infoBase.ConfigInfo.Name;
+            }
         }
 
         private void ConfigureConfigInfo(InfoBase infoBase, ConfigObject config)

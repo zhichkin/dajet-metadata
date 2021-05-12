@@ -72,5 +72,18 @@ namespace DaJet.Metadata.Model
                 return false;
             }
         }
+        public override string ToString()
+        {
+            if (IsMultipleType) return "Multiple";
+            else if (IsUuid) return "Uuid";
+            else if (IsBinary) return "Binary";
+            else if (IsValueStorage) return "ValueStorage";
+            else if (CanBeString) return "String";
+            else if (CanBeBoolean) return "Boolean";
+            else if (CanBeNumeric) return "Numeric";
+            else if (CanBeDateTime) return "DateTime";
+            else if (CanBeReference) return "Reference";
+            else return "Unknown";
+        }
     }
 }

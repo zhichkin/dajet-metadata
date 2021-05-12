@@ -223,6 +223,7 @@ namespace DaJet.Metadata.Services
         {
             return new MetadataProperty()
             {
+                Uuid = uuid,
                 FileName = uuid,
                 DbName = CreateDbName(token, code)
             };

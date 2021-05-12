@@ -5,17 +5,8 @@ using System.Linq;
 namespace DaJet.Metadata.Model
 {
     ///<summary>Класс для описания свойств объекта метаданных <see cref="ApplicationObject"> (реквизитов, измерений и ресурсов)</summary>
-    public class MetadataProperty
+    public class MetadataProperty : MetadataObject
     {
-        ///<summary>
-        /// Идентификатор свойства объекта метаданных из файла DBNames таблицы Params.
-        /// Используется для того, чтобы ссылаться на свойство в файле объекта метаданных из таблицы Config.
-        ///</summary>
-        public Guid FileName { get; set; } = Guid.Empty;
-        ///<summary>Имя свойства объекта метаданных</summary>
-        public string Name { get; set; } = string.Empty;
-        ///<summary>Синоним свойства объекта метаданных</summary>
-        public string Alias { get; set; } = string.Empty;
         ///<summary>Основа имени поля в таблице СУБД (может быть дополнено постфиксами в зависимости от типа данных свойства)</summary>
         public string DbName { get; set; } = string.Empty;
         ///<summary>Коллекция для описания полей таблицы СУБД свойства объекта метаданных</summary>
