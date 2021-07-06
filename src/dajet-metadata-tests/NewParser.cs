@@ -171,6 +171,22 @@ namespace DaJet.Metadata.NewParser
             return presentation;
         }
 
+        [TestMethod] public void WriteRootToFile()
+        {
+            IConfigFileReader fileReader = new ConfigFileReader();
+            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+
+            byte[] root = fileReader.ReadBytes("root");
+            using (StreamReader reader = fileReader.CreateReader(root))
+            {
+                using (StreamWriter stream = new StreamWriter(@"C:\temp\root.txt", false, Encoding.UTF8))
+                {
+                    //WriteToFile(stream, root, 0, string.Empty);
+                    stream.Write(reader.ReadToEnd());
+                }
+            }
+        }
         [TestMethod] public void WriteConfigRootToFile()
         {
             IConfigFileReader fileReader = new ConfigFileReader();

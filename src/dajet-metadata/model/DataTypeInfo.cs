@@ -9,6 +9,9 @@ using System;
 
 namespace DaJet.Metadata.Model
 {
+    // TODO: rename class to DataTypeSet
+    // TODO: think on how to get set of reference types, assigned to this DataTypeSet, on demand
+
     ///<summary>Класс для описания типов данных свойства объекта метаданных (реквизита, измерения или ресурса)</summary>
     public sealed class DataTypeInfo
     {
