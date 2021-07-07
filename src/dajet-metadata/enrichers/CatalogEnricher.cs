@@ -37,7 +37,7 @@ namespace DaJet.Metadata.Enrichers
 
             // 1.12.1 - количество владельцев справочника
             // 1.12.N - описание владельцев
-            // 1.12.N.2.1 - uuid'ы владельцев
+            // 1.12.N.2.1 - uuid'ы владельцев (file names)
             Guid ownerUuid = Guid.Empty;
             catalog.Owners = configObject.GetInt32(new int[] { 1, 12, 1 });
             if (catalog.Owners == 1)
