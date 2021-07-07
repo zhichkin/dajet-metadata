@@ -119,7 +119,7 @@ namespace DaJet.Metadata.Converters
                         Configurator.InfoBase.ApplyCharacteristic(typeInfo, characteristic);
                         typeUuids.Add(characteristic.TypeInfo.ReferenceTypeUuid);
                     }
-                    //else if (Configurator.InfoBase.MetaReferenceTypes.TryGetValue(typeUuid, out ApplicationObject metaObject))
+                    //else if (Configurator.InfoBase.ReferenceTypeUuids.TryGetValue(typeUuid, out ApplicationObject metaObject))
                     //{
                     //    typeInfo.CanBeReference = true;
                     //    typeUuids.Add(typeUuid);
