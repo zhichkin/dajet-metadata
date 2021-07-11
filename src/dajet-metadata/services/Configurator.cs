@@ -936,14 +936,29 @@ namespace DaJet.Metadata.Services
                 Purpose = PropertyPurpose.System,
                 DbName = (FileReader.DatabaseProvider == DatabaseProvider.SQLServer ? "_Number" : "_number")
             };
-            property.PropertyType.CanBeNumeric = true;
-            property.Fields.Add(new DatabaseField()
+            if (document.NumberType == NumberType.Number)
             {
-                Name = property.DbName,
-                Length = 6,
-                Precision = 19,
-                TypeName = "numeric"
-            });
+                property.PropertyType.CanBeNumeric = true;
+                property.Fields.Add(new DatabaseField()
+                {
+                    Name = property.DbName,
+                    Length = 6,
+                    Precision = 19,
+                    TypeName = "numeric"
+                });
+            }
+            else
+            {
+                property.PropertyType.CanBeString = true;
+                property.PropertyType.StringKind = StringKind.Fixed;
+                property.PropertyType.StringLength = document.NumberLength;
+                property.Fields.Add(new DatabaseField()
+                {
+                    Name = property.DbName,
+                    Length = document.NumberLength,
+                    TypeName = "nvarchar"
+                });
+            }
             document.Properties.Add(property);
         }
 
