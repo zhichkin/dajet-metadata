@@ -17,6 +17,8 @@ namespace DaJet.Metadata.Enrichers
 
             ConfigObject configObject = Configurator.FileReader.ReadConfigObject(register.FileName.ToString());
 
+            if (configObject == null) return; // TODO: log error
+
             register.Name = configObject.GetString(new int[] { 1, 13, 1, 2 });
             ConfigObject alias = configObject.GetObject(new int[] { 1, 13, 1, 3 });
             if (alias.Values.Count == 3)

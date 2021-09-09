@@ -62,7 +62,9 @@ namespace DaJet.Metadata.CLI
                     .ConfigureConnectionString(pg, d, u, p);
             }
 
-            ConfigInfo config = metadataService.ReadConfigurationProperties();
+            InfoBase infoBase = metadataService.OpenInfoBase();
+
+            ConfigInfo config = infoBase.ConfigInfo;
 
             Console.WriteLine("Name = " + config.Name);
             Console.WriteLine("Alias = " + config.Alias);
@@ -87,8 +89,7 @@ namespace DaJet.Metadata.CLI
         }
         private static void SaveConfigToFile(string filePath, IMetadataService metadataService)
         {
-            string fileName = metadataService.GetConfigurationFileName();
-            byte[] fileData = metadataService.ReadBytes(fileName);
+            byte[] fileData = metadataService.ReadConfigFile("root");
             using (StreamReader reader = metadataService.CreateReader(fileData))
             using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
             {
@@ -115,7 +116,7 @@ namespace DaJet.Metadata.CLI
             metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
             if (metaObject == null) return;
 
-            byte[] fileData = metadataService.ReadBytes(metaObject.FileName.ToString());
+            byte[] fileData = metadataService.ReadConfigFile(metaObject.FileName.ToString());
             if (fileData == null) return;
 
             using (StreamReader reader = metadataService.CreateReader(fileData))

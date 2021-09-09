@@ -17,6 +17,8 @@ namespace DaJet.Metadata.Enrichers
 
             ConfigObject configObject = Configurator.FileReader.ReadConfigObject(catalog.FileName.ToString());
 
+            if (configObject == null) return; // TODO: log error
+
             catalog.Uuid = configObject.GetUuid(new int[] { 1, 3 });
             catalog.Name = configObject.GetString(new int[] { 1, 9, 1, 2 });
             ConfigObject alias = configObject.GetObject(new int[] { 1, 9, 1, 3 });

@@ -1,6 +1,7 @@
 ﻿using DaJet.Metadata.Model;
 using DaJet.Metadata.Services;
 using System.Collections.Generic;
+using System.IO;
 
 namespace DaJet.Metadata
 {
@@ -43,6 +44,14 @@ namespace DaJet.Metadata
         ///<param name="insert">Список имён полей, которые есть в таблице базы данных, но нет в объекте метаданных</param>
         ///<returns>Результат проверки на соответствие</returns>
         bool CompareWithDatabase(ApplicationObject metaObject, out List<string> delete, out List<string> insert);
+        ///<summary>Получает файл метаданных в "сыром" (как есть) бинарном виде</summary>
+        ///<param name="fileName">Имя файла метаданных: root, DBNames или значение UUID</param>
+        ///<returns>Бинарные данные файла метаданных</returns>
+        byte[] ReadConfigFile(string fileName);
+        ///<summary>Распаковывает файл метаданных по алгоритму deflate и создаёт поток для чтения в формате UTF-8</summary>
+        ///<param name="fileData">Бинарные данные файла метаданных</param>
+        ///<returns>Поток для чтения файла метаданных в формате UTF-8</returns>
+        StreamReader CreateReader(byte[] fileData);
     }
     public sealed class MetadataService : IMetadataService
     {
@@ -89,6 +98,14 @@ namespace DaJet.Metadata
         {
             Configurator configurator = new Configurator(ConfigFileReader, true);
             return configurator.OpenInfoBase();
+        }
+        public byte[] ReadConfigFile(string fileName)
+        {
+            return ConfigFileReader.ReadBytes(fileName);
+        }
+        public StreamReader CreateReader(byte[] fileData)
+        {
+            return ConfigFileReader.CreateReader(fileData);
         }
         public void EnrichFromDatabase(ApplicationObject metaObject)
         {

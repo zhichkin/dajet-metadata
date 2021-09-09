@@ -20,6 +20,8 @@ namespace DaJet.Metadata.Enrichers
 
             ConfigObject configObject = Configurator.FileReader.ReadConfigObject(model.FileName.ToString());
 
+            if (configObject == null) return; // TODO: log error
+
             model.Uuid = configObject.GetUuid(new int[] { 1, 3 });
             model.TypeUuid = configObject.GetUuid(new int[] { 1, 9 });
             model.Name = configObject.GetString(new int[] { 1, 13, 1, 2 });
