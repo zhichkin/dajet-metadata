@@ -11,7 +11,7 @@
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageReleaseNotes>Bug fixes for version 3.1.2:
-Sometimes accidentally, due to configuration changes, file DBNames may contain fantom objects.
+Sometimes accidentally, due to configuration changes, file DBNames may contain phantom objects.
 These objects can not be found in the Config file by their UUID.</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
