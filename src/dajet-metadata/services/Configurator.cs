@@ -527,11 +527,17 @@ namespace DaJet.Metadata.Services
         {
             if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
             {
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "binary", 1));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "binary", 1)
+                {
+                    Purpose = FieldPurpose.Discriminator
+                });
             }
             else
             {
-                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "bytea", 1));
+                property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.TYPE, "bytea", 1)
+                {
+                    Purpose = FieldPurpose.Discriminator
+                });
             }
             if (property.PropertyType.CanBeString)
             {
@@ -542,14 +548,20 @@ namespace DaJet.Metadata.Services
                         property.Fields.Add(new DatabaseField(
                             property.DbName + "_" + MetadataTokens.S,
                             "nchar",
-                            property.PropertyType.StringLength));
+                            property.PropertyType.StringLength)
+                            {
+                                Purpose = FieldPurpose.String
+                            });
                     }
                     else
                     {
                         property.Fields.Add(new DatabaseField(
                             property.DbName + "_" + MetadataTokens.S,
                             "mchar",
-                            property.PropertyType.StringLength));
+                            property.PropertyType.StringLength)
+                            {
+                                Purpose = FieldPurpose.String
+                            });
                     }
                 }
                 else
@@ -559,14 +571,20 @@ namespace DaJet.Metadata.Services
                         property.Fields.Add(new DatabaseField(
                             property.DbName + "_" + MetadataTokens.S,
                             "nvarchar",
-                            property.PropertyType.StringLength));
+                            property.PropertyType.StringLength)
+                            {
+                                Purpose = FieldPurpose.String
+                            });
                     }
                     else
                     {
                         property.Fields.Add(new DatabaseField(
                             property.DbName + "_" + MetadataTokens.S,
                             "mvarchar",
-                            property.PropertyType.StringLength));
+                            property.PropertyType.StringLength)
+                            {
+                                Purpose = FieldPurpose.String
+                            });
                     }
                 }
             }
@@ -577,18 +595,27 @@ namespace DaJet.Metadata.Services
                     property.DbName + "_" + MetadataTokens.N,
                     "numeric", 9,
                     property.PropertyType.NumericPrecision,
-                    property.PropertyType.NumericScale));
+                    property.PropertyType.NumericScale)
+                    {
+                        Purpose = FieldPurpose.Numeric
+                    });
 
             }
             if (property.PropertyType.CanBeBoolean)
             {
                 if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "binary", 1));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "binary", 1)
+                    {
+                        Purpose = FieldPurpose.Boolean
+                    });
                 }
                 else
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "boolean", 1));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.L, "boolean", 1)
+                    {
+                        Purpose = FieldPurpose.Boolean
+                    });
                 }
             }
             if (property.PropertyType.CanBeDateTime)
@@ -596,11 +623,17 @@ namespace DaJet.Metadata.Services
                 // length, precision and scale can be updated from database
                 if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "datetime2", 6, 19, 0));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "datetime2", 6, 19, 0)
+                    {
+                        Purpose = FieldPurpose.DateTime
+                    });
                 }
                 else
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "timestamp without time zone", 6, 19, 0));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.T, "timestamp without time zone", 6, 19, 0)
+                    {
+                        Purpose = FieldPurpose.DateTime
+                    });
                 }
             }
             if (property.PropertyType.CanBeReference)
@@ -609,20 +642,32 @@ namespace DaJet.Metadata.Services
                 {
                     if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
                     {
-                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "binary", 4));
+                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "binary", 4)
+                        {
+                            Purpose = FieldPurpose.TypeCode
+                        });
                     }
                     else
                     {
-                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "bytea", 4));
+                        property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RTRef, "bytea", 4)
+                        {
+                            Purpose = FieldPurpose.TypeCode
+                        });
                     }
                 }
                 if (FileReader.DatabaseProvider == DatabaseProvider.SQLServer)
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "binary", 16));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "binary", 16)
+                    {
+                        Purpose = FieldPurpose.Object
+                    });
                 }
                 else
                 {
-                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "bytea", 16));
+                    property.Fields.Add(new DatabaseField(property.DbName + "_" + MetadataTokens.RRRef, "bytea", 16)
+                    {
+                        Purpose = FieldPurpose.Object
+                    });
                 }
             }
         }
@@ -1009,6 +1054,13 @@ namespace DaJet.Metadata.Services
 
             // Проверям необходимость добавления поля для хранения кода типа документа
             if (property.PropertyType.ReferenceTypeUuid == Guid.Empty) return;
+
+            // Изменяем назначение поля для хранения ссылки на документ, предварительно убеждаясь в его наличии
+            DatabaseField field = property.Fields.Where(f => f.Name.ToLowerInvariant() == "_recorderrref").FirstOrDefault();
+            if (field != null)
+            {
+                field.Purpose = FieldPurpose.Object;
+            }
 
             // Добавляем поле для хранения кода типа документа, предварительно убеждаясь в его отсутствии
             if (property.Fields.Where(f => f.Name.ToLowerInvariant() == "_recordertref").FirstOrDefault() == null)

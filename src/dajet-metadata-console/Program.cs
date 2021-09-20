@@ -16,6 +16,8 @@ namespace DaJet.Metadata.CLI
 
         public static int Main(string[] args)
         {
+            //args = new string[] { "--ms", "ZHICHKIN", "--d", "dajet-metadata" };
+
             RootCommand command = new RootCommand()
             {
                 new Option<string>("--ms", "Microsoft SQL Server address or name"),
