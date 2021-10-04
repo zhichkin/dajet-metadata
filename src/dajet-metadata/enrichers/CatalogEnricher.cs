@@ -87,6 +87,8 @@ namespace DaJet.Metadata.Enrichers
             {
                 Configurator.ConfigureTableParts(catalog, tableParts);
             }
+
+            Configurator.ConfigurePredefinedValues(catalog);
         }
     }
 }

@@ -74,7 +74,7 @@ namespace DaJet.Metadata.Services
             Enrichers.Add(typeof(InformationRegister), new InformationRegisterEnricher(this));
             Enrichers.Add(typeof(AccumulationRegister), new AccumulationRegisterEnricher(this));
         }
-        
+
         public InfoBase OpenInfoBase()
         {
             // TODO: InfoBase.Clear(); ???
@@ -255,7 +255,7 @@ namespace DaJet.Metadata.Services
             }
             return null;
         }
-        
+
         public void ConfigureProperties(ApplicationObject metaObject, ConfigObject properties, PropertyPurpose purpose)
         {
             int propertiesCount = properties.GetInt32(new int[] { 1 }); // количество реквизитов
@@ -296,7 +296,7 @@ namespace DaJet.Metadata.Services
 
             ConfigureDatabaseFields(property);
         }
-        
+
         public void ConfigureSharedProperties(ApplicationObject metaObject)
         {
             foreach (SharedProperty property in InfoBase.SharedProperties.Values)
@@ -317,6 +317,8 @@ namespace DaJet.Metadata.Services
                 }
             }
         }
+
+        #region "TableParts"
 
         public void ConfigureTableParts(ApplicationObject owner, ConfigObject tableParts)
         {
@@ -413,6 +415,8 @@ namespace DaJet.Metadata.Services
 
             tablePart.Properties.Add(property);
         }
+
+        #endregion
 
         public void ConfigureDatabaseFields(MetadataProperty property)
         {
@@ -549,9 +553,9 @@ namespace DaJet.Metadata.Services
                             property.DbName + "_" + MetadataTokens.S,
                             "nchar",
                             property.PropertyType.StringLength)
-                            {
-                                Purpose = FieldPurpose.String
-                            });
+                        {
+                            Purpose = FieldPurpose.String
+                        });
                     }
                     else
                     {
@@ -559,9 +563,9 @@ namespace DaJet.Metadata.Services
                             property.DbName + "_" + MetadataTokens.S,
                             "mchar",
                             property.PropertyType.StringLength)
-                            {
-                                Purpose = FieldPurpose.String
-                            });
+                        {
+                            Purpose = FieldPurpose.String
+                        });
                     }
                 }
                 else
@@ -572,9 +576,9 @@ namespace DaJet.Metadata.Services
                             property.DbName + "_" + MetadataTokens.S,
                             "nvarchar",
                             property.PropertyType.StringLength)
-                            {
-                                Purpose = FieldPurpose.String
-                            });
+                        {
+                            Purpose = FieldPurpose.String
+                        });
                     }
                     else
                     {
@@ -582,9 +586,9 @@ namespace DaJet.Metadata.Services
                             property.DbName + "_" + MetadataTokens.S,
                             "mvarchar",
                             property.PropertyType.StringLength)
-                            {
-                                Purpose = FieldPurpose.String
-                            });
+                        {
+                            Purpose = FieldPurpose.String
+                        });
                     }
                 }
             }
@@ -596,9 +600,9 @@ namespace DaJet.Metadata.Services
                     "numeric", 9,
                     property.PropertyType.NumericPrecision,
                     property.PropertyType.NumericScale)
-                    {
-                        Purpose = FieldPurpose.Numeric
-                    });
+                {
+                    Purpose = FieldPurpose.Numeric
+                });
 
             }
             if (property.PropertyType.CanBeBoolean)
@@ -1285,5 +1289,67 @@ namespace DaJet.Metadata.Services
         }
 
         #endregion
+
+        #region "Predefined values (catalogs and characteristics)"
+
+        public void ConfigurePredefinedValues(Catalog catalog)
+        {
+            string fileName = catalog.FileName.ToString() + ".1c"; // файл с описанием предопределённых элементов
+
+            ConfigObject configObject = FileReader.ReadConfigObject(fileName);
+
+            if (configObject == null) return;
+
+            ConfigObject parentObject = configObject.GetObject(new int[] { 1, 2, 14, 2 });
+
+            //string RootName = parentObject.GetString(new int[] { 6, 1 }); // имя корня предопределённых элементов = "Элементы" (уровень 0)
+
+            int propertiesCount = parentObject.GetInt32(new int[] { 2 });
+            int predefinedFlag = propertiesCount + 3;
+            int childrenValues = propertiesCount + 4;
+
+            int hasChildren = parentObject.GetInt32(new int[] { predefinedFlag }); // флаг наличия предопределённых элементов
+            if (hasChildren == 0) return;
+
+            ConfigObject predefinedValues = parentObject.GetObject(new int[] { childrenValues }); // коллекция описаний предопределённых элементов
+
+            int valuesCount = predefinedValues.GetInt32(new int[] { 1 }); // количество предопределённых элементов (уровень 1)
+
+            if (valuesCount == 0) return;
+
+            int valueOffset = 2;
+            for (int v = 0; v < valuesCount; v++)
+            {
+                PredefinedValue pv = new PredefinedValue();
+
+                ConfigObject predefinedValue = predefinedValues.GetObject(new int[] { v + valueOffset });
+
+                pv.Uuid = predefinedValue.GetUuid(new int[] { 3, 2, 1 });
+                pv.Name = predefinedValue.GetString(new int[] { 6, 1 });
+                pv.Description = predefinedValue.GetString(new int[] { 8, 1 });
+
+                // TODO: configure predefined code value
+                //string valueCode = predefinedValue.GetString(new int[] { 7, 1 }); // string or number
+
+
+
+                // TODO: configure children predefined values
+                // PredefinedValue class should implement hierarchical structure
+
+                //int propertiesCount = parentObject.GetInt32(new int[] { 2 });
+                //int predefinedFlag = propertiesCount + 3;
+                //int childrenValues = propertiesCount + 4;
+
+                //int hasChildren = predefinedValue.GetInt32(new int[] { 9 }); // флаг наличия дочерних предопределённых элементов (0 - нет, 1 - есть)
+                //if (hasChildren == 1)
+                //{
+                //    ConfigObject children = predefinedValue.GetObject(new int[] { 10 }); // коллекция описаний дочерних предопределённых элементов
+                //}
+
+                catalog.PredefinedValues.Add(pv);
+            }
+
+            #endregion
+        }
     }
 }

@@ -1,4 +1,7 @@
-﻿namespace DaJet.Metadata.Model
+﻿using System;
+using System.Collections.Generic;
+
+namespace DaJet.Metadata.Model
 {
     public sealed class Catalog : ApplicationObject, IReferenceCode, IDescription, IReferenceHierarchy
     {
@@ -8,6 +11,13 @@
         public int DescriptionLength { get; set; } = 25;
         public bool IsHierarchical { get; set; } = false;
         public HierarchyType HierarchyType { get; set; } = HierarchyType.Groups;
+        public List<PredefinedValue> PredefinedValues { get; set; } = new List<PredefinedValue>();
+    }
+    public sealed class PredefinedValue
+    {
+        public Guid Uuid { get; set; } = Guid.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
     }
     public sealed class CatalogPropertyFactory : MetadataPropertyFactory
     {
