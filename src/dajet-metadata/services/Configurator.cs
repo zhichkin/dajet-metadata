@@ -1292,9 +1292,26 @@ namespace DaJet.Metadata.Services
 
         #region "Predefined values (catalogs and characteristics)"
 
-        public void ConfigurePredefinedValues(Catalog catalog)
+        public void ConfigurePredefinedValues(ApplicationObject metaObject)
         {
-            string fileName = catalog.FileName.ToString() + ".1c"; // файл с описанием предопределённых элементов
+            if (!(metaObject is IPredefinedValues owner)) return;
+
+            int predefinedValueUuid = 3;
+            int predefinedIsFolder = 4;
+            int predefinedValueName = 6;
+            int predefinedValueCode = 7;
+            int predefinedDescription = 8;
+
+            string fileName = metaObject.FileName.ToString() + ".1c"; // файл с описанием предопределённых элементов
+            if (metaObject is Characteristic)
+            {
+                fileName = metaObject.FileName.ToString() + ".7";
+                predefinedValueName = 5;
+                predefinedValueCode = 6;
+                predefinedDescription = 7;
+            }
+
+            IReferenceCode codeInfo = (metaObject as IReferenceCode);
 
             ConfigObject configObject = FileReader.ReadConfigObject(fileName);
 
@@ -1303,6 +1320,7 @@ namespace DaJet.Metadata.Services
             ConfigObject parentObject = configObject.GetObject(new int[] { 1, 2, 14, 2 });
 
             //string RootName = parentObject.GetString(new int[] { 6, 1 }); // имя корня предопределённых элементов = "Элементы" (уровень 0)
+            //string RootName = parentObject.GetString(new int[] { 5, 1 }); // имя корня предопределённых элементов = "Характеристики" (уровень 0)
 
             int propertiesCount = parentObject.GetInt32(new int[] { 2 });
             int predefinedFlag = propertiesCount + 3;
@@ -1324,32 +1342,77 @@ namespace DaJet.Metadata.Services
 
                 ConfigObject predefinedValue = predefinedValues.GetObject(new int[] { v + valueOffset });
 
-                pv.Uuid = predefinedValue.GetUuid(new int[] { 3, 2, 1 });
-                pv.Name = predefinedValue.GetString(new int[] { 6, 1 });
-                pv.Description = predefinedValue.GetString(new int[] { 8, 1 });
+                pv.Uuid = predefinedValue.GetUuid(new int[] { predefinedValueUuid, 2, 1 });
+                pv.Name = predefinedValue.GetString(new int[] { predefinedValueName, 1 });
+                pv.IsFolder = (predefinedValue.GetInt32(new int[] { predefinedIsFolder, 1 }) == 1);
+                pv.Description = predefinedValue.GetString(new int[] { predefinedDescription, 1 });
 
-                // TODO: configure predefined code value
-                //string valueCode = predefinedValue.GetString(new int[] { 7, 1 }); // string or number
+                if (codeInfo != null && codeInfo.CodeLength > 0)
+                {
+                    pv.Code = predefinedValue.GetString(new int[] { predefinedValueCode, 1 });
+                }
 
+                owner.PredefinedValues.Add(pv);
 
+                int haveChildren = predefinedValue.GetInt32(new int[] { 9 }); // флаг наличия дочерних предопределённых элементов (0 - нет, 1 - есть)
+                if (haveChildren == 1)
+                {
+                    ConfigObject children = predefinedValue.GetObject(new int[] { 10 }); // коллекция описаний дочерних предопределённых элементов
 
-                // TODO: configure children predefined values
-                // PredefinedValue class should implement hierarchical structure
+                    ConfigurePredefinedValue(children, pv, metaObject);
+                }
+            }
+        }
+        private void ConfigurePredefinedValue(ConfigObject predefinedValues, PredefinedValue parent, ApplicationObject owner)
+        {
+            int valuesCount = predefinedValues.GetInt32(new int[] { 1 }); // количество предопределённых элементов (уровень N)
 
-                //int propertiesCount = parentObject.GetInt32(new int[] { 2 });
-                //int predefinedFlag = propertiesCount + 3;
-                //int childrenValues = propertiesCount + 4;
+            if (valuesCount == 0) return;
 
-                //int hasChildren = predefinedValue.GetInt32(new int[] { 9 }); // флаг наличия дочерних предопределённых элементов (0 - нет, 1 - есть)
-                //if (hasChildren == 1)
-                //{
-                //    ConfigObject children = predefinedValue.GetObject(new int[] { 10 }); // коллекция описаний дочерних предопределённых элементов
-                //}
+            int predefinedValueUuid = 3;
+            int predefinedIsFolder = 4;
+            int predefinedValueName = 6;
+            int predefinedValueCode = 7;
+            int predefinedDescription = 8;
 
-                catalog.PredefinedValues.Add(pv);
+            if (owner is Characteristic)
+            {
+                predefinedValueName = 5;
+                predefinedValueCode = 6;
+                predefinedDescription = 7;
             }
 
-            #endregion
+            IReferenceCode codeInfo = (owner as IReferenceCode);
+
+            int valueOffset = 2;
+            for (int v = 0; v < valuesCount; v++)
+            {
+                PredefinedValue pv = new PredefinedValue();
+
+                ConfigObject predefinedValue = predefinedValues.GetObject(new int[] { v + valueOffset });
+
+                pv.Uuid = predefinedValue.GetUuid(new int[] { predefinedValueUuid, 2, 1 });
+                pv.Name = predefinedValue.GetString(new int[] { predefinedValueName, 1 });
+                pv.IsFolder = (predefinedValue.GetInt32(new int[] { predefinedIsFolder, 1 }) == 1);
+                pv.Description = predefinedValue.GetString(new int[] { predefinedDescription, 1 });
+
+                if (codeInfo != null && codeInfo.CodeLength > 0)
+                {
+                    pv.Code = predefinedValue.GetString(new int[] { predefinedValueCode, 1 });
+                }
+
+                parent.Children.Add(pv);
+
+                int haveChildren = predefinedValue.GetInt32(new int[] { 9 }); // флаг наличия дочерних предопределённых элементов (0 - нет, 1 - есть)
+                if (haveChildren == 1)
+                {
+                    ConfigObject children = predefinedValue.GetObject(new int[] { 10 }); // коллекция описаний дочерних предопределённых элементов
+
+                    ConfigurePredefinedValue(children, pv, owner);
+                }
+            }
         }
+
+        #endregion
     }
 }

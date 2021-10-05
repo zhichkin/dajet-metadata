@@ -81,8 +81,7 @@ namespace DaJet.Metadata.Enrichers
                 Configurator.ConfigureTableParts(model, tableParts);
             }
 
-            // TODO: configure predefined values
-            // Configurator.ConfigurePredefinedValues(model);
+            Configurator.ConfigurePredefinedValues(model);
         }
     }
 }
