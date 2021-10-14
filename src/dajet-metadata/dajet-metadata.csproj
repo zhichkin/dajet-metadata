@@ -5,12 +5,13 @@
     <RootNamespace>DaJet.Metadata</RootNamespace>
     <AssemblyName>DaJet.Metadata</AssemblyName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>3.1.5</Version>
+    <Version>3.1.6</Version>
     <Authors>Zhichkin</Authors>
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.</Description>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>Configuration of the predefined catalog and characteristic values added.</PackageReleaseNotes>
+    <PackageReleaseNotes>Configuration of the database year offset added.
+Added new property YearOffset to the InfoBase class.</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
 

@@ -40,6 +40,10 @@ namespace DaJet.Metadata.Services
         ///<returns>Требуемая версия платформы 1С</returns>
         int GetPlatformRequiredVersion();
 
+        ///<summary>Получает количество лет, используемое платформой 1С, для добавления к значениям дат</summary>
+        ///<returns>Количество лет, добавляемое к датам. Значения по умолчанию: SQL Server = 2000, PostrgeSQL = 0.</returns>
+        int GetYearOffset();
+
         ///<summary>Получает файл метаданных в "сыром" (как есть) бинарном виде</summary>
         ///<param name="fileName">Имя файла метаданных: root, DBNames или значение UUID</param>
         ///<returns>Бинарные данные файла метаданных</returns>
@@ -70,11 +74,13 @@ namespace DaJet.Metadata.Services
         private const string MS_PARAMS_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Params] WHERE [FileName] = @FileName;";
         private const string MS_CONFIG_QUERY_SCRIPT = "SELECT [BinaryData] FROM [Config] WHERE [FileName] = @FileName;"; // Version 8.3 ORDER BY [PartNo] ASC";
         private const string MS_DBSCHEMA_QUERY_SCRIPT = "SELECT TOP 1 [SerializedData] FROM [DBSchema];";
+        private const string MS_YEAROFFSET_QUERY_SCRIPT = "SELECT TOP 1 [Offset] FROM [_YearOffset];";
 
         private const string PG_IBVERSION_QUERY_SCRIPT = "SELECT platformversionreq FROM ibversion LIMIT 1;";
         private const string PG_PARAMS_QUERY_SCRIPT = "SELECT binarydata FROM params WHERE filename = '{filename}';";
         private const string PG_CONFIG_QUERY_SCRIPT = "SELECT binarydata FROM config WHERE filename = '{filename}';"; // Version 8.3 ORDER BY [PartNo] ASC";
         private const string PG_DBSCHEMA_QUERY_SCRIPT = "SELECT serializeddata FROM dbschema LIMIT 1;";
+        private const string PG_YEAROFFSET_QUERY_SCRIPT = "SELECT ofset FROM _yearoffset LIMIT 1;";
 
         #endregion
 
@@ -122,7 +128,11 @@ namespace DaJet.Metadata.Services
                 command.CommandType = CommandType.Text;
                 ConfigureFileNameParameter(command, fileName);
                 connection.Open();
-                result = (T)command.ExecuteScalar();
+                object value = command.ExecuteScalar();
+                if (value != null)
+                {
+                    result = (T)value;
+                }
             }
             return result;
         }
@@ -221,6 +231,14 @@ namespace DaJet.Metadata.Services
                 return ExecuteScalar<int>(MS_IBVERSION_QUERY_SCRIPT, null);
             }
             return ExecuteScalar<int>(PG_IBVERSION_QUERY_SCRIPT, null);
+        }
+        public int GetYearOffset()
+        {
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
+            {
+                return ExecuteScalar<int>(MS_YEAROFFSET_QUERY_SCRIPT, null);
+            }
+            return ExecuteScalar<int>(PG_YEAROFFSET_QUERY_SCRIPT, null);
         }
         public byte[] ReadBytes(string fileName)
         {

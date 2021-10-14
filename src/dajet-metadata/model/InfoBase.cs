@@ -7,6 +7,7 @@ namespace DaJet.Metadata.Model
     public sealed class InfoBase : MetadataObject
     {
         public ConfigInfo ConfigInfo { get; set; }
+        public int YearOffset { get; set; }
         public int PlatformRequiredVersion { get; set; }
         public List<Dictionary<Guid, ApplicationObject>> Registers { get; private set; }
         public List<Dictionary<Guid, ApplicationObject>> ValueTypes { get; private set; }

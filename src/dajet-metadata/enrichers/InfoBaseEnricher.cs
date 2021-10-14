@@ -21,6 +21,7 @@ namespace DaJet.Metadata.Enrichers
         {
             if (!(metadataObject is InfoBase infoBase)) throw new ArgumentOutOfRangeException();
 
+            infoBase.YearOffset = FileReader.GetYearOffset();
             infoBase.PlatformRequiredVersion = FileReader.GetPlatformRequiredVersion();
 
             ConfigObject root = FileReader.ReadConfigObject(ROOT_FILE_NAME);

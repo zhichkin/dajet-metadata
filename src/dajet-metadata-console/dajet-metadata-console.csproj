@@ -5,6 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>DaJet.Metadata.CLI</RootNamespace>
     <AssemblyName>dajet</AssemblyName>
+    <Version>2.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

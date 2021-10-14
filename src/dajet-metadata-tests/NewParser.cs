@@ -559,5 +559,24 @@ namespace DaJet.Metadata.NewParser
             }
             Console.WriteLine("Avg: " + (sum / samples).ToString() + " ms");
         }
+
+        [TestMethod] public void TestYearOffset()
+        {
+            IMetadataService ms_metadata = new MetadataService();
+            ms_metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+
+            InfoBase infoBase = ms_metadata.OpenInfoBase();
+            Console.WriteLine("MS YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ")");
+
+            IMetadataService pg_metadata = new MetadataService();
+            pg_metadata
+                .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
+                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;");
+
+            infoBase = pg_metadata.OpenInfoBase();
+            Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ")");
+        }
     }
 }
