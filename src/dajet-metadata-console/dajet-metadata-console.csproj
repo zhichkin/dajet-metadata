@@ -5,7 +5,7 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <RootNamespace>DaJet.Metadata.CLI</RootNamespace>
     <AssemblyName>dajet</AssemblyName>
-    <Version>2.1.0</Version>
+    <Version>2.2.0</Version>
     <PackageId>DaJet.Metadata.Utility</PackageId>
     <Authors>Zhichkin</Authors>
     <Product>DaJet.Metadata.Utility</Product>
@@ -15,10 +15,9 @@ Microsoft SQL Server and PostgreSQL are supported.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>The new command --schema added.
-The command outputs database schema for the metadata object.
+    <PackageReleaseNotes>The command --schema extended to get table part schema.
 Example usage:
-dajet --ms my_server --d my_database --schema "Справочник.Номенклатура"</PackageReleaseNotes>
+dajet --ms my_server --d my_database --schema "Справочник.Клиенты.КонтактнаяИнформация"</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

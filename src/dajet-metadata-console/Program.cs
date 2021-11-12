@@ -16,7 +16,7 @@ namespace DaJet.Metadata.CLI
 
         public static int Main(string[] args)
         {
-            //args = new string[] { "--ms", "ZHICHKIN", "--d", "cerberus", "--schema", "РегистрСведений.ВходящаяОчередьRabbitMQ" };
+            //args = new string[] { "--ms", "ZHICHKIN", "--d", "cerberus", "--schema", "Справочник.Клиенты.КонтактнаяИнформация" };
             //args = new string[] { "--pg", "127.0.0.1", "--d", "test_node_2", "--u", "postgres", "--p", "postgres", "--schema", "РегистрСведений.ВходящаяОчередьRabbitMQ" };
 
             RootCommand command = new RootCommand()
@@ -137,9 +137,14 @@ namespace DaJet.Metadata.CLI
         private static void ShowApplicationObjectSchema(InfoBase infoBase, string metadataName)
         {
             string[] names = metadataName.Split('.');
-            if (names.Length != 2) return;
+            
             string typeName = names[0];
             string objectName = names[1];
+            string tablePartName = string.Empty;
+            if (names.Length == 3)
+            {
+                tablePartName = names[2];
+            }
 
             ApplicationObject metaObject = null;
             Dictionary<Guid, ApplicationObject> collection = null;
@@ -158,8 +163,18 @@ namespace DaJet.Metadata.CLI
             metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
             if (metaObject == null)
             {
-                ShowErrorMessage($"Object \"{metaObject}\" is not found.");
+                ShowErrorMessage($"Object \"{objectName}\" is not found.");
                 return;
+            }
+
+            if (!string.IsNullOrEmpty(tablePartName))
+            {
+                metaObject = metaObject.TableParts.Where(t => t.Name == tablePartName).FirstOrDefault();
+                if (metaObject == null)
+                {
+                    ShowErrorMessage($"Table part \"{tablePartName}\" is not found.");
+                    return;
+                }
             }
 
             Console.WriteLine("".PadLeft(10, '-'));
