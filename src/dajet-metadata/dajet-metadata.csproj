@@ -17,7 +17,7 @@
 5. Reading PropertyUsage property value from 1C metadata added.
 6. Reading Uuid and FileName property values of the InfoBase class from 1C metadata added.
 
-Reading of PropertyUsage value from 1C metadata is usefull for catalogs and characteristics.
+Reading of PropertyUsage value from 1C metadata is useful for catalogs and characteristics.
 This value determines whether the property is used with only items, folders or both when the object is hierarchical.</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
