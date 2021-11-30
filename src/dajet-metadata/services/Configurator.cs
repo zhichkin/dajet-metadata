@@ -281,10 +281,17 @@ namespace DaJet.Metadata.Services
                 // P.0.1.1.2.0 = "Pattern"
                 DataTypeInfo typeInfo = (DataTypeInfo)GetConverter<DataTypeInfo>().Convert(propertyTypes);
 
-                ConfigureProperty(metaObject, purpose, propertyUuid, propertyName, propertyAlias, typeInfo);
+                // P.0.3 - property usage for catalogs and characteristics
+                int propertyUsage = -1;
+                if (metaObject is Catalog || metaObject is Characteristic)
+                {
+                    propertyUsage = properties.GetInt32(new int[] { p + propertyOffset, 0, 3 });
+                }
+
+                ConfigureProperty(metaObject, purpose, propertyUuid, propertyName, propertyAlias, typeInfo, propertyUsage);
             }
         }
-        public void ConfigureProperty(ApplicationObject metaObject, PropertyPurpose purpose, Guid fileName, string name, string alias, DataTypeInfo type)
+        public void ConfigureProperty(ApplicationObject metaObject, PropertyPurpose purpose, Guid fileName, string name, string alias, DataTypeInfo type, int propertyUsage)
         {
             if (!InfoBase.Properties.TryGetValue(fileName, out MetadataProperty property)) return;
 
@@ -292,6 +299,10 @@ namespace DaJet.Metadata.Services
             property.Alias = alias;
             property.Purpose = purpose;
             property.PropertyType = type;
+            if (propertyUsage != -1)
+            {
+                property.PropertyUsage = (PropertyUsage)propertyUsage;
+            }
             metaObject.Properties.Add(property);
 
             ConfigureDatabaseFields(property);

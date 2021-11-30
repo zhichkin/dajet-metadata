@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DaJet.Metadata.Model
 {
@@ -120,6 +121,52 @@ namespace DaJet.Metadata.Model
             if (!typeInfo.IsUuid && characteristic.TypeInfo.IsUuid) typeInfo.IsUuid = true;
             if (!typeInfo.IsValueStorage && characteristic.TypeInfo.IsValueStorage) typeInfo.IsValueStorage = true;
             if (!typeInfo.IsBinary && characteristic.TypeInfo.IsBinary) typeInfo.IsBinary = true;
+        }
+
+        ///<summary>Функция возвращает объект метаданных по его полному имени или null, если не найден.</summary>
+        ///<param name="metadataName">Полное имя объекта метаданных, например, "Справочник.Номенклатура" или "Документ.ЗаказКлиента.Товары".</param>
+        public ApplicationObject GetApplicationObjectByName(string metadataName)
+        {
+            string[] names = metadataName.Split('.');
+
+            string typeName = names[0];
+            string objectName = names[1];
+            string tablePartName = null;
+            if (names.Length == 3)
+            {
+                tablePartName = names[2];
+            }
+
+            ApplicationObject metaObject = null;
+            Dictionary<Guid, ApplicationObject> collection = null;
+
+            if (typeName == "Справочник") collection = Catalogs;
+            else if (typeName == "Документ") collection = Documents;
+            else if (typeName == "Константа") collection = Constants;
+            else if (typeName == "ПланСчетов") collection = Accounts;
+            else if (typeName == "ПланОбмена") collection = Publications;
+            else if (typeName == "Перечисление") collection = Enumerations;
+            else if (typeName == "РегистрСведений") collection = InformationRegisters;
+            else if (typeName == "РегистрНакопления") collection = AccumulationRegisters;
+            else if (typeName == "РегистрБухгалтерии") collection = AccountingRegisters;
+            else if (typeName == "ПланВидовХарактеристик") collection = Characteristics;
+            if (collection == null)
+            {
+                return null;
+            }
+
+            metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
+            if (metaObject == null)
+            {
+                return null;
+            }
+
+            if (tablePartName != null)
+            {
+                return metaObject.TableParts.Where(t => t.Name == tablePartName).FirstOrDefault();
+            }
+
+            return metaObject;
         }
     }
 }

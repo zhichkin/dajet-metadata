@@ -15,6 +15,8 @@ namespace DaJet.Metadata.Model
         public PropertyPurpose Purpose { get; set; } = PropertyPurpose.Property;
         ///<summary>Описание типов данных <see cref="DataTypeInfo"/>, которые могут использоваться для значений свойства.</summary>
         public DataTypeInfo PropertyType { get; set; } = new DataTypeInfo();
+        /// <summary>Вариант использования реквизита для групп и элементов</summary>
+        public PropertyUsage PropertyUsage { get; set; } = PropertyUsage.Item;
         public bool IsPrimaryKey()
         {
             return (Fields != null

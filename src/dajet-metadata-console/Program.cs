@@ -16,6 +16,7 @@ namespace DaJet.Metadata.CLI
 
         public static int Main(string[] args)
         {
+            //args = new string[] { "--ms", "ZHICHKIN", "--d", "dajet-metadata", "--out-root", "C:\\temp\\root.txt" };
             //args = new string[] { "--ms", "ZHICHKIN", "--d", "cerberus", "--schema", "Справочник.Клиенты.КонтактнаяИнформация" };
             //args = new string[] { "--pg", "127.0.0.1", "--d", "test_node_2", "--u", "postgres", "--p", "postgres", "--schema", "РегистрСведений.ВходящаяОчередьRabbitMQ" };
 
@@ -83,7 +84,7 @@ namespace DaJet.Metadata.CLI
 
             if (outRoot != null)
             {
-                SaveConfigToFile(outRoot.FullName, metadataService);
+                SaveConfigToFile(outRoot, metadataService);
             }
 
             if (outFile != null && !string.IsNullOrWhiteSpace(m))
@@ -96,9 +97,26 @@ namespace DaJet.Metadata.CLI
                 ShowApplicationObjectSchema(infoBase, schema);
             }
         }
-        private static void SaveConfigToFile(string filePath, IMetadataService metadataService)
+        private static void SaveConfigToFile(FileInfo outRoot, IMetadataService metadataService)
         {
+            string filePath = outRoot.FullName;
             byte[] fileData = metadataService.ReadConfigFile("root");
+            using (StreamReader reader = metadataService.CreateReader(fileData))
+            using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
+            {
+                writer.Write(reader.ReadToEnd());
+            }
+
+            if (!metadataService.TryOpenInfoBase(out InfoBase infoBase, out string errorMessage))
+            {
+                ShowErrorMessage(errorMessage);
+                return;
+            }
+
+            string configFile = infoBase.FileName.ToString();
+            filePath = Path.Combine(outRoot.DirectoryName, Path.GetFileNameWithoutExtension(outRoot.Name) + "_" + configFile) + outRoot.Extension;
+
+            fileData = metadataService.ReadConfigFile(configFile);
             using (StreamReader reader = metadataService.CreateReader(fileData))
             using (StreamWriter writer = new StreamWriter(filePath, false, Encoding.UTF8))
             {
@@ -120,6 +138,7 @@ namespace DaJet.Metadata.CLI
             else if (typeName == "ПланОбмена") collection = infoBase.Publications;
             else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
             else if (typeName == "РегистрНакопления") collection = infoBase.AccumulationRegisters;
+            else if (typeName == "ПланВидовХарактеристик") collection = infoBase.Characteristics;
             if (collection == null) return;
 
             metaObject = collection.Values.Where(o => o.Name == objectName).FirstOrDefault();
@@ -154,6 +173,7 @@ namespace DaJet.Metadata.CLI
             else if (typeName == "ПланОбмена") collection = infoBase.Publications;
             else if (typeName == "РегистрСведений") collection = infoBase.InformationRegisters;
             else if (typeName == "РегистрНакопления") collection = infoBase.AccumulationRegisters;
+            else if (typeName == "ПланВидовХарактеристик") collection = infoBase.Characteristics;
             if (collection == null)
             {
                 ShowErrorMessage($"Collection \"{typeName}\" is not found.");

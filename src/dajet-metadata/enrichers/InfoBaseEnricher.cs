@@ -25,7 +25,11 @@ namespace DaJet.Metadata.Enrichers
             infoBase.PlatformRequiredVersion = FileReader.GetPlatformRequiredVersion();
 
             ConfigObject root = FileReader.ReadConfigObject(ROOT_FILE_NAME);
-            ConfigObject config = FileReader.ReadConfigObject(root.GetString(new int[] { 1 }));
+            string fileName = root.GetString(new int[] { 1 });
+            ConfigObject config = FileReader.ReadConfigObject(fileName);
+            
+            infoBase.Uuid = new Guid(fileName);
+            infoBase.FileName = infoBase.Uuid;
 
             ConfigureConfigInfo(infoBase, config);
             ConfigureCommonObjects(infoBase, config);

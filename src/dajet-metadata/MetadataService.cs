@@ -1,5 +1,6 @@
 ﻿using DaJet.Metadata.Model;
 using DaJet.Metadata.Services;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -35,6 +36,7 @@ namespace DaJet.Metadata
         ///<returns>Возвращает объект, содержащий метаданные прикладных объектов конфигурации 1С</returns>
         InfoBase LoadInfoBase();
         InfoBase OpenInfoBase();
+        bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage);
         ///<summary>Выполняет сравнение и слияние свойств объекта метаданных с полями таблицы СУБД</summary>
         ///<param name="metaObject">Объект метаданных</param>
         void EnrichFromDatabase(ApplicationObject metaObject);
@@ -99,6 +101,27 @@ namespace DaJet.Metadata
             Configurator configurator = new Configurator(ConfigFileReader, true);
             return configurator.OpenInfoBase();
         }
+        public bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage)
+        {
+            bool success = true;
+
+            Configurator configurator = new Configurator(ConfigFileReader, true);
+
+            try
+            {
+                infoBase = configurator.OpenInfoBase();
+                errorMessage = null;
+            }
+            catch (Exception error)
+            {
+                success = false;
+                infoBase = null;
+                errorMessage = ExceptionHelper.GetErrorText(error);
+            }
+
+            return success;
+        }
+
         public byte[] ReadConfigFile(string fileName)
         {
             return ConfigFileReader.ReadBytes(fileName);

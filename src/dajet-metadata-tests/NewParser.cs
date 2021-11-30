@@ -578,5 +578,89 @@ namespace DaJet.Metadata.NewParser
             infoBase = pg_metadata.OpenInfoBase();
             Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ")");
         }
+
+        [TestMethod] public void TestInfoBaseFileName()
+        {
+            IMetadataService ms_metadata = new MetadataService();
+            ms_metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+
+            InfoBase infoBase = ms_metadata.OpenInfoBase();
+            Console.WriteLine("MS (" + infoBase.Name + ")");
+            Console.WriteLine("MS FileName    = " + infoBase.FileName.ToString());
+            Console.WriteLine("MS Config UUID = " + infoBase.Uuid.ToString());
+
+            Console.WriteLine();
+
+            IMetadataService pg_metadata = new MetadataService();
+            pg_metadata
+                .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
+                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;");
+
+            infoBase = pg_metadata.OpenInfoBase();
+            Console.WriteLine("PG (" + infoBase.Name + ")");
+            Console.WriteLine("PG FileName    = " + infoBase.FileName.ToString());
+            Console.WriteLine("PG Config UUID = " + infoBase.Uuid.ToString());
+        }
+
+        [TestMethod] public void MS_TestPropertyUsage()
+        {
+            IMetadataService metadata = new MetadataService();
+            if (!metadata
+                .UseDatabaseProvider(DatabaseProvider.SQLServer)
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True")
+                .TryOpenInfoBase(out InfoBase infoBase, out string error))
+            {
+                Console.WriteLine("Error: " + error);
+                return;
+            }
+
+            ApplicationObject metaObject = infoBase.GetApplicationObjectByName("Справочник.СправочникИерархическийГруппы");
+            ShowPropertyUsage(metaObject);
+
+            Console.WriteLine();
+
+            metaObject = infoBase.GetApplicationObjectByName("ПланВидовХарактеристик.ПланВидовХарактеристик1");
+            ShowPropertyUsage(metaObject);
+
+            Console.WriteLine();
+
+            metaObject = infoBase.GetApplicationObjectByName("Документ.ОбычныйДокумент");
+            ShowPropertyUsage(metaObject);
+        }
+        [TestMethod] public void PG_TestPropertyUsage()
+        {
+            IMetadataService metadata = new MetadataService();
+            if (!metadata
+                .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
+                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;")
+                .TryOpenInfoBase(out InfoBase infoBase, out string error))
+            {
+                Console.WriteLine("Error: " + error);
+                return;
+            }
+
+            ApplicationObject metaObject = infoBase.GetApplicationObjectByName("Справочник.СправочникИерархическийГруппы");
+            ShowPropertyUsage(metaObject);
+
+            Console.WriteLine();
+
+            metaObject = infoBase.GetApplicationObjectByName("ПланВидовХарактеристик.ПланВидовХарактеристик1");
+            ShowPropertyUsage(metaObject);
+
+            Console.WriteLine();
+
+            metaObject = infoBase.GetApplicationObjectByName("Документ.ОбычныйДокумент");
+            ShowPropertyUsage(metaObject);
+        }
+        private void ShowPropertyUsage(ApplicationObject metaObject)
+        {
+            Console.WriteLine($"Metadata: {metaObject.Name}");
+            foreach (MetadataProperty property in metaObject.Properties)
+            {
+                Console.WriteLine($"{property.Name} = {property.PropertyUsage}");
+            }
+        }
     }
 }
