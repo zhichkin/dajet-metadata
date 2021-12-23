@@ -128,7 +128,7 @@ namespace DaJet.Metadata
         }
         public StreamReader CreateReader(byte[] fileData)
         {
-            return ConfigFileReader.CreateReader(fileData);
+            return ConfigFileReader.CreateDeflateReader(fileData);
         }
         public void EnrichFromDatabase(ApplicationObject metaObject)
         {

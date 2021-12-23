@@ -78,8 +78,25 @@ namespace DaJet.Metadata.Services
         public InfoBase OpenInfoBase()
         {
             // TODO: InfoBase.Clear(); ???
-            GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
-            GetEnricher<InfoBase>().Enrich(InfoBase);
+            try
+            {
+                GetEnricher(typeof(DbNamesEnricher)).Enrich(InfoBase);
+            }
+            catch (Exception error)
+            {
+                FileLogger.Log("Failed to load [DBNames] params file." + Environment.NewLine + ExceptionHelper.GetErrorTextAndStackTrace(error));
+                throw new Exception("Failed to load [DBNames] params file.");
+            }
+
+            try
+            {
+                GetEnricher<InfoBase>().Enrich(InfoBase);
+            }
+            catch (Exception error)
+            {
+                FileLogger.Log("Failed to load [root] config file." + Environment.NewLine + ExceptionHelper.GetErrorTextAndStackTrace(error));
+                throw new Exception("Failed to load [root] config file.");
+            }
 
             if (IsParallel)
             {
@@ -157,10 +174,20 @@ namespace DaJet.Metadata.Services
             IContentEnricher enricher = GetEnricher<Characteristic>();
             foreach (Characteristic characteristic in InfoBase.Characteristics.Values)
             {
-                enricher.Enrich(characteristic);
-                InfoBase.CharacteristicTypes.Add(characteristic.TypeUuid, characteristic);
-                _ = InfoBase.ReferenceTypeUuids.TryAdd(characteristic.Uuid, characteristic);
-                _ = InfoBase.ReferenceTypeCodes.TryAdd(characteristic.TypeCode, characteristic);
+                try
+                {
+                    enricher.Enrich(characteristic);
+                    InfoBase.CharacteristicTypes.Add(characteristic.TypeUuid, characteristic);
+                    _ = InfoBase.ReferenceTypeUuids.TryAdd(characteristic.Uuid, characteristic);
+                    _ = InfoBase.ReferenceTypeCodes.TryAdd(characteristic.TypeCode, characteristic);
+                }
+                catch (Exception error)
+                {
+                    FileLogger.Log("Failed to load [" + characteristic.FileName + "] config file."
+                    + Environment.NewLine + "Table name: " + characteristic.TableName
+                    + Environment.NewLine + "Object name: " + characteristic.Name
+                    + Environment.NewLine + ExceptionHelper.GetErrorTextAndStackTrace(error));
+                }
             }
             Parallel.ForEach(InfoBase.Catalogs, options, EnrichObjectInBackground);
             Parallel.ForEach(InfoBase.Documents, options, EnrichObjectInBackground);
@@ -171,9 +198,20 @@ namespace DaJet.Metadata.Services
         private void EnrichObjectInBackground(KeyValuePair<Guid, ApplicationObject> info)
         {
             IContentEnricher enricher = GetEnricher(info.Value.GetType());
-            enricher.Enrich(info.Value);
-            _ = InfoBase.ReferenceTypeUuids.TryAdd(info.Value.Uuid, info.Value);
-            _ = InfoBase.ReferenceTypeCodes.TryAdd(info.Value.TypeCode, info.Value);
+            try
+            {
+                enricher.Enrich(info.Value);
+                _ = InfoBase.ReferenceTypeUuids.TryAdd(info.Value.Uuid, info.Value);
+                _ = InfoBase.ReferenceTypeCodes.TryAdd(info.Value.TypeCode, info.Value);
+            }
+            catch(Exception error)
+            {
+                FileLogger.Log("Failed to load [" + info.Value.FileName + "] config file."
+                    + Environment.NewLine + "Table name: " + info.Value.TableName
+                    + Environment.NewLine + "Object name: " + info.Value.Name
+                    + Environment.NewLine + ExceptionHelper.GetErrorTextAndStackTrace(error));
+            }
+            
         }
 
         #region "DbNames"

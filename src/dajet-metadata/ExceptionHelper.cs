@@ -15,5 +15,15 @@ namespace DaJet.Metadata
             }
             return errorText;
         }
+        public static string GetErrorTextAndStackTrace(Exception ex)
+        {
+            string errorText = GetErrorText(ex);
+
+            string stackTrace = string.IsNullOrEmpty(ex.StackTrace)
+                ? string.Empty
+                : ex.StackTrace;
+
+            return errorText + Environment.NewLine + stackTrace;
+        }
     }
 }

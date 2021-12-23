@@ -178,7 +178,7 @@ namespace DaJet.Metadata.NewParser
             fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
 
             byte[] root = fileReader.ReadBytes("root");
-            using (StreamReader reader = fileReader.CreateReader(root))
+            using (StreamReader reader = fileReader.CreateDeflateReader(root))
             {
                 using (StreamWriter stream = new StreamWriter(@"C:\temp\root.txt", false, Encoding.UTF8))
                 {
@@ -568,7 +568,7 @@ namespace DaJet.Metadata.NewParser
                 .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
 
             InfoBase infoBase = ms_metadata.OpenInfoBase();
-            Console.WriteLine("MS YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ")");
+            Console.WriteLine("MS YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
 
             IMetadataService pg_metadata = new MetadataService();
             pg_metadata
@@ -576,7 +576,7 @@ namespace DaJet.Metadata.NewParser
                 .UseConnectionString("Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;");
 
             infoBase = pg_metadata.OpenInfoBase();
-            Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ")");
+            Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
         }
 
         [TestMethod] public void TestInfoBaseFileName()

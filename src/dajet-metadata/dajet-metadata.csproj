@@ -5,20 +5,13 @@
     <RootNamespace>DaJet.Metadata</RootNamespace>
     <AssemblyName>DaJet.Metadata</AssemblyName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>3.1.7</Version>
+    <Version>3.2.0</Version>
     <Authors>Zhichkin</Authors>
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.</Description>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>1. New TryOpenInfoBase method added to the IMetadataService interface.
-2. New GetApplicationObjectByName function added to the InfoBase class.
-3. New enumeration PropertyUsage added.
-4. New PropertyUsage property added to the MetadataProperty class.
-5. Reading PropertyUsage property value from 1C metadata added.
-6. Reading Uuid and FileName property values of the InfoBase class from 1C metadata added.
-
-Reading of PropertyUsage value from 1C metadata is useful for catalogs and characteristics.
-This value determines whether the property is used with only items, folders or both when the object is hierarchical.</PackageReleaseNotes>
+    <PackageReleaseNotes>1. Bug fix related to reading "root" file from CONFIG table.
+2. Added an option to log metadata reading errors to file.</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
 
