@@ -5,13 +5,13 @@
     <RootNamespace>DaJet.Metadata</RootNamespace>
     <AssemblyName>DaJet.Metadata</AssemblyName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>3.2.0</Version>
+    <Version>3.1.8</Version>
     <Authors>Zhichkin</Authors>
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.</Description>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>1. Bug fix related to reading "root" file from CONFIG table.
-2. Added an option to log metadata reading errors to file.</PackageReleaseNotes>
+    <PackageReleaseNotes>1. Critical bug fix related to reading "root" file from CONFIG table.
+2. Added logging of metadata reading errors to file "dajet-metadata.log".</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
 
