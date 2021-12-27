@@ -48,7 +48,13 @@ namespace DaJet.Metadata.Services
         ///<param name="fileName">Имя файла метаданных: root, DBNames или значение UUID</param>
         ///<returns>Бинарные данные файла метаданных</returns>
         byte[] ReadBytes(string fileName);
+        byte[] ReadParamsFile(string fileName);
+        byte[] ReadConfigFile(string fileName);
 
+        bool IsUTF8(byte[] fileData);
+
+        StreamReader CreateReader(byte[] fileData);
+        StreamReader CreateStreamReader(byte[] fileData);
         ///<summary>Распаковывает файл метаданных по алгоритму deflate и создаёт поток для чтения в формате UTF-8</summary>
         ///<param name="fileData">Бинарные данные файла метаданных</param>
         ///<returns>Поток для чтения файла метаданных в формате UTF-8</returns>
@@ -240,6 +246,17 @@ namespace DaJet.Metadata.Services
             }
             return ExecuteScalar<int>(PG_YEAROFFSET_QUERY_SCRIPT, null);
         }
+
+        public bool IsUTF8(byte[] fileData)
+        {
+            if (fileData == null) throw new ArgumentNullException(nameof(fileData));
+
+            if (fileData.Length < 3) return false;
+
+            return fileData[0] == 0xEF  // (b)yte
+                && fileData[1] == 0xBB  // (o)rder
+                && fileData[2] == 0xBF; // (m)ark
+        }
         public byte[] ReadBytes(string fileName)
         {
             if (fileName == ROOT_FILE_NAME)
@@ -272,6 +289,35 @@ namespace DaJet.Metadata.Services
             }
             return ExecuteReader(PG_CONFIG_QUERY_SCRIPT, fileName);
         }
+        public byte[] ReadParamsFile(string fileName)
+        {
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
+            {
+                return ExecuteReader(MS_PARAMS_QUERY_SCRIPT, fileName);
+            }
+            return ExecuteReader(PG_PARAMS_QUERY_SCRIPT, fileName);
+        }
+        public byte[] ReadConfigFile(string fileName)
+        {
+            if (DatabaseProvider == DatabaseProvider.SQLServer)
+            {
+                return ExecuteReader(MS_CONFIG_QUERY_SCRIPT, fileName);
+            }
+            return ExecuteReader(PG_CONFIG_QUERY_SCRIPT, fileName);
+        }
+        public StreamReader CreateReader(byte[] fileData)
+        {
+            if (IsUTF8(fileData))
+            {
+                return CreateStreamReader(fileData);
+            }
+            return CreateDeflateReader(fileData);
+        }
+        public StreamReader CreateStreamReader(byte[] fileData)
+        {
+            MemoryStream memory = new MemoryStream(fileData);
+            return new StreamReader(memory, Encoding.UTF8);
+        }
         public StreamReader CreateDeflateReader(byte[] fileData)
         {
             MemoryStream memory = new MemoryStream(fileData);
@@ -280,50 +326,17 @@ namespace DaJet.Metadata.Services
         }
         public ConfigObject ReadConfigObject(string fileName)
         {
-            ConfigObject configObject;
-            byte[] bytes = ReadBytes(fileName);
-            if (bytes == null) return null; // file name is not found
-
-            //int version = GetPlatformRequiredVersion();
-
-            if (fileName == DBSCHEMA_FILE_NAME) // || (version >= 80313 && fileName == ROOT_FILE_NAME))
+            byte[] fileData = ReadBytes(fileName);
+            
+            if (fileData == null)
             {
-                using (MemoryStream memory = new MemoryStream(bytes))
-                using (StreamReader stream = new StreamReader(memory, Encoding.UTF8)) // uncompressed file
-                {
-                    configObject = FileParser.Parse(stream);
-                }
+                return null; // file name is not found
             }
-            else if (fileName == ROOT_FILE_NAME)
-            {
-                try
-                {
-                    using (StreamReader stream = CreateDeflateReader(bytes)) // compressed file - deflate
-                    {
-                        configObject = FileParser.Parse(stream);
-                    }
-                }
-                catch // The archive entry was compressed using an unsupported compression method.
-                {
-                    // Неочевидное поведение платформы 1С: по идее, начиная с версии 80313,
-                    // root хранится как обычный текстовый файл, но может сохраняться и как deflate файл.
-                    // Возможно, что в каких-то случаях root читается из устаревшего кэша ...
 
-                    using (MemoryStream memory = new MemoryStream(bytes))
-                    using (StreamReader stream = new StreamReader(memory, Encoding.UTF8)) // uncompressed file
-                    {
-                        configObject = FileParser.Parse(stream);
-                    }
-                }
-            }
-            else
+            using (StreamReader stream = CreateReader(fileData))
             {
-                using (StreamReader stream = CreateDeflateReader(bytes)) // compressed file - deflate
-                {
-                    configObject = FileParser.Parse(stream);
-                }
+                return FileParser.Parse(stream);
             }
-            return configObject;
         }
     }
 }

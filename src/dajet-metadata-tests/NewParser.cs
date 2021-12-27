@@ -171,6 +171,9 @@ namespace DaJet.Metadata.NewParser
             return presentation;
         }
 
+
+        
+
         [TestMethod] public void WriteRootToFile()
         {
             IConfigFileReader fileReader = new ConfigFileReader();
@@ -199,6 +202,54 @@ namespace DaJet.Metadata.NewParser
             using (StreamWriter stream = new StreamWriter(@"C:\temp\config.txt", false, Encoding.UTF8))
             {
                 WriteToFile(stream, config, 0, string.Empty);
+            }
+        }
+        [TestMethod] public void WriteConfigToFile()
+        {
+            IConfigFileReader fileReader = new ConfigFileReader();
+            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+
+            string fileName = "root";
+
+            ConfigObject config = fileReader.ReadConfigObject(fileName);
+
+            byte[] data = fileReader.ReadConfigFile(fileName);
+            if (data == null)
+            {
+                Console.WriteLine($"File \"{fileName}\" is not found.");
+            }
+
+            using (StreamReader reader = fileReader.CreateReader(data))
+            {
+                using (StreamWriter stream = new StreamWriter($"C:\\temp\\{fileName}.txt", false, Encoding.UTF8))
+                {
+                    stream.Write(reader.ReadToEnd());
+                }
+            }
+        }
+        [TestMethod] public void WriteParamsToFile()
+        {
+            IConfigFileReader fileReader = new ConfigFileReader();
+            fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True");
+
+            string fileName = "DBNames";
+
+            byte[] data = fileReader.ReadParamsFile(fileName);
+            if (data == null)
+            {
+                Console.WriteLine($"File \"{fileName}\" is not found.");
+            }
+
+            using (StreamReader reader = (fileReader.IsUTF8(data)
+                ? fileReader.CreateStreamReader(data)
+                : fileReader.CreateDeflateReader(data)))
+            {
+                using (StreamWriter stream = new StreamWriter($"C:\\temp\\{fileName}.txt", false, Encoding.UTF8))
+                {
+                    stream.Write(reader.ReadToEnd());
+                }
             }
         }
 
