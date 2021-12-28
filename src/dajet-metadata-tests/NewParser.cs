@@ -614,20 +614,30 @@ namespace DaJet.Metadata.NewParser
         [TestMethod] public void TestYearOffset()
         {
             IMetadataService ms_metadata = new MetadataService();
-            ms_metadata
+            if (!ms_metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
-
-            InfoBase infoBase = ms_metadata.OpenInfoBase();
-            Console.WriteLine("MS YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=test_node_1;Integrated Security=True")
+                .TryOpenInfoBase(out InfoBase infoBase, out string errorMessage, true))
+            {
+                Console.WriteLine(errorMessage);
+            }
+            else
+            {
+                Console.WriteLine("MS YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
+            }
 
             IMetadataService pg_metadata = new MetadataService();
-            pg_metadata
+            if (!pg_metadata
                 .UseDatabaseProvider(DatabaseProvider.PostgreSQL)
-                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=dajet-metadata-pg;Username=postgres;Password=postgres;");
-
-            infoBase = pg_metadata.OpenInfoBase();
-            Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
+                .UseConnectionString("Host=127.0.0.1;Port=5432;Database=test_node_2;Username=postgres;Password=postgres;")
+                .TryOpenInfoBase(out infoBase, out errorMessage, true))
+            {
+                Console.WriteLine(errorMessage);
+            }
+            else
+            {
+                Console.WriteLine("PG YearOffset = " + infoBase.YearOffset.ToString() + " (" + infoBase.Name + ") " + infoBase.PlatformRequiredVersion.ToString());
+            }
         }
 
         [TestMethod] public void TestInfoBaseFileName()

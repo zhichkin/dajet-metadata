@@ -34,9 +34,12 @@ namespace DaJet.Metadata
         IMetadataService ConfigureConnectionString(string server, string database, string userName, string password);
         ///<summary>Загружает метаданные прикладных объектов конфигурации 1С из таблиц СУБД</summary>
         ///<returns>Возвращает объект, содержащий метаданные прикладных объектов конфигурации 1С</returns>
-        InfoBase LoadInfoBase();
+        [Obsolete("Use TryOpenInfoBase instead.", false)] InfoBase LoadInfoBase();
+        [Obsolete("Use TryOpenInfoBase instead.", false)] InfoBase LoadInfoBase(bool logExceptions);
         InfoBase OpenInfoBase();
+        InfoBase OpenInfoBase(bool logExceptions);
         bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage);
+        bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage, bool logExceptions);
         ///<summary>Выполняет сравнение и слияние свойств объекта метаданных с полями таблицы СУБД</summary>
         ///<param name="metaObject">Объект метаданных</param>
         void EnrichFromDatabase(ApplicationObject metaObject);
@@ -91,21 +94,34 @@ namespace DaJet.Metadata
             SqlMetadataReader.UseConnectionString(ConnectionString);
             return this;
         }
-        public InfoBase LoadInfoBase()
+        
+        [Obsolete("Use TryOpenInfoBase instead.", false)] public InfoBase LoadInfoBase()
         {
-            Configurator configurator = new Configurator(ConfigFileReader);
+            return LoadInfoBase(false);
+        }
+        [Obsolete("Use TryOpenInfoBase instead.", false)] public InfoBase LoadInfoBase(bool logExceptions)
+        {
+            Configurator configurator = new Configurator(ConfigFileReader, false, logExceptions);
             return configurator.OpenInfoBase();
         }
         public InfoBase OpenInfoBase()
         {
-            Configurator configurator = new Configurator(ConfigFileReader, true);
+            return OpenInfoBase(false);
+        }
+        public InfoBase OpenInfoBase(bool logExceptions)
+        {
+            Configurator configurator = new Configurator(ConfigFileReader, true, logExceptions);
             return configurator.OpenInfoBase();
         }
         public bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage)
         {
+            return TryOpenInfoBase(out infoBase, out errorMessage, false);
+        }
+        public bool TryOpenInfoBase(out InfoBase infoBase, out string errorMessage, bool logExceptions)
+        {
             bool success = true;
 
-            Configurator configurator = new Configurator(ConfigFileReader, true);
+            Configurator configurator = new Configurator(ConfigFileReader, true, logExceptions);
 
             try
             {
@@ -116,7 +132,7 @@ namespace DaJet.Metadata
             {
                 success = false;
                 infoBase = null;
-                errorMessage = ExceptionHelper.GetErrorText(error);
+                errorMessage = ExceptionHelper.GetErrorTextAndStackTrace(error);
             }
 
             return success;

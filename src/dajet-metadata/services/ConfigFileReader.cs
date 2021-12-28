@@ -51,6 +51,9 @@ namespace DaJet.Metadata.Services
         byte[] ReadParamsFile(string fileName);
         byte[] ReadConfigFile(string fileName);
 
+        ///<summary>Функция определяет является ли форматом файла метаданных UTF-8</summary>
+        ///<param name="fileData">Бинарные данные файла метаданных</param>
+        ///<returns>true - формат файла UTF-8; false - формат файла другой (deflate)</returns>
         bool IsUTF8(byte[] fileData);
 
         StreamReader CreateReader(byte[] fileData);
