@@ -5,12 +5,16 @@
     <RootNamespace>DaJet.Metadata</RootNamespace>
     <AssemblyName>DaJet.Metadata</AssemblyName>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <Version>3.1.9</Version>
+    <Version>3.1.10</Version>
     <Authors>Zhichkin</Authors>
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL database.</Description>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
-    <PackageReleaseNotes>Minor refactoring and code cleanup</PackageReleaseNotes>
+    <PackageReleaseNotes>Added thread-safe MetadataCache service:
+1. Based on WeakReference&lt;InfoBase&gt;.
+2. Cache expiration setting is available.
+3. Multiple InfoBases are cached by string key.
+See MetadataCacheTests for an example of usage.</PackageReleaseNotes>
     <Copyright>Zhichkin © 2020</Copyright>
   </PropertyGroup>
 
