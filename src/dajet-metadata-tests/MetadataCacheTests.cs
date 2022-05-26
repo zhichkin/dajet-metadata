@@ -25,7 +25,7 @@ namespace DaJet.Metadata.Cache.Tests
             {
                 Expiration = 5,
                 DatabaseProvider = DatabaseProvider.SQLServer,
-                ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=test_node_1;Integrated Security=True"
+                ConnectionString = "Data Source=ZHICHKIN;Initial Catalog=test_node_1;Integrated Security=True;Encrypt=False;"
             });
 
             cache.Add("test_node_2", new MetadataCacheOptions()

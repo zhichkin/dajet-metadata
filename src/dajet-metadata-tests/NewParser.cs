@@ -178,7 +178,7 @@ namespace DaJet.Metadata.NewParser
         {
             IConfigFileReader fileReader = new ConfigFileReader();
             fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;");
 
             byte[] root = fileReader.ReadBytes("root");
             using (StreamReader reader = fileReader.CreateDeflateReader(root))
@@ -194,7 +194,7 @@ namespace DaJet.Metadata.NewParser
         {
             IConfigFileReader fileReader = new ConfigFileReader();
             fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True");
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;");
 
             ConfigObject root = fileReader.ReadConfigObject("root");
             ConfigObject config = fileReader.ReadConfigObject(root.GetString(new int[] { 1 }));
@@ -208,7 +208,7 @@ namespace DaJet.Metadata.NewParser
         {
             IConfigFileReader fileReader = new ConfigFileReader();
             fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;");
 
             string fileName = "root";
 
@@ -232,7 +232,7 @@ namespace DaJet.Metadata.NewParser
         {
             IConfigFileReader fileReader = new ConfigFileReader();
             fileReader.UseDatabaseProvider(DatabaseProvider.SQLServer);
-            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True");
+            fileReader.UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;");
 
             string fileName = "DBNames";
 
@@ -278,7 +278,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -323,7 +323,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -366,7 +366,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -409,7 +409,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -452,7 +452,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -486,7 +486,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -520,7 +520,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True"); // accounting_3_0_72_72_demo
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=cerberus;Integrated Security=True;Encrypt=False;"); // accounting_3_0_72_72_demo
 
             InfoBase infoBase = metadata.LoadInfoBase();
 
@@ -555,7 +555,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True;Encrypt=False;");
 
             Stopwatch stopwatch = new Stopwatch();
 
@@ -585,7 +585,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True");
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=accounting_3_0_72_72_demo;Integrated Security=True;Encrypt=False;");
 
             Stopwatch stopwatch = new Stopwatch();
 
@@ -616,7 +616,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService ms_metadata = new MetadataService();
             if (!ms_metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=test_node_1;Integrated Security=True")
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=test_node_1;Integrated Security=True;Encrypt=False;")
                 .TryOpenInfoBase(out InfoBase infoBase, out string errorMessage, true))
             {
                 Console.WriteLine(errorMessage);
@@ -645,7 +645,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService ms_metadata = new MetadataService();
             ms_metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True");
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;");
 
             InfoBase infoBase = ms_metadata.OpenInfoBase();
             Console.WriteLine("MS (" + infoBase.Name + ")");
@@ -670,7 +670,7 @@ namespace DaJet.Metadata.NewParser
             IMetadataService metadata = new MetadataService();
             if (!metadata
                 .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True")
+                .UseConnectionString("Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;")
                 .TryOpenInfoBase(out InfoBase infoBase, out string error))
             {
                 Console.WriteLine("Error: " + error);
