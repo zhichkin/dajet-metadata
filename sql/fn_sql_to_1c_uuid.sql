@@ -10,7 +10,8 @@ END;
 
 --DROP FUNCTION iF EXISTS [dbo].[fn_sql_to_1c_uuid];
 
-
+-- CREATE OR ALTER FUNCTION [dbo].[fn_1c_uuid_to_sql] (@uuid_1c binary(16))
+-- SELECT SUBSTRING(@uuid_1c, 9, 8) + CAST(REVERSE(SUBSTRING(@uuid_1c, 1, 8)) AS binary(8));
 
 --DECLARE @result binary(16) =
 --SUBSTRING(@uuid_sql, 16, 1)
