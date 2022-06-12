@@ -6,9 +6,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AssemblyName>DaJet.CodeGenerator</AssemblyName>
-    <Company>Zhichkin</Company>
+    <Company>$(Authors)</Company>
     <Description>Генератор представлений (view) SQL Server для объектов метаданных 1С:Предприятие 8</Description>
     <Copyright>Zhichkin © 2022</Copyright>
+    <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata/tree/main/doc/sql-code-generator</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Authors>Zhichkin</Authors>
   </PropertyGroup>
 
   <ItemGroup>
