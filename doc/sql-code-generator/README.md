@@ -4,6 +4,8 @@
 
 [NuGet](https://www.nuget.org/packages/DaJet.CodeGenerator) & [Telegram](https://t.me/dajet_studio_group)
 
+[Скачать дистрибутив](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.0.0)
+
 Утилита **dajet-gen-view** создаёт представления СУБД (view)
 для объектов конфигруации 1С:Предприятие 8.
 
