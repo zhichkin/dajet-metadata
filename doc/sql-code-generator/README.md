@@ -46,11 +46,11 @@ SELECT Порядок, Имя, Синоним, Значение FROM [Переч
 
 ### Создание представлений СУБД
 
-**dajet-gen-view.exe** **create** --ms "Data Source=one_c_sql_server;Initial Catalog=one_c_database;Integrated Security=True;Encrypt=False;"
+**dajet-gen-view** **create** --ms "Data Source=one_c_sql_server;Initial Catalog=one_c_database;Integrated Security=True;Encrypt=False;"
 
 ### Удаление представлений СУБД
 
-**dajet-gen-view.exe** **delete** --ms "Data Source=one_c_sql_server;Initial Catalog=one_c_database;Integrated Security=True;Encrypt=False;"
+**dajet-gen-view** **delete** --ms "Data Source=one_c_sql_server;Initial Catalog=one_c_database;Integrated Security=True;Encrypt=False;"
 
 ### Программное создание представлений СУБД
 
