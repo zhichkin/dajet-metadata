@@ -1,40 +1,33 @@
-﻿using DaJet.Metadata;
-using Microsoft.Data.SqlClient;
-using Npgsql;
-using System.Data;
+﻿using System.Data;
 using System.Data.Common;
 
 namespace DaJet.CodeGenerator
 {
-    internal sealed class QueryExecutor
+    internal interface IQueryExecutor
     {
-        private string? _connectionString;
-        private readonly DatabaseProvider _provider;
-        internal QueryExecutor(DatabaseProvider provider)
-        {
-            _provider = provider;
-        }
-        internal void UseConnectionString(string connectionString)
-        {
-            _connectionString = connectionString;
-        }
-        private DbConnection GetDbConnection()
-        {
-            if (_provider == DatabaseProvider.SQLServer)
-            {
-                return new SqlConnection(_connectionString);
-            }
-            return new NpgsqlConnection(_connectionString);
-        }
-        internal T ExecuteScalar<T>(in string script, int timeout)
+        T ExecuteScalar<T>(in string script, int timeout);
+        void ExecuteNonQuery(in string script, int timeout);
+        void TxExecuteNonQuery(in List<string> scripts, int timeout);
+        IEnumerable<IDataReader> ExecuteReader(string script, int timeout);
+        IEnumerable<IDataReader> ExecuteReader(string script, int timeout, Dictionary<string, object> parameters);
+    }
+    public abstract class QueryExecutor<TConnection, TCommand> : IQueryExecutor
+        where TConnection : DbConnection, new()
+        where TCommand : DbCommand, new()
+    {
+        public string ConnectionString { get; set; } = string.Empty;
+        protected abstract TConnection GetDbConnection();
+        protected abstract TCommand GetDbCommand(in TConnection connection);
+        protected abstract void ConfigureQueryParameters(in TCommand command, in Dictionary<string, object> parameters);
+        public T ExecuteScalar<T>(in string script, int timeout)
         {
             T? result = default;
 
-            using (DbConnection connection = GetDbConnection())
+            using (TConnection connection = GetDbConnection())
             {
                 connection.Open();
 
-                using (DbCommand command = connection.CreateCommand())
+                using (TCommand command = GetDbCommand(in connection))
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = script;
@@ -51,13 +44,13 @@ namespace DaJet.CodeGenerator
 
             return result!;
         }
-        internal void ExecuteNonQuery(in string script, int timeout)
+        public void ExecuteNonQuery(in string script, int timeout)
         {
-            using (DbConnection connection = GetDbConnection())
+            using (TConnection connection = GetDbConnection())
             {
                 connection.Open();
 
-                using (DbCommand command = connection.CreateCommand())
+                using (TCommand command = GetDbCommand(in connection))
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = script;
@@ -67,15 +60,15 @@ namespace DaJet.CodeGenerator
                 }
             }
         }
-        internal void TxExecuteNonQuery(in List<string> scripts, int timeout)
+        public void TxExecuteNonQuery(in List<string> scripts, int timeout)
         {
-            using (DbConnection connection = GetDbConnection())
+            using (TConnection connection = GetDbConnection())
             {
                 connection.Open();
 
                 using (DbTransaction transaction = connection.BeginTransaction(IsolationLevel.Serializable))
                 {
-                    using (DbCommand command = connection.CreateCommand())
+                    using (TCommand command = GetDbCommand(in connection))
                     {
                         command.Connection = connection;
                         command.Transaction = transaction;
@@ -109,13 +102,13 @@ namespace DaJet.CodeGenerator
                 }
             }
         }
-        internal IEnumerable<IDataReader> ExecuteReader(string script, int timeout)
+        public IEnumerable<IDataReader> ExecuteReader(string script, int timeout)
         {
-            using (DbConnection connection = GetDbConnection())
+            using (TConnection connection = GetDbConnection())
             {
                 connection.Open();
 
-                using (DbCommand command = connection.CreateCommand())
+                using (TCommand command = GetDbCommand(in connection))
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = script;
@@ -132,13 +125,13 @@ namespace DaJet.CodeGenerator
                 }
             }
         }
-        internal IEnumerable<IDataReader> ExecuteReader(string script, int timeout, Dictionary<string, object> parameters)
+        public IEnumerable<IDataReader> ExecuteReader(string script, int timeout, Dictionary<string, object> parameters)
         {
-            using (DbConnection connection = GetDbConnection())
+            using (TConnection connection = GetDbConnection())
             {
                 connection.Open();
 
-                using (DbCommand command = connection.CreateCommand())
+                using (TCommand command = GetDbCommand(in connection))
                 {
                     command.CommandType = CommandType.Text;
                     command.CommandText = script;
@@ -154,23 +147,6 @@ namespace DaJet.CodeGenerator
                         }
                         reader.Close();
                     }
-                }
-            }
-        }
-        private void ConfigureQueryParameters(in DbCommand command, in Dictionary<string, object> parameters)
-        {
-            if (command is SqlCommand ms_command)
-            {
-                foreach (var parameter in parameters)
-                {
-                    ms_command.Parameters.AddWithValue(parameter.Key, parameter.Value);
-                }
-            }
-            else if(command is NpgsqlCommand pg_command)
-            {
-                foreach (var parameter in parameters)
-                {
-                    pg_command.Parameters.AddWithValue(parameter.Key, parameter.Value);
                 }
             }
         }
