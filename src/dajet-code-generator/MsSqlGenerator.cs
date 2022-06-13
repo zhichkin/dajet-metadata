@@ -9,15 +9,24 @@ namespace DaJet.CodeGenerator.SqlServer
     {
         private readonly QueryExecutor _executor = new();
         private readonly SqlGeneratorOptions _options;
-        
+
+        private const string SCHEMA_DBO = "dbo"; // default SQL Server schema
+
         private const string DROP_VIEW_SCRIPT =
-            "IF OBJECT_ID(N'[{0}]', N'V') IS NOT NULL DROP VIEW [{0}];";
+            "IF OBJECT_ID(N'{0}', N'V') IS NOT NULL DROP VIEW {0};";
 
         private const string SELECT_VIEWS_SCRIPT =
             "SELECT s.name AS [Schema], v.name AS [View]" +
             "FROM sys.views AS v " +
             "INNER JOIN sys.schemas AS s " +
-            "ON v.schema_id = s.schema_id AND is_ms_shipped = 0;";
+            "ON v.schema_id = s.schema_id AND is_ms_shipped = 0 AND s.name = N'{0}';";
+
+        private const string SELECT_SCHEMA_SCRIPT =
+            "SELECT schema_id, name FROM sys.schemas WHERE name = N'{0}';";
+
+        private const string CREATE_SCHEMA_SCRIPT = "CREATE SCHEMA {0};";
+
+        private const string DROP_SCHEMA_SCRIPT = "DROP SCHEMA {0};";
 
         public SqlGenerator(SqlGeneratorOptions options)
         {
@@ -71,47 +80,105 @@ namespace DaJet.CodeGenerator.SqlServer
 
             return "Unknown";
         }
+        private string CreateViewName(string viewName)
+        {
+            return $"[{_options.Schema}].[{viewName}]";
+        }
         private string CreateViewName(ApplicationObject metadata)
         {
             if (metadata is TablePart table)
             {
-                return $"{GetNamespaceName(table.Owner)}.{table.Owner.Name}_{table.Name}";
+                return $"[{_options.Schema}].[{GetNamespaceName(table.Owner)}.{table.Owner.Name}_{table.Name}]";
             }
 
-            return $"{GetNamespaceName(metadata)}.{metadata.Name}";
+            return $"[{_options.Schema}].[{GetNamespaceName(metadata)}.{metadata.Name}]";
         }
         private string CreateFieldAlias(MetadataProperty property, DatabaseField field)
         {
             if (field.Purpose == FieldPurpose.Discriminator)
             {
-                return property.Name + "_Тип";
+                return "[" + property.Name + "_Тип" + "]";
             }
             else if (field.Purpose == FieldPurpose.TypeCode)
             {
-                return property.Name + "_ТипСсылки";
+                return "[" + property.Name + "_ТипСсылки" + "]";
             }
             else if (field.Purpose == FieldPurpose.Object)
             {
-                return property.Name + "_Ссылка";
+                return "[" + property.Name + "_Ссылка" + "]";
             }
             else if (field.Purpose == FieldPurpose.String)
             {
-                return property.Name + "_Строка";
+                return "[" + property.Name + "_Строка" + "]";
             }
             else if (field.Purpose == FieldPurpose.Boolean)
             {
-                return property.Name + "_Булево";
+                return "[" + property.Name + "_Булево" + "]";
             }
             else if (field.Purpose == FieldPurpose.Numeric)
             {
-                return property.Name + "_Число";
+                return "[" + property.Name + "_Число" + "]";
             }
             else if (field.Purpose == FieldPurpose.DateTime)
             {
-                return property.Name + "_Дата";
+                return "[" + property.Name + "_Дата" + "]";
             }
 
-            return property.Name;
+            return "[" + property.Name + "]";
+        }
+
+        public bool SchemaExists(string name)
+        {
+            string script = string.Format(SELECT_SCHEMA_SCRIPT, name);
+
+            int schema_id = _executor.ExecuteScalar<int>(in script, 10);
+
+            return (schema_id > 0);
+        }
+        public void CreateSchema(string name)
+        {
+            string script = string.Format(CREATE_SCHEMA_SCRIPT, name);
+
+            _executor.ExecuteNonQuery(in script, 10);
+        }
+        public void DropSchema(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            string script = string.Format(DROP_SCHEMA_SCRIPT, name);
+
+            _executor.ExecuteNonQuery(in script, 10);
+        }
+        private bool TryCreateSchemaIfNotExists(out string error)
+        {
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(_options.Schema))
+            {
+                _options.Schema = SCHEMA_DBO;
+            }
+
+            if (_options.Schema == SCHEMA_DBO)
+            {
+                return true;
+            }
+
+            try
+            {
+                if (!SchemaExists(_options.Schema))
+                {
+                    CreateSchema(_options.Schema);
+                }
+            }
+            catch (Exception exception)
+            {
+                error = $"Failed to create schema [{_options.Schema}]: {ExceptionHelper.GetErrorText(exception)}";
+            }
+
+            return string.IsNullOrEmpty(error);
         }
 
         public bool TryCreateView(in ApplicationObject metadata, out string error)
@@ -160,6 +227,12 @@ namespace DaJet.CodeGenerator.SqlServer
             result = 0;
             errors = new();
 
+            if (!TryCreateSchemaIfNotExists(out string error))
+            {
+                errors.Add(error);
+                return false;
+            }
+            
             foreach (var ns in _options.Namespaces)
             {
                 object? items = typeof(InfoBase).GetProperty(ns)?.GetValue(infoBase, null);
@@ -207,7 +280,7 @@ namespace DaJet.CodeGenerator.SqlServer
             StringBuilder script = new();
             StringBuilder fields = new();
 
-            script.AppendLine($"CREATE VIEW [{CreateViewName(metadata)}] AS SELECT");
+            script.AppendLine($"CREATE VIEW {CreateViewName(metadata)} AS SELECT");
 
             foreach (MetadataProperty property in metadata.Properties)
             {
@@ -223,7 +296,7 @@ namespace DaJet.CodeGenerator.SqlServer
 
                     if (fields.Length > 0) { fields.Append(','); }
                     
-                    fields.AppendLine($"{field.Name} AS [{CreateFieldAlias(property, field)}]");
+                    fields.AppendLine($"{field.Name} AS {CreateFieldAlias(property, field)}");
                 }
             }
 
@@ -238,7 +311,7 @@ namespace DaJet.CodeGenerator.SqlServer
             StringBuilder script = new();
             StringBuilder fields = new();
 
-            script.AppendLine($"CREATE VIEW [{CreateViewName(enumeration)}] AS");
+            script.AppendLine($"CREATE VIEW {CreateViewName(enumeration)} AS");
 
             script.AppendLine("SELECT e._EnumOrder AS [Порядок], t.[Имя], t.[Синоним], t.[Значение]");
             script.AppendLine($"FROM {enumeration.TableName} AS e INNER JOIN");
@@ -276,14 +349,16 @@ namespace DaJet.CodeGenerator.SqlServer
             int result = 0;
             int VIEW_NAME = 1;
 
-            foreach (IDataReader reader in _executor.ExecuteReader(SELECT_VIEWS_SCRIPT, 30))
+            string select = string.Format(SELECT_VIEWS_SCRIPT, _options.Schema);
+
+            foreach (IDataReader reader in _executor.ExecuteReader(select, 30))
             {
                 if (reader.IsDBNull(VIEW_NAME))
                 {
                     continue;
                 }
 
-                string name = reader.GetString(VIEW_NAME);
+                string name = CreateViewName(reader.GetString(VIEW_NAME));
 
                 string script = string.Format(DROP_VIEW_SCRIPT, name);
 
@@ -306,6 +381,92 @@ namespace DaJet.CodeGenerator.SqlServer
             string script = string.Format(DROP_VIEW_SCRIPT, name);
             
             _executor.ExecuteNonQuery(script, 10);
+        }
+
+        public bool TryScriptViews(in InfoBase infoBase, out int result, out List<string> errors)
+        {
+            if (infoBase == null)
+            {
+                throw new ArgumentNullException(nameof(infoBase));
+            }
+
+            result = 0;
+            errors = new();
+
+            using (StreamWriter writer = new(_options.OutputFile, false, Encoding.UTF8))
+            {
+                foreach (var ns in _options.Namespaces)
+                {
+                    object? items = typeof(InfoBase).GetProperty(ns)?.GetValue(infoBase, null);
+
+                    if (items is not Dictionary<Guid, ApplicationObject> list)
+                    {
+                        continue;
+                    }
+
+                    foreach (ApplicationObject metadata in list.Values)
+                    {
+                        if (TryScriptView(in writer, metadata, out string error1))
+                        {
+                            result++;
+                        }
+                        else
+                        {
+                            errors.Add(error1);
+                        }
+
+                        if (metadata.TableParts.Count > 0)
+                        {
+                            foreach (TablePart table in metadata.TableParts)
+                            {
+                                if (TryScriptView(in writer, table, out string error2))
+                                {
+                                    result++;
+                                }
+                                else
+                                {
+                                    errors.Add(error2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return (errors.Count == 0);
+        }
+        public bool TryScriptView(in StreamWriter writer, in ApplicationObject metadata, out string error)
+        {
+            error = string.Empty;
+
+            if (string.IsNullOrWhiteSpace(metadata.Name))
+            {
+                return true; //TODO: fix it in DaJet.Metadata
+            }
+
+            string name = CreateViewName(metadata);
+
+            try
+            {
+                writer.WriteLine(string.Format(DROP_VIEW_SCRIPT, name));
+                writer.WriteLine("GO");
+
+                if (metadata is Enumeration enumeration)
+                {
+                    writer.WriteLine(GenerateEnumViewScript(enumeration));
+                }
+                else
+                {
+                    writer.WriteLine(GenerateViewScript(metadata));
+                }
+                writer.WriteLine("GO");
+            }
+            catch (Exception exception)
+            {
+                error = $"[{name}] [{metadata.TableName}] {ExceptionHelper.GetErrorText(exception)}";
+            }
+
+            return string.IsNullOrEmpty(error);
         }
     }
 }

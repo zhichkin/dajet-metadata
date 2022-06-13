@@ -13,6 +13,19 @@
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Zhichkin</Authors>
+    <Version>1.1.0</Version>
+    <PackageReleaseNotes>Новый функционал:
+1. Добавлена возможность указания схемы БД для создания представлений.
+2. Добавлена возможность вывода сгенерированного скрипта для создания пердставлений СУБД (view) в файл на диске.
+
+Изменение программного интерфейса:
+1. Добавлено новое свойство Schema в класс SqlGeneratorOptions.
+2. Добавлено новое свойство OutputFile в класс SqlGeneratorOptions.
+3. Добавлен новый метод SchemaExists в класс SqlGenerator.
+4. Добавлен новый метод CreateSchema в класс SqlGenerator.
+5. Добавлен новый метод DropSchema в класс SqlGenerator.
+6. Добавлен новый метод TryScriptView в класс SqlGenerator.
+7. Добавлен новый метод TryScriptViews в класс SqlGenerator.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
