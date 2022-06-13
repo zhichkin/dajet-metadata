@@ -2,7 +2,7 @@
 
 Требуется установка [.NET 6.0](https://dotnet.microsoft.com/download/)
 
-[NuGet](https://www.nuget.org/packages/DaJet.CodeGenerator) & [Telegram](https://t.me/dajet_studio_group)
+[NuGet](https://www.nuget.org/packages/DaJet.CodeGenerator) & [Telegram](https://t.me/dajet_studio_group) & [Исходный код](https://github.com/zhichkin/dajet-metadata/tree/main/src/dajet-code-generator)
 
 [Скачать дистрибутив](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.1.0)
 
@@ -96,6 +96,7 @@ static void Main(string[] args)
 
     SqlGeneratorOptions options = new SqlGeneratorOptions()
     {
+        Schema = "test",
         DatabaseProvider = "SqlServer",
         ConnectionString = metadataService.ConnectionString
     };
@@ -125,6 +126,7 @@ static void Main(string[] args)
 {
     SqlGeneratorOptions options = new SqlGeneratorOptions()
     {
+        Schema = "test",
         DatabaseProvider = "SqlServer",
         ConnectionString = "Data Source=SQL_SERVER;Initial Catalog=MY_DATABASE;Integrated Security=True;Encrypt=False;"
     };
@@ -134,5 +136,47 @@ static void Main(string[] args)
     int result = generator.DropViews();
 
     Console.WriteLine($"Dropped {result} views");
+}
+```
+
+### Программное создание файла скрипта для создания представлений СУБД
+
+```C#
+using DaJet.CodeGenerator.SqlServer;
+using DaJet.Metadata;
+using DaJet.Metadata.Model;
+
+static void Main(string[] args)
+{
+    IMetadataService metadataService = new MetadataService();
+
+    if (!metadataService
+        .UseDatabaseProvider(DatabaseProvider.SQLServer)
+        .UseConnectionString("Data Source=SQL_SERVER;Initial Catalog=MY_DATABASE;Integrated Security=True;Encrypt=False;")
+        .TryOpenInfoBase(out InfoBase infoBase, out string message))
+    {
+        Console.WriteLine("Error: " + message);
+        return;
+    }
+
+    SqlGeneratorOptions options = new SqlGeneratorOptions()
+    {
+        Schema = "test",
+        OutputFile = "C:\\script.sql",
+        DatabaseProvider = "SqlServer",
+        ConnectionString = metadataService.ConnectionString
+    };
+
+    ISqlGenerator generator = new SqlGenerator(options);
+
+    if (!generator.TryScriptViews(in infoBase, out int result, out List<string> errors))
+    {
+        foreach (string error in errors)
+        {
+            Console.WriteLine(error);
+        }
+    }
+
+    Console.WriteLine($"Scripted {result} views");
 }
 ```
