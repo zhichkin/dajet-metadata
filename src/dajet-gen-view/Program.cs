@@ -1,5 +1,4 @@
-﻿using DaJet.CodeGenerator.SqlServer;
-using DaJet.Metadata;
+﻿using DaJet.Metadata;
 using DaJet.Metadata.Model;
 using System.CommandLine;
 using System.Diagnostics;
@@ -8,18 +7,10 @@ namespace DaJet.CodeGenerator
 {
     public static class Program
     {
+        private const string CONST_SqlServer = "SqlServer";
+        private const string CONST_PostgreSql = "PostgreSql";
         public static int Main(string[] args)
         {
-            //args = new string[] { "--help" };
-            //args = new string[] { "--version" };
-
-            //string schema = "test";
-            //string outFile = "C:\\temp\\sql-views.sql";
-            //string ms = "Data Source=zhichkin;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;";
-            //args = new string[] { "create", "--ms", ms, "--schema", schema };
-            //args = new string[] { "delete", "--ms", ms, "--schema", schema };
-            //args = new string[] { "script", "--ms", ms, "--out-file", outFile, "--schema", "test" };
-
             RootCommand command = new()
             {
                 Description = "DaJet database view generator"
@@ -95,38 +86,72 @@ namespace DaJet.CodeGenerator
 
             return create;
         }
-        
+
+        private static ISqlGenerator GetSqlGenerator(SqlGeneratorOptions options)
+        {
+            if (options.DatabaseProvider == CONST_SqlServer)
+            {
+                return new SqlServer.SqlGenerator(options);
+            }
+            else if (options.DatabaseProvider == CONST_PostgreSql)
+            {
+                return new PostgreSql.SqlGenerator(options);
+            }
+
+            throw new InvalidOperationException($"Unsupported database provider: [{options.DatabaseProvider}]");
+        }
+        private static IMetadataService GetMetadataService(SqlGeneratorOptions options)
+        {
+            if (options.DatabaseProvider == CONST_SqlServer)
+            {
+                return new MetadataService()
+                    .UseConnectionString(options.ConnectionString)
+                    .UseDatabaseProvider(DatabaseProvider.SQLServer);
+            }
+            else if (options.DatabaseProvider == CONST_PostgreSql)
+            {
+                return new MetadataService()
+                    .UseConnectionString(options.ConnectionString)
+                    .UseDatabaseProvider(DatabaseProvider.PostgreSQL);
+            }
+
+            throw new InvalidOperationException($"Unsupported database provider: [{options.DatabaseProvider}]");
+        }
+
         private static void ExecuteCreateCommand(string ms, string pg, string schema)
         {
-            if (!string.IsNullOrWhiteSpace(pg))
+            SqlGeneratorOptions options = new();
+
+            if (!string.IsNullOrWhiteSpace(ms))
             {
-                Console.WriteLine("Sorry, PostgreSql support is under construction ... ");
+                options.ConnectionString = ms;
+                options.DatabaseProvider = CONST_SqlServer;
+            }
+            else if (!string.IsNullOrWhiteSpace(pg))
+            {
+                options.ConnectionString = pg;
+                options.DatabaseProvider = CONST_PostgreSql;
+            }
+            else
+            {
+                Console.WriteLine("ERROR: Database connection string is not provided.");
                 return;
             }
-            
-            IMetadataService metadataService = new MetadataService();
-
-            if (!metadataService
-                .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString(ms)
-                .TryOpenInfoBase(out InfoBase infoBase, out string message))
-            {
-                Console.WriteLine("Error: " + message);
-                return;
-            }
-
-            SqlGeneratorOptions options = new SqlGeneratorOptions()
-            {
-                DatabaseProvider = "SqlServer",
-                ConnectionString = metadataService.ConnectionString
-            };
 
             if (!string.IsNullOrWhiteSpace(schema))
             {
                 options.Schema = schema;
             }
 
-            ISqlGenerator generator = new SqlGenerator(options);
+            IMetadataService metadataService = GetMetadataService(options);
+
+            if (!metadataService.TryOpenInfoBase(out InfoBase infoBase, out string message))
+            {
+                Console.WriteLine("Error: " + message);
+                return;
+            }
+            
+            ISqlGenerator generator = GetSqlGenerator(options);
 
             Stopwatch watch = new();
 
@@ -146,24 +171,30 @@ namespace DaJet.CodeGenerator
         }
         private static void ExecuteDeleteCommand(string ms, string pg, string schema)
         {
-            if (!string.IsNullOrWhiteSpace(pg))
+            SqlGeneratorOptions options = new();
+
+            if (!string.IsNullOrWhiteSpace(ms))
             {
-                Console.WriteLine("Sorry, PostgreSql support is under construction ... ");
+                options.ConnectionString = ms;
+                options.DatabaseProvider = CONST_SqlServer;
+            }
+            else if (!string.IsNullOrWhiteSpace(pg))
+            {
+                options.ConnectionString = pg;
+                options.DatabaseProvider = CONST_PostgreSql;
+            }
+            else
+            {
+                Console.WriteLine("ERROR: Database connection string is not provided.");
                 return;
             }
-
-            SqlGeneratorOptions options = new SqlGeneratorOptions()
-            {
-                DatabaseProvider = "SqlServer",
-                ConnectionString = ms
-            };
 
             if (!string.IsNullOrWhiteSpace(schema))
             {
                 options.Schema = schema;
             }
 
-            ISqlGenerator generator = new SqlGenerator(options);
+            ISqlGenerator generator = GetSqlGenerator(options);
 
             Stopwatch watch = new();
 
@@ -177,28 +208,23 @@ namespace DaJet.CodeGenerator
         }
         private static void ExecuteScriptCommand(string ms, string pg, string schema, string outFile)
         {
-            if (!string.IsNullOrWhiteSpace(pg))
+            SqlGeneratorOptions options = new();
+
+            if (!string.IsNullOrWhiteSpace(ms))
             {
-                Console.WriteLine("Sorry, PostgreSql support is under construction ... ");
+                options.ConnectionString = ms;
+                options.DatabaseProvider = CONST_SqlServer;
+            }
+            else if (!string.IsNullOrWhiteSpace(pg))
+            {
+                options.ConnectionString = pg;
+                options.DatabaseProvider = CONST_PostgreSql;
+            }
+            else
+            {
+                Console.WriteLine("ERROR: Database connection string is not provided.");
                 return;
             }
-
-            IMetadataService metadataService = new MetadataService();
-
-            if (!metadataService
-                .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                .UseConnectionString(ms)
-                .TryOpenInfoBase(out InfoBase infoBase, out string message))
-            {
-                Console.WriteLine("Error: " + message);
-                return;
-            }
-
-            SqlGeneratorOptions options = new SqlGeneratorOptions()
-            {
-                DatabaseProvider = "SqlServer",
-                ConnectionString = metadataService.ConnectionString
-            };
 
             if (!string.IsNullOrWhiteSpace(schema))
             {
@@ -210,7 +236,15 @@ namespace DaJet.CodeGenerator
                 options.OutputFile = outFile;
             }
 
-            ISqlGenerator generator = new SqlGenerator(options);
+            IMetadataService metadataService = GetMetadataService(options);
+
+            if (!metadataService.TryOpenInfoBase(out InfoBase infoBase, out string message))
+            {
+                Console.WriteLine("Error: " + message);
+                return;
+            }
+            
+            ISqlGenerator generator = GetSqlGenerator(options);
 
             Stopwatch watch = new();
 

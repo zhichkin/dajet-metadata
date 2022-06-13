@@ -46,6 +46,16 @@ namespace DaJet.CodeGenerator
             {
                 options.ConnectionString = ConnectionString ?? string.Empty;
             }
+
+            if (values.TryGetValue(nameof(SqlGeneratorOptions.Schema), out string? Schema))
+            {
+                options.Schema = Schema ?? string.Empty;
+            }
+
+            if (values.TryGetValue(nameof(SqlGeneratorOptions.OutputFile), out string? OutputFile))
+            {
+                options.OutputFile = OutputFile ?? string.Empty;
+            }
         }
     }
 }

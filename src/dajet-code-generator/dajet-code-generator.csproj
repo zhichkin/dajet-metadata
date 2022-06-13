@@ -7,25 +7,25 @@
     <Nullable>enable</Nullable>
     <AssemblyName>DaJet.CodeGenerator</AssemblyName>
     <Company>$(Authors)</Company>
-    <Description>Генератор представлений (view) SQL Server для объектов метаданных 1С:Предприятие 8</Description>
+    <Description>Генератор представлений (view) СУБД для объектов метаданных 1С:Предприятие 8.
+Поддерживаются Microsoft SQL Server и PostgreSQL.</Description>
     <Copyright>Zhichkin © 2022</Copyright>
     <PackageProjectUrl>https://github.com/zhichkin/dajet-metadata/tree/main/doc/sql-code-generator</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Authors>Zhichkin</Authors>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <PackageReleaseNotes>Новый функционал:
-1. Добавлена возможность указания схемы БД для создания представлений.
-2. Добавлена возможность вывода сгенерированного скрипта для создания пердставлений СУБД (view) в файл на диске.
+1. Добавлена поддержка PostgreSQL.
 
 Изменение программного интерфейса:
-1. Добавлено новое свойство Schema в класс SqlGeneratorOptions.
-2. Добавлено новое свойство OutputFile в класс SqlGeneratorOptions.
-3. Добавлен новый метод SchemaExists в класс SqlGenerator.
-4. Добавлен новый метод CreateSchema в класс SqlGenerator.
-5. Добавлен новый метод DropSchema в класс SqlGenerator.
-6. Добавлен новый метод TryScriptView в класс SqlGenerator.
-7. Добавлен новый метод TryScriptViews в класс SqlGenerator.</PackageReleaseNotes>
+1. Добавлен новый класс DaJet.CodeGenerator.PostgreSql.SqlGenerator.
+Его поведение аналогично классу DaJet.CodeGenerator.SqlServer.SqlGenerator.
+Оба класса реализуют один и тот же интерфейс - ISqlGenerator.
+
+Внимание!
+Длина наименований объектов СУБД в PostgreSQL по умолчанию ограничена 63 байтами.
+Большая длина может быть установлена только пересборкой СУБД из исходников.</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>

@@ -6,14 +6,14 @@
     <RootNamespace>dajet_gen_view</RootNamespace>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Authors>Zhichkin</Authors>
-    <Description>Утилита для генерации SQL представлений</Description>
+    <Description>Утилита для генерации представлений СУБД (view) 1С:Предприятие 8</Description>
     <Copyright>Zhichkin © 2022</Copyright>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DaJet.CodeGenerator" Version="1.1.0" />
+    <PackageReference Include="DaJet.CodeGenerator" Version="1.2.0" />
     <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 

@@ -6,19 +6,20 @@ using System.Diagnostics;
 
 namespace test_code_generator
 {
-    [TestClass] public class UnitTests
+    [TestClass] public class Tests_SqlServer
     {
         private readonly ISqlGenerator _generator;
         private readonly SqlGeneratorOptions _options;
         private readonly IMetadataCache _metadata = new MetadataCache();
 
         // trade_11_2_3_159_demo | accounting_3_0_72_72_demo | dajet-metadata-ms;
+        private const string SCHEMA_NAME = "dbo";
         private const string INFO_BASE_NAME = "dajet-metadata-ms";
+        private const string OUTPUT_FILE_PATH = "C:\\temp\\ms-sql-views.sql";
         private const string MS_CONNECTION_STRING =
             "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata-ms;Integrated Security=True;Encrypt=False;";
-        private const string OUTPUT_FILE_PATH = "C:\\temp\\sql-views.sql";
-        private const string SCHEMA_NAME = "dbo";
-        public UnitTests()
+        
+        public Tests_SqlServer()
         {
             _metadata.Add(INFO_BASE_NAME, new MetadataCacheOptions()
             {

@@ -3,26 +3,25 @@ using DaJet.Metadata.Model;
 using System.Data;
 using System.Text;
 
-namespace DaJet.CodeGenerator.SqlServer
+namespace DaJet.CodeGenerator.PostgreSql
 {
     public sealed class SqlGenerator : ISqlGenerator
     {
         private readonly SqlGeneratorOptions _options;
         private readonly QueryExecutor _executor = new();
 
-        private const string SCHEMA_DBO = "dbo"; // default SQL Server schema
+        private const string SCHEMA_PUBLIC = "public"; // default PostgreSQL schema
 
         private const string DROP_VIEW_SCRIPT =
-            "IF OBJECT_ID(N'{0}', N'V') IS NOT NULL DROP VIEW {0};";
+            "DROP VIEW IF EXISTS {0};";
 
         private const string SELECT_VIEWS_SCRIPT =
-            "SELECT s.name AS [Schema], v.name AS [View]" +
-            "FROM sys.views AS v " +
-            "INNER JOIN sys.schemas AS s " +
-            "ON v.schema_id = s.schema_id AND is_ms_shipped = 0 AND s.name = N'{0}';";
+            "SELECT table_schema, table_name " +
+            "FROM information_schema.views " +
+            "WHERE table_schema = '{0}';";
 
-        private const string SELECT_SCHEMA_SCRIPT =
-            "SELECT schema_id, name FROM sys.schemas WHERE name = N'{0}';";
+        private const string SCHEMA_EXISTS_SCRIPT =
+            "SELECT 1 FROM information_schema.schemata WHERE schema_name = '{0}';";
 
         private const string CREATE_SCHEMA_SCRIPT = "CREATE SCHEMA {0};";
 
@@ -39,101 +38,99 @@ namespace DaJet.CodeGenerator.SqlServer
         {
             if (metadata is Catalog)
             {
-                return $"Справочник";
+                return $"СПР";
             }
             else if (metadata is Document)
             {
-                return $"Документ";
+                return $"ДОК";
             }
             else if (metadata is InformationRegister)
             {
-                return $"РегистрСведений";
+                return $"РС";
             }
             else if (metadata is AccumulationRegister)
             {
-                return $"РегистрНакопления";
+                return $"РН";
             }
             else if (metadata is Enumeration)
             {
-                return $"Перечисление";
+                return $"ПРЧ";
             }
             else if (metadata is Constant)
             {
-                return $"Константа";
+                return $"КСТ";
             }
             else if (metadata is Characteristic)
             {
-                return $"ПланВидовХарактеристик";
+                return $"ПВХ";
             }
             else if (metadata is Publication)
             {
-                return $"ПланОбмена";
+                return $"ПО";
             }
             else if (metadata is Account)
             {
-                return $"ПланСчетов";
+                return $"ПС";
             }
             else if (metadata is AccountingRegister)
             {
-                return $"РегистрБухгалтерии";
+                return $"РБ";
             }
 
             return "Unknown";
         }
         private string CreateViewName(string viewName)
         {
-            return $"[{_options.Schema}].[{viewName}]";
+            return $"{_options.Schema}.\"{viewName}\"";
         }
         private string CreateViewName(ApplicationObject metadata)
         {
             if (metadata is TablePart table)
             {
-                return $"[{_options.Schema}].[{GetNamespaceName(table.Owner)}.{table.Owner.Name}_{table.Name}]";
+                return $"{_options.Schema}.\"{GetNamespaceName(table.Owner)}.{table.Owner.Name}_{table.Name}\"";
             }
 
-            return $"[{_options.Schema}].[{GetNamespaceName(metadata)}.{metadata.Name}]";
+            return $"{_options.Schema}.\"{GetNamespaceName(metadata)}.{metadata.Name}\"";
         }
         private string CreateFieldAlias(MetadataProperty property, DatabaseField field)
         {
             if (field.Purpose == FieldPurpose.Discriminator)
             {
-                return "[" + property.Name + "_Тип" + "]";
+                return "\"" + property.Name + "_Тип" + "\"";
             }
             else if (field.Purpose == FieldPurpose.TypeCode)
             {
-                return "[" + property.Name + "_ТипСсылки" + "]";
+                return "\"" + property.Name + "_ТипСсылки" + "\"";
             }
             else if (field.Purpose == FieldPurpose.Object)
             {
-                return "[" + property.Name + "_Ссылка" + "]";
+                return "\"" + property.Name + "_Ссылка" + "\"";
             }
             else if (field.Purpose == FieldPurpose.String)
             {
-                return "[" + property.Name + "_Строка" + "]";
+                return "\"" + property.Name + "_Строка" + "\"";
             }
             else if (field.Purpose == FieldPurpose.Boolean)
             {
-                return "[" + property.Name + "_Булево" + "]";
+                return "\"" + property.Name + "_Булево" + "\"";
             }
             else if (field.Purpose == FieldPurpose.Numeric)
             {
-                return "[" + property.Name + "_Число" + "]";
+                return "\"" + property.Name + "_Число" + "\"";
             }
             else if (field.Purpose == FieldPurpose.DateTime)
             {
-                return "[" + property.Name + "_Дата" + "]";
+                return "\"" + property.Name + "_Дата" + "\"";
             }
 
-            return "[" + property.Name + "]";
+            return "\"" + property.Name + "\"";
         }
 
         public bool SchemaExists(string name)
         {
-            string script = string.Format(SELECT_SCHEMA_SCRIPT, name);
+            string script = string.Format(SCHEMA_EXISTS_SCRIPT, name);
 
-            int schema_id = _executor.ExecuteScalar<int>(in script, 10);
-
-            return (schema_id > 0);
+            return (_executor.ExecuteScalar<int>(in script, 10) == 1);
         }
         public void CreateSchema(string name)
         {
@@ -158,10 +155,10 @@ namespace DaJet.CodeGenerator.SqlServer
 
             if (string.IsNullOrWhiteSpace(_options.Schema))
             {
-                _options.Schema = SCHEMA_DBO;
+                _options.Schema = SCHEMA_PUBLIC;
             }
 
-            if (_options.Schema == SCHEMA_DBO)
+            if (_options.Schema == SCHEMA_PUBLIC)
             {
                 return true;
             }
@@ -313,7 +310,7 @@ namespace DaJet.CodeGenerator.SqlServer
 
             script.AppendLine($"CREATE VIEW {CreateViewName(enumeration)} AS");
 
-            script.AppendLine("SELECT e._EnumOrder AS [Порядок], t.[Имя], t.[Синоним], t.[Значение]");
+            script.AppendLine("SELECT e._EnumOrder AS \"Порядок\", t.\"Имя\", t.\"Синоним\", t.\"Значение\"");
             script.AppendLine($"FROM {enumeration.TableName} AS e INNER JOIN");
             script.AppendLine("(");
 
@@ -333,13 +330,13 @@ namespace DaJet.CodeGenerator.SqlServer
                     uuid.Substring(0, 8);
 
                 fields.Append("SELECT ");
-                fields.Append($"N'{value.Name}' AS [Имя], ");
-                fields.Append($"N'{value.Alias}' AS [Синоним], ");
-                fields.AppendLine($"0x{uuid} AS [Значение]");
+                fields.Append($"CAST('{value.Name}' AS mvarchar) AS \"Имя\", ");
+                fields.Append($"CAST('{value.Alias}' AS mvarchar) AS \"Синоним\", ");
+                fields.AppendLine($"CAST(E'\\\\x{uuid}' AS bytea) AS \"Значение\"");
             }
 
             script.Append(fields);
-            script.Append(") AS t ON e._IDRRef = t.[Значение];");
+            script.Append(") AS t ON e._IDRRef = t.\"Значение\";");
 
             return script.ToString();
         }
@@ -449,7 +446,6 @@ namespace DaJet.CodeGenerator.SqlServer
             try
             {
                 writer.WriteLine(string.Format(DROP_VIEW_SCRIPT, name));
-                writer.WriteLine("GO");
 
                 if (metadata is Enumeration enumeration)
                 {
@@ -459,7 +455,6 @@ namespace DaJet.CodeGenerator.SqlServer
                 {
                     writer.WriteLine(GenerateViewScript(metadata));
                 }
-                writer.WriteLine("GO");
             }
             catch (Exception exception)
             {
