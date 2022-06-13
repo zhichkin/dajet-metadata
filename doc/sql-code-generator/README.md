@@ -4,7 +4,7 @@
 
 [NuGet](https://www.nuget.org/packages/DaJet.CodeGenerator) & [Telegram](https://t.me/dajet_studio_group)
 
-[Скачать дистрибутив](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.0.0)
+[Скачать дистрибутив](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.1.0)
 
 Утилита **dajet-gen-view** создаёт представления СУБД (view)
 для объектов конфигруации 1С:Предприятие 8.
@@ -44,6 +44,24 @@ SELECT Порядок, Имя, Синоним, Значение FROM [Переч
 - Планы видов характеристик
 - Табличные части
 
+### Описание команд утилиты и их опций
+
+- **create** - создаёт представления СУБД в базе данных
+  - **--ms** - строка подключения к базе данных SQL Server
+  - **--pg** - строка подключения к базе данных PostgreSQL (в разработке)
+  - **--schema** - имя существующей схемы базы данных (в случае отсутствия будет создана)
+- **delete** - удаляет представления СУБД из базы данных
+  - **--ms** - строка подключения к базе данных SQL Server
+  - **--pg** - строка подключения к базе данных PostgreSQL (в разработке)
+  - **--schema** - имя существующей схемы базы данных
+- **script** - создаёт скрипт SQL для создания представлений и сохраняет его в указанный файл
+  - **--ms** - строка подключения к базе данных SQL Server
+  - **--pg** - строка подключения к базе данных PostgreSQL (в разработке)
+  - **--schema** - имя схемы базы данных для использования
+  - **--out-file** - полный путь к файлу для сохранения SQL скрипта
+
+Опция **--schema** не обязательна для указания. В случае её отсутствия используется схема базы данных по умолчанию. Для SQL Server это схема **dbo**.
+
 ### Создание представлений СУБД
 
 **dajet-gen-view** **create** --ms "Data Source=SERVER;Initial Catalog=DATABASE;Integrated Security=True;Encrypt=False;"
@@ -51,6 +69,10 @@ SELECT Порядок, Имя, Синоним, Значение FROM [Переч
 ### Удаление представлений СУБД
 
 **dajet-gen-view** **delete** --ms "Data Source=SERVER;Initial Catalog=DATABASE;Integrated Security=True;Encrypt=False;"
+
+### Сохранение скрипта создания представлений СУБД в файл
+
+**dajet-gen-view** **script** --ms "Data Source=SERVER;Initial Catalog=DATABASE;Integrated Security=True;Encrypt=False;" --out-file "C:\script.sql"
 
 ### Программное создание представлений СУБД
 
