@@ -8,13 +8,14 @@
 
 Утилита **dajet-gen-view** создаёт представления СУБД (view) для объектов конфигруации 1С:Предприятие 8.
 
-Поддерживаются Microsoft SQL Server и PostgreSQL.
+Поддерживаются **Microsoft SQL Server** и **PostgreSQL (версия для 1С)**.
 
 Поддержка PostgreSQL включена, начиная с [версии 1.2.0](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.2.0).
 
 Представления создаются в той же самой базе данных,
 в которой расположены объекты 1С:Предприятие 8.
 При совпадении имён представления пересоздаются.
+Имеется опция генерации скрипта в отдельный файл без создания объектов СУБД.
 
 Это позволяет обращаться к данным объектов непосредственно
 при помощи языка запросов СУБД по именам этих объектов,
@@ -188,4 +189,8 @@ static void Main(string[] args)
 
 Большая длина может быть установлена только пересборкой СУБД из исходников.
 
-| The system uses no more than NAMEDATALEN-1 bytes of an identifier; longer names can be written in commands, but they will be truncated. By default, NAMEDATALEN is 64 so the maximum identifier length is 63 bytes. If this limit is problematic, it can be raised by changing the NAMEDATALEN constant in src/include/pg_config_manual.h.
+| The system uses no more than NAMEDATALEN-1 bytes of an identifier;
+| longer names can be written in commands, but they will be truncated.
+| By default, NAMEDATALEN is 64 so the maximum identifier length is 63 bytes.
+| If this limit is problematic, it can be raised by changing
+| the NAMEDATALEN constant in src/include/pg_config_manual.h.
