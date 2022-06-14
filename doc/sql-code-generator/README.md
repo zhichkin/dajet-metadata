@@ -10,7 +10,7 @@
 
 Поддерживаются **Microsoft SQL Server** и **PostgreSQL (версия для 1С)**.
 
-Поддержка PostgreSQL включена, начиная с [версии 1.2.0](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.2.0).
+Поддержка PostgreSQL включена, начиная с [версии 1.2.0](https://github.com/zhichkin/dajet-metadata/releases/tag/gen-view-1.2.0). См. также [нюансы использования PostgreSQL](https://github.com/zhichkin/dajet-metadata/tree/main/doc/sql-code-generator#%D0%BD%D1%8E%D0%B0%D0%BD%D1%81%D1%8B-%D0%B8%D1%81%D0%BF%D0%BE%D0%BB%D1%8C%D0%B7%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F-%D0%B2%D0%B5%D1%80%D1%81%D0%B8%D0%B8-%D0%B4%D0%BB%D1%8F-postgresql) версии ниже.
 
 Представления создаются в той же самой базе данных,
 в которой расположены объекты 1С:Предприятие 8.
