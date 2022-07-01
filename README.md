@@ -6,7 +6,7 @@ Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL
 
 Поддерживаются Microsoft SQL Server и PostgreSQL.
 
-Требуется установка [.NET Core 3.1](https://dotnet.microsoft.com/download/).
+Требуется установка [.NET Core 3.1](https://dotnet.microsoft.com/download/), а, начиная с версии 3.2.0, .NET 6.0.
 
 [NuGet package](https://www.nuget.org/packages/DaJet.Metadata/) & [Telegram support channel](https://t.me/dajet_studio_group)
 
