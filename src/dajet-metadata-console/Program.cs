@@ -1,4 +1,5 @@
 ﻿using DaJet.Metadata.Model;
+using Microsoft.Data.SqlClient;
 using System;
 using System.Collections.Generic;
 using System.CommandLine;
@@ -17,8 +18,8 @@ namespace DaJet.Metadata.CLI
         public static int Main(string[] args)
         {
             //args = new string[] { "--ms", "ZHICHKIN", "--d", "dajet-metadata", "--out-root", "C:\\temp\\root.txt" };
-            //args = new string[] { "--ms", "ZHICHKIN", "--d", "cerberus", "--schema", "Справочник.Клиенты.КонтактнаяИнформация" };
-            //args = new string[] { "--pg", "127.0.0.1", "--d", "test_node_2", "--u", "postgres", "--p", "postgres", "--schema", "РегистрСведений.ВходящаяОчередьRabbitMQ" };
+            //args = new string[] { "--ms", "172.18.17.32", "--d", "cerberus", "--schema", "Справочник.Клиенты.КонтактнаяИнформация" };
+            //args = new string[] { "--pg", "172.18.17.32", "--d", "test_node_2", "--u", "postgres", "--p", "postgres", "--schema", "РегистрСведений.ВходящаяОчередьRabbitMQ" };
 
             RootCommand command = new RootCommand()
             {
@@ -56,9 +57,10 @@ namespace DaJet.Metadata.CLI
             IMetadataService metadataService = new MetadataService();
             if (!string.IsNullOrWhiteSpace(ms))
             {
+                string connectionString = BuildConnectionString(ms, d, u, p);
                 metadataService
                     .UseDatabaseProvider(DatabaseProvider.SQLServer)
-                    .ConfigureConnectionString(ms, d, u, p);
+                    .UseConnectionString(connectionString);
             }
             else if (!string.IsNullOrWhiteSpace(pg))
             {
@@ -216,6 +218,23 @@ namespace DaJet.Metadata.CLI
 
             Console.WriteLine("Press any key to exit ...");
             Console.ReadKey(false);
+        }
+        private static string BuildConnectionString(string server, string database, string userName, string password)
+        {
+            SqlConnectionStringBuilder connectionString = new()
+            {
+                DataSource = server,
+                InitialCatalog = database
+            };
+            if (!string.IsNullOrWhiteSpace(userName))
+            {
+                connectionString.UserID = userName;
+                connectionString.Password = password;
+            }
+            connectionString.IntegratedSecurity = string.IsNullOrWhiteSpace(userName);
+            connectionString.Encrypt = false;
+
+            return connectionString.ToString();
         }
     }
 }
