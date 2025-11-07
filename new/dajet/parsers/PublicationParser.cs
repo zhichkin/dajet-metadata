@@ -2,12 +2,11 @@
 {
     internal sealed class PublicationParser : ConfigFileParser
     {
-        internal override Type Type => typeof(Publication);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out Publication metadata))
             {
-                metadata = new Publication(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -34,6 +33,12 @@
             //{
             //    _converter[1][12][9] += Parent;
             //}
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }

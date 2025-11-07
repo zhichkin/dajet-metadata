@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -8,12 +9,11 @@ namespace DaJet
 {
     internal sealed class MetadataRegistry
     {
-        private static readonly FrozenSet<string> SupportedTokens = FrozenSet.ToFrozenSet(new[]
-        {
+        private static readonly FrozenSet<string> SupportedTokens = FrozenSet.ToFrozenSet(
+        [
             MetadataToken.VT,
             MetadataToken.LineNo,
             MetadataToken.Fld,
-            MetadataToken.ChngR,
             MetadataToken.Enum,
             MetadataToken.Chrc,
             MetadataToken.Node,
@@ -33,10 +33,22 @@ namespace DaJet
             MetadataToken.Acc,
             MetadataToken.AccRg,
             MetadataToken.ExtDim,
-            MetadataToken.AccRgED
-        }, StringComparer.Ordinal);
-        private static readonly FrozenSet<string> ReferenceTypeTokens = FrozenSet.ToFrozenSet(new[]
-        {
+            MetadataToken.AccRgED,
+            MetadataToken.AccChngR,
+            MetadataToken.AccRgChngR,
+            MetadataToken.AccumRgChngR,
+            MetadataToken.BPrChngR,
+            MetadataToken.TaskChngR,
+            MetadataToken.ReferenceChngR,
+            MetadataToken.ChrcChngR,
+            MetadataToken.ConstChngR,
+            MetadataToken.DocumentChngR,
+            MetadataToken.InfoRgChngR
+        ], StringComparer.Ordinal);
+        internal static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> SupportedTokensLookup = SupportedTokens.GetAlternateLookup<ReadOnlySpan<char>>();
+
+        private static readonly FrozenSet<string> ReferenceTypeTokens = FrozenSet.ToFrozenSet(
+        [
             MetadataToken.Acc,
             MetadataToken.Enum,
             MetadataToken.Chrc,
@@ -45,26 +57,26 @@ namespace DaJet
             MetadataToken.Task,
             MetadataToken.Document,
             MetadataToken.Reference
-        }, StringComparer.Ordinal);
-        private static readonly FrozenDictionary<string, Func<Guid, MetadataObject>> MainEntryTokens = CreateMainEntryFactoryLookup();
-        private static FrozenDictionary<string, Func<Guid, MetadataObject>> CreateMainEntryFactoryLookup()
+        ], StringComparer.Ordinal);
+        private static readonly FrozenDictionary<string, Func<Guid, int, string, MetadataObject>> MainEntryTokens = CreateMainEntryFactoryLookup();
+        private static FrozenDictionary<string, Func<Guid, int, string, MetadataObject>> CreateMainEntryFactoryLookup()
         {
-            List<KeyValuePair<string, Func<Guid, MetadataObject>>> list =
+            List<KeyValuePair<string, Func<Guid, int, string, MetadataObject>>> list =
             [
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.VT, static uuid => new TablePart(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Fld, static uuid => new MetadataProperty(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Acc, static uuid => new Account(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Enum, static uuid => new Enumeration(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Chrc, static uuid => new Characteristic(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Node, static uuid => new Publication(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.BPr, static uuid => new BusinessProcess(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Task, static uuid => new BusinessTask(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Const, static uuid => new Constant(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Document, static uuid => new Document(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Reference, static uuid => new Catalog(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccRg, static uuid => new AccountingRegister(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.InfoRg, static uuid => new InformationRegister(uuid)),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccumRg, static uuid => new AccumulationRegister(uuid))
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.VT, TablePart.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Fld, Property.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Acc, Account.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Enum, Enumeration.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Chrc, Characteristic.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Node, Publication.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.BPr, BusinessProcess.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Task, BusinessTask.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Const, Constant.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Document, Document.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.Reference, Catalog.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.AccRg, AccountingRegister.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.InfoRg, InformationRegister.Create),
+                new KeyValuePair<string, Func<Guid, int, string, MetadataObject>>(MetadataToken.AccumRg, AccumulationRegister.Create)
             ];
             return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
         }
@@ -73,6 +85,7 @@ namespace DaJet
         private readonly Dictionary<int, Guid> _reference_type_codes = new();
         private readonly Dictionary<Guid, Guid> _defined_types = new();
         private readonly Dictionary<Guid, Guid> _characteristics = new();
+        private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
         private readonly ConcurrentDictionary<Guid, Guid> _references = new();
         private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
         {
@@ -93,32 +106,29 @@ namespace DaJet
         };
 
         #region "Методы инциализации реестра метаданных"
-        internal bool TryAddDbName(Guid uuid, int code, string name)
+        internal bool TryAddDbName(Guid uuid, int code, in string token)
         {
-            if (!SupportedTokens.TryGetValue(name, out string token)) // Get interned string
-            {
-                return true; // Unsupported token
-            }
-
             ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
 
             if (!exists)
             {
-                if (MainEntryTokens.TryGetValue(token, out Func<Guid, MetadataObject> factory))
+                if (MainEntryTokens.TryGetValue(token, out Func<Guid, int, string, MetadataObject> factory))
                 {
-                    entry = factory(uuid); // main metadata objects
+                    entry = factory(uuid, code, token); // Главный объект метаданных
+
+                    if (ReferenceTypeTokens.TryGetValue(token, out _))
+                    {
+                        _ = _reference_type_codes.TryAdd(code, uuid);
+                    }
                 }
                 else
                 {
-                    return false; // dependent metadata objects - should be added into main entry
+                    return false; // Служебный объект метаданных - добавляется в свой главный объект
                 }
             }
-
-            entry.DbNames.Add(new DbName(code, token));
-
-            if (ReferenceTypeTokens.TryGetValue(token, out _))
+            else
             {
-                _ = _reference_type_codes.TryAdd(code, uuid);
+                entry.AddDbName(code, token); // Служебный объект метаданных или общий реквизит (исключение)
             }
 
             return true;
@@ -129,10 +139,7 @@ namespace DaJet
 
             if (exists)
             {
-                if (SupportedTokens.TryGetValue(name, out string token)) // Get interned string
-                {
-                    entry.DbNames.Add(new DbName(code, token)); // add dependent metadata object into it's main
-                }
+                entry.AddDbName(code, name); // Служебный объект метаданных - добавляется в свой главный объект
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -158,12 +165,15 @@ namespace DaJet
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddRecorderToRegister(Guid document, Guid register)
         {
-            if (_registry.TryGetValue(register, out MetadataObject entry))
+            ref List<Guid> recorders = ref CollectionsMarshal.GetValueRefOrAddDefault(_register_recorders, register, out bool exists);
+
+            if (exists)
             {
-                if (entry is Register metadata)
-                {
-                    metadata.Recorders.Add(document);
-                }
+                recorders.Add(document);
+            }
+            else
+            {
+                recorders = new List<Guid>(1) { document };
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -176,6 +186,10 @@ namespace DaJet
         }
         #endregion
 
+        internal bool TryGetEntry(Guid uuid, [MaybeNullWhen(false)] out MetadataObject entry)
+        {
+            return _registry.TryGetValue(uuid, out entry);
+        }
         internal bool TryGetEntry<T>(Guid uuid, [MaybeNullWhen(false)] out T value) where T : MetadataObject
         {
             if (!_registry.TryGetValue(uuid, out MetadataObject entry))

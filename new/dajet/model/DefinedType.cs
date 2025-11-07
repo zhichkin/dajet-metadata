@@ -1,10 +1,7 @@
 ﻿namespace DaJet
 {
-    public sealed class DefinedType : MetadataObject
+    internal sealed class DefinedType : MetadataObject
     {
-        public DefinedType(Guid uuid) : base(uuid)
-        {
-            DbNames = null;
-        }
+        internal DefinedType(Guid uuid) : base(uuid) { }
     }
 }

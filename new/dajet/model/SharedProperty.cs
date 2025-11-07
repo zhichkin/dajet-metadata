@@ -1,10 +1,14 @@
 ﻿namespace DaJet
 {
-    public sealed class SharedProperty : MetadataObject
+    internal sealed class SharedProperty : DatabaseObject
     {
-        public SharedProperty(Guid uuid) : base(uuid)
+        internal SharedProperty(Guid uuid) : base(uuid, 0, MetadataToken.Fld) { }
+        internal override void AddDbName(int code, string name)
         {
-            DbNames = new List<DbName>(1); // Fld
+            if (name == MetadataToken.Fld)
+            {
+                TypeCode = code;
+            }
         }
     }
 }

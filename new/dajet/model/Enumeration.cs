@@ -1,10 +1,11 @@
 ﻿namespace DaJet
 {
-    public sealed class Enumeration : MetadataObject
+    internal sealed class Enumeration : DatabaseObject
     {
-        public Enumeration(Guid uuid) : base(uuid)
+        internal static Enumeration Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(1); // Enum
+            return new Enumeration(uuid, code, name);
         }
+        internal Enumeration(Guid uuid, int code, string name) : base(uuid, code, name) { }
     }
 }

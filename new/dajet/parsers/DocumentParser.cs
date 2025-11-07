@@ -2,12 +2,11 @@
 {
     internal sealed class DocumentParser : ConfigFileParser
     {
-        internal override Type Type => typeof(Document);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out Document metadata))
             {
-                metadata = new Document(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -69,6 +68,12 @@
                 Guid register = reader[2][25][i + 1][3][2].SeekUuid();
                 registry.AddRecorderToRegister(document, register);
             }
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }

@@ -61,16 +61,12 @@
         public const string AccumRgTn = "AccumRgTn";
         ///<summary>Таблица настроек регистра накопления (зависимый значимый тип данных)</summary>
         public const string AccumRgOpt = "AccumRgOpt";
-        ///<summary>Таблица изменений регистра накопления (зависимый значимый тип данных)</summary>
-        public const string AccumRgChngR = "AccumRgChngR";
         ///<summary>Документ (ссылочный тип данных)</summary>
         public const string Document = "Document";
         ///<summary>Справочник (ссылочный тип данных)</summary>
         public const string Reference = "Reference";
         ///<summary>План обмена (ссылочный тип данных)</summary>
         public const string Node = "Node";
-        ///<summary>Таблица изменений планов обмена (одна на каждый объект метаданных)</summary>
-        public const string ChngR = "ChngR";
         ///<summary>Хранилище метаданных конфигурации 1С</summary>
         public const string Config = "Config";
         ///<summary>Бизнес-процесс</summary>
@@ -79,6 +75,18 @@
         public const string BPrPoints = "BPrPoints";
         ///<summary>Задача бизнес-процесса</summary>
         public const string Task = "Task";
+
+        ///<summary>Таблицы регистрации изменений планов обмена (одна на каждый объект метаданных)</summary>
+        public const string AccChngR = "AccChngR";
+        public const string AccRgChngR = "AccRgChngR";
+        public const string AccumRgChngR = "AccumRgChngR";
+        public const string BPrChngR = "BPrChngR";
+        public const string TaskChngR = "TaskChngR";
+        public const string ReferenceChngR = "ReferenceChngR";
+        public const string ChrcChngR = "ChrcChngR";
+        public const string ConstChngR = "ConstChngR";
+        public const string DocumentChngR = "DocumentChngR";
+        public const string InfoRgChngR = "InfoRgChngR";
 
         #endregion
 

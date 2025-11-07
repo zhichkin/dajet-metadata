@@ -2,12 +2,11 @@
 {
     internal sealed class AccumulationRegisterParser : ConfigFileParser
     {
-        internal override Type Type => typeof(AccumulationRegister);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out AccumulationRegister metadata))
             {
-                metadata = new AccumulationRegister(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -27,6 +26,12 @@
             //{
             //    _converter[1][13][1][11] += Parent;
             //}
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }

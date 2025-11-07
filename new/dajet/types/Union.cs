@@ -7,12 +7,14 @@ namespace DaJet
         Undefined = 0x00, // NULL Неопределено
         Tag       = 0x01, // TYPE Дискриминатор
         Boolean   = 0x02, // L Булево
-        Numeric   = 0x03, // N Число
+        Decimal   = 0x03, // N Число
         DateTime  = 0x04, // T Дата
         String    = 0x05, // S Строка
-        Binary    = 0x06, // B Двоичные данные
+        Binary    = 0x06, // B Двоичные данные | ХранилищеЗначения
         Uuid      = 0x07, // U УникальныйИдентификатор
-        Entity    = 0x08  // # [_TRef] _RRef Ссылка
+        Entity    = 0x08, // # [_TRef] _RRef Ссылка
+        Integer   = 0x09, // Целочисленный тип данных
+        TypeCode  = 0xFF  // TRef Код ссылочного типа данных
     }
     public sealed class BadUnionAccessException : Exception
     {
@@ -44,7 +46,7 @@ namespace DaJet
             return IsUndefined ? "Неопределено" : (Value is null ? "NULL" : Value.ToString());
         }
         public static implicit operator Union(bool value) => new CaseBoolean(value);
-        public static implicit operator Union(decimal value) => new CaseNumeric(value);
+        public static implicit operator Union(decimal value) => new CaseDecimal(value);
         public static implicit operator Union(DateTime value) => new CaseDateTime(value);
         public static implicit operator Union(string value) => new CaseString(value);
         public static implicit operator Union(byte[] value) => new CaseBinary(value);
@@ -119,15 +121,15 @@ namespace DaJet
                 throw new BadUnionAccessException(typeof(Entity), typeof(CaseBoolean));
             }
         }
-        public sealed class CaseNumeric : Union
+        public sealed class CaseDecimal : Union
         {
             private readonly decimal _value;
-            public CaseNumeric(decimal value) : base(UnionTag.Numeric) { _value = value; }
+            public CaseDecimal(decimal value) : base(UnionTag.Decimal) { _value = value; }
             public override object Value { get { return _value; } }
-            public override Union Copy() { return new CaseNumeric(_value); }
+            public override Union Copy() { return new CaseDecimal(_value); }
             public override bool GetBoolean()
             {
-                throw new BadUnionAccessException(typeof(bool), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(bool), typeof(CaseDecimal));
             }
             public override decimal GetNumeric()
             {
@@ -135,23 +137,23 @@ namespace DaJet
             }
             public override DateTime GetDateTime()
             {
-                throw new BadUnionAccessException(typeof(DateTime), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(DateTime), typeof(CaseDecimal));
             }
             public override string GetString()
             {
-                throw new BadUnionAccessException(typeof(string), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(string), typeof(CaseDecimal));
             }
             public override byte[] GetBinary()
             {
-                throw new BadUnionAccessException(typeof(byte[]), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(byte[]), typeof(CaseDecimal));
             }
             public override Guid GetUuid()
             {
-                throw new BadUnionAccessException(typeof(Guid), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(Guid), typeof(CaseDecimal));
             }
             public override Entity GetEntity()
             {
-                throw new BadUnionAccessException(typeof(Entity), typeof(CaseNumeric));
+                throw new BadUnionAccessException(typeof(Entity), typeof(CaseDecimal));
             }
         }
         public sealed class CaseDateTime : Union

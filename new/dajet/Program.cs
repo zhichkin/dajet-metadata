@@ -9,7 +9,7 @@ namespace DaJet
 
         public static void Main(string[] args)
         {
-            GetMetadataObject(); return;
+            //GetMetadataObject(); return;
 
             //DumpFile("d11b89e1-90a2-47e7-b43f-7f231ec64b2f"); return;
 
@@ -60,9 +60,9 @@ namespace DaJet
 
             provider.Initialize();
 
-            Catalog metadata = provider.GetMetadataObject<Catalog>("Справочник.Номенклатура");
+            TableDefinition metadata = provider.GetMetadataObject("Справочник.Номенклатура");
 
-            Console.WriteLine($"[{metadata.Uuid}] {metadata.Name} {{{metadata.GetType()}}}");
+            Console.WriteLine($"[{metadata.DbName}] {metadata.Name}");
         }
     }
 }

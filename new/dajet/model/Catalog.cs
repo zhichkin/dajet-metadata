@@ -1,10 +1,22 @@
 ﻿namespace DaJet
 {
-    public sealed class Catalog : MetadataObject
+    internal sealed class Catalog : ChangeTrackingObject
     {
-        public Catalog(Guid uuid) : base(uuid)
+        internal static Catalog Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(2); // Reference + ChngR
+            return new Catalog(uuid, code, name);
+        }
+        internal Catalog(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.ReferenceChngR)
+            {
+                _ChngR = code;
+            }
+        }
+        internal override string GetTableNameИзменения()
+        {
+            return string.Format("_{0}{1}", MetadataToken.ReferenceChngR, _ChngR);
         }
     }
 }

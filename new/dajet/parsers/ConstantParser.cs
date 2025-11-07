@@ -2,12 +2,11 @@
 {
     internal sealed class ConstantParser : ConfigFileParser
     {
-        internal override Type Type => typeof(Constant);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out Constant metadata))
             {
-                metadata = new Constant(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -27,6 +26,12 @@
             //{
             //    _converter[1][1][1][1][11] += Parent; // uuid расширяемого объекта метаданных
             //}
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }

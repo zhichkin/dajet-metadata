@@ -2,12 +2,11 @@
 {
     internal sealed class SharedPropertyParser : ConfigFileParser
     {
-        internal override Type Type => typeof(SharedProperty);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out SharedProperty metadata))
             {
-                metadata = new SharedProperty(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -27,6 +26,12 @@
             //{
             //    _converter[1][1][1][1][15] += Parent; // uuid расширяемого объекта метаданных
             //}
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }

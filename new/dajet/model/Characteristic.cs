@@ -1,10 +1,22 @@
 ﻿namespace DaJet
 {
-    public sealed class Characteristic : MetadataObject
+    internal sealed class Characteristic : ChangeTrackingObject
     {
-        public Characteristic(Guid uuid) : base(uuid)
+        internal static Characteristic Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(2); // Chrc + ChngR
+            return new Characteristic(uuid, code, name);
+        }
+        internal Characteristic(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.ChrcChngR)
+            {
+                _ChngR = code;
+            }
+        }
+        internal override string GetTableNameИзменения()
+        {
+            return string.Format("_{0}{1}", MetadataToken.ChrcChngR, _ChngR);
         }
     }
 }

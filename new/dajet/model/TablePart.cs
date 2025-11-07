@@ -1,10 +1,28 @@
 ﻿namespace DaJet
 {
-    public sealed class TablePart : MetadataObject
+    internal sealed class TablePart : DatabaseObject
     {
-        public TablePart(Guid uuid) : base(uuid)
+        internal static TablePart Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(2); // VT + LineNo
+            return new TablePart(uuid, code, name);
+        }
+        internal TablePart(Guid uuid, int code, string name) : base(uuid, code, name) { }
+
+        private int _LineNo;
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.LineNo)
+            {
+                _LineNo = code;
+            }
+        }
+        internal string GetColumnNameСсылка()
+        {
+            return string.Format("_{0}{1}_{2}", DbName, TypeCode, MetadataToken.IDRRef);
+        }
+        internal string GetColumnNameНомерСтроки()
+        {
+            return string.Format("_{0}{1}", MetadataToken.LineNo, _LineNo);
         }
     }
 }

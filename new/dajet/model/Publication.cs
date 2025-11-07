@@ -1,10 +1,11 @@
 ﻿namespace DaJet
 {
-    public sealed class Publication : MetadataObject
+    internal sealed class Publication : DatabaseObject
     {
-        public Publication(Guid uuid) : base(uuid)
+        internal static Publication Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(1); // Node
+            return new Publication(uuid, code, name);
         }
+        internal Publication(Guid uuid, int code, string name) : base(uuid, code, name) { }
     }
 }

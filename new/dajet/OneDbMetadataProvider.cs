@@ -27,9 +27,9 @@
 
             return infoBase;
         }
-        public MetadataObject GetMetadataObject(string metadataName)
+        public TableDefinition GetMetadataObject(string metadataName)
         {
-            //TODO: добавить параметр - bool LoadingModeFull = false
+            //TODO: добавить параметр - bool LoadingMode.Full = false
 
             int dot = metadataName.IndexOf('.');
 
@@ -46,28 +46,12 @@
                 return null;
             }
 
-            return metadata;
-        }
-        public T GetMetadataObject<T>(string metadataName) where T : MetadataObject
-        {
-            //TODO: добавить параметр - bool LoadingModeFull = false
+            CatalogParser parser = new();
 
-            int dot = metadataName.IndexOf('.');
-
-            if (dot < 0)
+            using (ConfigFileBuffer file = _loader.Load(metadata.Uuid))
             {
-                return null;
+                return parser.Load(metadata.Uuid, file.AsReadOnlySpan(), in _registry);
             }
-
-            string type = metadataName[..dot];
-            string name = metadataName[(dot + 1)..];
-
-            if (!_registry.TryGetEntry(in type, in name, out T metadata))
-            {
-                return null;
-            }
-
-            return metadata;
         }
         public void Initialize()
         {

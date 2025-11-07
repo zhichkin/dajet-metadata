@@ -1,10 +1,32 @@
 ﻿namespace DaJet
 {
-    public sealed class BusinessProcess : MetadataObject
+    internal sealed class BusinessProcess : ChangeTrackingObject
     {
-        public BusinessProcess(Guid uuid) : base(uuid)
+        internal static BusinessProcess Create(Guid uuid, int code, string name)
         {
-            DbNames = new List<DbName>(3); // BPr + ChngR + BPrPoints
+            return new BusinessProcess(uuid, code, name);
+        }
+        internal BusinessProcess(Guid uuid, int code, string name) : base(uuid, code, name) { }
+
+        private int _BPrPoints;
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.BPrPoints)
+            {
+                _BPrPoints = code;
+            }
+            else if (name == MetadataToken.BPrChngR)
+            {
+                _ChngR = code;
+            }
+        }
+        internal string GetTableNameТочкиМаршрута()
+        {
+            return string.Format("_{0}{1}", MetadataToken.BPrPoints, _BPrPoints);
+        }
+        internal override string GetTableNameИзменения()
+        {
+            return string.Format("_{0}{1}", MetadataToken.BPrChngR, _ChngR);
         }
     }
 }

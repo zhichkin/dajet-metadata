@@ -2,12 +2,11 @@
 {
     internal sealed class CharacteristicParser : ConfigFileParser
     {
-        internal override Type Type => typeof(Characteristic);
         internal override void Parse(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             if (!registry.TryGetEntry(uuid, out Characteristic metadata))
             {
-                metadata = new Characteristic(uuid); //NOTE: сюда не предполагается попадать!
+                return; //NOTE: сюда не предполагается попадать!
             }
 
             ConfigFileReader reader = new(file);
@@ -41,6 +40,12 @@
             //{
             //    _converter[1][13][1][11] += Parent;
             //}
+        }
+        internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            TableDefinition table = new();
+
+            return table;
         }
     }
 }
