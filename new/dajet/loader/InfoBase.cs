@@ -96,14 +96,17 @@
                 { MetadataType.BusinessTask,         null }  // Задача
             };
         }
-        internal static InfoBase Parse(ReadOnlySpan<byte> fileData)
+        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData)
         {
-            InfoBase metadata = new();
+            InfoBase metadata = new()
+            {
+                Uuid = uuid
+            };
 
             ConfigFileReader reader = new(fileData);
 
             // Идентификатор объекта метаданных - значение поля FileName в таблице Config
-            if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+            //if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
 
             // Свойства конфигурации
 
@@ -111,13 +114,13 @@
 
             return metadata;
         }
-        internal static Dictionary<Guid, Guid[]> ParseRegistry(ReadOnlySpan<byte> fileData)
+        internal static int Parse(ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> registry)
         {
-            Dictionary<Guid, Guid[]> registry = CreateMetadataRegistry();
-
             ConfigFileReader reader = new(fileData);
 
-            // Количество компонент платформы (всего семь):
+            registry = CreateMetadataRegistry();
+
+            // Количество компонент платформы:
             // [4] Компонента платформы "Общие объекты"
             // [5] Компонента платформы "Оперативный учёт"
             // [6] Компонента платформы "Бухгалтерский учёт"
@@ -126,29 +129,39 @@
             // [9] ?
             // [10] ?
 
-            if (reader[3].Seek()) // 7 компонент платформы
+            uint components = (uint)reader[3].SeekNumber(); // = 7 компонент платформы
+
+            // Режим совместимости
+
+            int version = reader[4][2][2][27].SeekNumber();
+            if (version == 0) { version = 80216; }
+            else if (version == 1) { version = 80100; }
+            else if (version == 2) { version = 80213; }
+
+            // Реестр объектов конфигурации
+
+            components += 4; // Добавим смещение для удобства
+
+            for (uint node = 4; node < components; node++)
             {
-                uint components = (uint)reader.ValueAsNumber;
-
-                components += 4; // Добавим смещение для удобства
-
-                for (uint node = 4; node < components; node++)
-                {
-                    ParsePlatformComponent(ref reader, node, in registry);
-                }
+                ParsePlatformComponent(ref reader, node, in registry);
             }
 
-            return registry;
+            return version;
         }
-        internal static InfoBase Parse(ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> registry)
+        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> registry)
         {
-            uint components = 0;
-            InfoBase metadata = new();
+            InfoBase metadata = new()
+            {
+                Uuid = uuid
+            };
 
             ConfigFileReader reader = new(fileData);
 
             // Идентификатор объекта метаданных - значение поля FileName в таблице Config
-            if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+            //if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+
+            uint components = 0;
 
             // Количество компонент платформы:
             // [4] Компонента платформы "Общие объекты"

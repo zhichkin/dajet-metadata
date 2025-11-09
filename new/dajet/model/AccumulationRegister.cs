@@ -1,6 +1,6 @@
 ﻿namespace DaJet
 {
-    internal sealed class AccumulationRegister : ChangeTrackingObject //RegisterObject
+    internal sealed class AccumulationRegister : ChangeTrackingObject
     {
         internal static AccumulationRegister Create(Guid uuid, int code, string name)
         {

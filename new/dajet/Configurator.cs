@@ -1,8 +1,177 @@
-﻿namespace DaJet
+﻿using System.Reflection.Metadata;
+
+namespace DaJet
 {
     internal static class Configurator
     {
-        #region "Справочники"
+        #region "Табличная часть"
+        internal static void ConfigureTablePart(in TableDefinition table, in TablePart metadata, in DatabaseObject owner)
+        {
+            //foreach (TablePart tablePart in aggregate.TableParts)
+            //{
+            //    if (cache.Extension != null && string.IsNullOrEmpty(tablePart.TableName))
+            //    {
+            //        //NOTE (!) Заимствованные из основной конфигурации табличные части в расширениях
+            //        //не имеют системных свойств (они их наследуют), если только они их не переопределяют.
+            //        continue;
+            //    }
+
+            //    if (tablePart.Uuid == Guid.Empty)
+            //    {
+            //        //NOTE: Системная табличная часть, например, "ВидыСубконто" плана счетов
+            //        continue;
+            //    }
+
+            //    ConfigurePropertyСсылка(in cache, in owner, in tablePart);
+            //    ConfigurePropertyКлючСтроки(in tablePart);
+            //    ConfigurePropertyНомерСтроки(in cache, in tablePart);
+            //}
+
+            ConfigurePropertyСсылка(in table, in owner);
+            ConfigurePropertyКлючСтроки(in table);
+            ConfigurePropertyНомерСтроки(in table, in metadata);
+        }
+        private static void ConfigurePropertyСсылка(in TableDefinition table, in DatabaseObject owner)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "Ссылка",
+            //    Uuid = Guid.Empty,
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = owner.GetMainDbName() + "_IDRRef"
+            //};
+
+            //property.PropertyType.CanBeReference = true;
+            //property.PropertyType.TypeCode = owner.TypeCode;
+            //property.PropertyType.Reference = owner.Uuid;
+
+            PropertyDefinition property = new()
+            {
+                Name = "Ссылка",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type.IsEntity = true;
+            property.Type.TypeCode = owner.TypeCode;
+
+            //if (cache.ResolveReferences)
+            //{
+            //    property.References.Add(owner.Uuid);
+            //}
+
+            // Собственная табличная часть расширения, но добавленная к заимствованному объекту основной конфигурации:
+            // в таком случае у заимствованного объекта значения TypeCode и Uuid надо искать в основной конфигурации.
+            // Однако, в данный момент мы находимся в контексте расширения и контекст основной конфигруации недоступен!
+            //if (owner.Parent != Guid.Empty)
+            //{
+            // TODO: нужно реализовать алгоритм разрешения ссылок на заимствованные объекты
+            // в процедуре применения расширения к основной конфиграции!
+
+            //MetadataObject parent = cache.GetMetadataObject(owner.Parent);
+            //}
+
+            //TODO: property.PropertyType.References.Add(new MetadataItem(MetadataTypes.Catalog, owner.Uuid, owner.Name));
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", owner.GetMainDbName(), MetadataToken.IDRRef),
+                    Type = "binary",
+                    Length = 16,
+                    IsPrimaryKey = true
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyКлючСтроки(in TableDefinition table)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "KeyField",    // Исправлено на латиницу из-за того, что в некоторых конфигурациях 1С
+            //    Alias = "КлючСтроки", // для реквизитов табличной части иногда используют имя "КлючСтроки".
+            //    Uuid = Guid.Empty,    // Это не запрещено 1С в отличие от имён реквизитов "Ссылка" и "НомерСтроки".
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = "_KeyField"
+            //};
+            //property.PropertyType.IsBinary = true;
+
+            PropertyDefinition property = new()
+            {
+                Name = "KeyField",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type.IsBinary = true;
+
+            //property.Columns.Add(new MetadataColumn()
+            //{
+            //    Name = "_KeyField",
+            //    Length = 4,
+            //    TypeName = "binary",
+            //    KeyOrdinal = 2,
+            //    IsPrimaryKey = true
+            //});
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_KeyField",
+                    Type = "binary",
+                    Length = 4,
+                    IsPrimaryKey = true
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyНомерСтроки(in TableDefinition table, in TablePart metadata)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "НомерСтроки",
+            //    Uuid = Guid.Empty,
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = CreateDbName(dbn.Name, dbn.Code)
+            //};
+            //property.PropertyType.CanBeNumeric = true;
+            //property.PropertyType.NumericKind = NumericKind.AlwaysPositive;
+            //property.PropertyType.NumericPrecision = 5;
+
+            PropertyDefinition property = new()
+            {
+                Name = "НомерСтроки",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type.IsDecimal = true;
+            property.Type.NumericKind = NumericKind.AlwaysPositive;
+            property.Type.NumericScale = 0;
+            property.Type.NumericPrecision = 5; //TODO: Начиная с 8.3.27, может быть 9
+
+            //property.Columns.Add(new MetadataColumn()
+            //{
+            //    Name = property.DbName,
+            //    Length = 5,
+            //    Precision = 5,
+            //    TypeName = "numeric"
+            //});
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = metadata.GetColumnNameНомерСтроки(),
+                    Type = "numeric",
+                    Scale = 0,
+                    Precision = 5
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        #endregion
+
+        #region "Справочник"
 
         // Последовательность сериализации системных свойств в формат 1С JDTO
         // 1. ЭтоГруппа        = IsFolder           - bool (invert)
@@ -191,16 +360,19 @@
             };
             property.Type.IsBoolean = true;
 
-            property.Columns.Add(new ColumnDefinition()
+            property.Columns = new List<ColumnDefinition>()
             {
-                Name = "_Folder",
-                Type = "binary", // инвертировать !
-                Length = 1
-            });
+                new ColumnDefinition()
+                {
+                    Name = "_Folder",
+                    Type = "binary", // инвертировать !
+                    Length = 1
+                }
+            };
 
             table.Properties.Add(property);
         }
-        internal static void ConfigurePropertyВладелец(in TableDefinition table, in Guid[] owners)
+        internal static void ConfigurePropertyВладелец(in TableDefinition table, in Guid[] owners, int ownerCode)
         {
             PropertyDefinition property = new()
             {
@@ -216,10 +388,7 @@
 
             if (owners.Length == 1) // Single type value
             {
-                //if (registry.TryGetDbName(owners[0], out DbName dbn))
-                //{
-                //    property.Type.TypeCode = dbn.Code;
-                //}
+                property.Type.TypeCode = ownerCode;
 
                 property.Columns = new List<ColumnDefinition>(1)
                 {
@@ -234,6 +403,7 @@
             else // Multiple type value
             {
                 property.Type.TypeCode = 0;
+
                 property.Columns = new List<ColumnDefinition>(3)
                 {
                     new ColumnDefinition()

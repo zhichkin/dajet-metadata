@@ -71,6 +71,19 @@ namespace DaJet
                 return ref Unsafe.AsRef(in this);
             }
         }
+        public ref ConfigFileReader this[ReadOnlySpan<uint> values]
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            get
+            {
+                for (int i = 0; i < values.Length; i++)
+                {
+                    _target[++_length] = values[i];
+                }
+
+                return ref Unsafe.AsRef(in this);
+            }
+        }
 
         public ReadOnlySpan<byte> ValueAsSpan
         {

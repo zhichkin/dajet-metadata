@@ -9,7 +9,7 @@
         internal string Name { get; set; } = string.Empty;
         internal virtual void AddDbName(int code, string name)
         {
-            throw new NotImplementedException();
+            throw new NotImplementedException(); // DefinedType, Enumeration, Property
         }
         public override string ToString()
         {

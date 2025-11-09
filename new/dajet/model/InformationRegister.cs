@@ -1,6 +1,6 @@
 ﻿namespace DaJet
 {
-    internal sealed class InformationRegister : ChangeTrackingObject //RegisterObject
+    internal sealed class InformationRegister : ChangeTrackingObject
     {
         internal static InformationRegister Create(Guid uuid, int code, string name)
         {

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -9,6 +8,12 @@ namespace DaJet
 {
     internal sealed class MetadataRegistry
     {
+        ///<summary>
+        ///Режим совместимости платформы 1С:Предприятие 8,
+        ///<br>согласно которому сконфигурирована база данных</br>
+        ///</summary>
+        internal int CompatibilityVersion { get; set; }
+
         private static readonly FrozenSet<string> SupportedTokens = FrozenSet.ToFrozenSet(
         [
             MetadataToken.VT,
@@ -105,47 +110,111 @@ namespace DaJet
             [MetadataName.BusinessTask] = new Dictionary<string, Guid>()
         };
 
+        internal void EnsureCapacity(in Dictionary<Guid, Guid[]> metadata)
+        {
+            //_registry.EnsureCapacity(98918);
+
+            // _characteristics = 24
+            // _defined_types = 660
+            // _references = 4021
+            // _reference_type_codes = 4021
+            // _registry = 98918
+
+            // _names
+
+            //if (metadata.TryGetValue(MetadataType.SharedProperty, out Guid[] items))
+            //{
+            //    if (_names.TryGetValue(MetadataName.SharedProperty, out Dictionary<string, Guid> names))
+            //    {
+            //        names.EnsureCapacity(items.Length);
+            //    }
+            //}
+        }
+
         #region "Методы инциализации реестра метаданных"
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddEntry(Guid uuid, in MetadataObject entry)
+        {
+            // Безусловное добавление объектов "ОбщийРеквизит" и "ОпределяемыйТип"
+            // Выполняется загрузчиком до заполнения реестра метаданных
+            // Класс MetadataLoader, метод GetMetadataRegistry
+
+            _ = _registry.TryAdd(uuid, entry);
+        }
         internal bool TryAddDbName(Guid uuid, int code, in string token)
         {
             ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
 
-            if (!exists)
+            if (!exists) // Главные объекты метаданных
             {
+                // Токен главного объекта метаданных должен следовать первым в файле DBNames.
+                // Это штатное поведение платформы 1С. Нарушение порядка следования - ошибка.
+
                 if (MainEntryTokens.TryGetValue(token, out Func<Guid, int, string, MetadataObject> factory))
                 {
-                    entry = factory(uuid, code, token); // Главный объект метаданных
+                    entry = factory(uuid, code, token); // Создаём главный объект метаданных
 
                     if (ReferenceTypeTokens.TryGetValue(token, out _))
                     {
-                        _ = _reference_type_codes.TryAdd(code, uuid);
+                        _ = _reference_type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
                     }
                 }
-                else
+                else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
                 {
-                    return false; // Служебный объект метаданных - добавляется в свой главный объект
+                    return false; // Служебный объект метаданных добавляется в список постобработки
                 }
             }
-            else
+            else // Служебные объекты метаданных
             {
-                entry.AddDbName(code, token); // Служебный объект метаданных или общий реквизит (исключение)
+                if (entry is not null) // Главный объект уже добавлен: штатное поведение платформы 1С
+                {
+                    entry.AddDbName(code, token); // Служебный объект метаданных добавляется в свой главный объект
+                }
+                else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
+                {
+                    if (MainEntryTokens.TryGetValue(token, out Func<Guid, int, string, MetadataObject> factory))
+                    {
+                        entry = factory(uuid, code, token); // Создаём главный объект метаданных
+
+                        if (ReferenceTypeTokens.TryGetValue(token, out _))
+                        {
+                            _ = _reference_type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
+                        }
+                    }
+                    else
+                    {
+                        return false; // Служебный объект метаданных добавляется в список постобработки
+                    }
+                }
             }
 
-            return true;
+            return true; // Объект реестра метаданных добавлен успешно
         }
-        internal void AddMissedDbName(Guid uuid, int code, string name)
+        internal void AddMissedDbName(Guid uuid, int code, string token)
         {
-            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
+            //NOTE: Сюда в принципе попадать не планируется ...
 
-            if (exists)
+            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrNullRef(_registry, uuid);
+
+            if (Unsafe.IsNullRef(ref entry))
             {
-                entry.AddDbName(code, name); // Служебный объект метаданных - добавляется в свой главный объект
+                return; // Ключ объекта не найден в реестре метаданных
             }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntry(Guid uuid, in MetadataObject entry)
-        {
-            _ = _registry.TryAdd(uuid, entry);
+
+            if (entry is null) // Ключ объекта найден, но его значение равно null
+            {
+                // Ошибка платформы 1С: служебный объект есть, а главного - нет
+                // Выявлено однажды в конфигурации УНФ - InfoRgOpt ¯\_(ツ)_/¯
+                // Соответствующая служебная таблица в СУБД присутствовала, а главная - нет
+
+                _ = _registry.Remove(uuid);
+
+                return;
+            }
+
+            // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
+
+            entry.AddDbName(code, token); // Служебный объект метаданных добавляется в свой главный объект
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddReference(Guid uuid, Guid reference)
@@ -225,6 +294,21 @@ namespace DaJet
             value = entry as T;
 
             return value is not null;
+        }
+
+        internal int GetTypeCode(Guid uuid)
+        {
+            if (!_registry.TryGetValue(uuid, out MetadataObject entry))
+            {
+                return -1;
+            }
+
+            if (entry is not DatabaseObject dbo)
+            {
+                return -1;
+            }
+
+            return dbo.TypeCode;
         }
 
         internal void UpdateEntry(Guid uuid)

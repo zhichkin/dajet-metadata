@@ -4,20 +4,20 @@ namespace DaJet
 {
     public static class Program
     {
-        private static readonly string MS_CONNECTION = "Data Source=ZHICHKIN;Initial Catalog=erp_uh;Integrated Security=True;Encrypt=False;";
-        private static readonly string PG_CONNECTION = "Host=localhost;Port=5432;Database=erp_uh;Username=postgres;Password=postgres;";
+        private static readonly string MS_CONNECTION = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
+        private static readonly string PG_CONNECTION = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
 
         public static void Main(string[] args)
         {
-            //GetMetadataObject(); return;
+            GetMetadataObject(); return;
 
-            //DumpFile("d11b89e1-90a2-47e7-b43f-7f231ec64b2f"); return;
+            //DumpFile(); return;
 
-            Console.WriteLine("SQL Server");
-            OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
+            //Console.WriteLine("SQL Server");
+            //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
 
-            //Console.WriteLine("PostgreSQL");
-            //OneDbMetadataProvider provider = new(DataSourceType.PostgreSql, in PG_CONNECTION);
+            Console.WriteLine("PostgreSQL");
+            OneDbMetadataProvider provider = new(DataSourceType.PostgreSql, in PG_CONNECTION);
 
             Stopwatch watch = new();
             watch.Start();
@@ -34,7 +34,7 @@ namespace DaJet
             //provider.Dump("Params", "DBNames", "C:\\temp\\1c-dump\\DBNames.txt");
         }
 
-        private static void DumpFile(string fileName)
+        private static void DumpFile()
         {
             // d11b89e1-90a2-47e7-b43f-7f231ec64b2f
             //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
@@ -51,18 +51,33 @@ namespace DaJet
             //}
 
             OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
-            provider.Dump(ConfigTables.Params, "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
+
+            InfoBase infoBase = provider.GetInfoBase();
+
+            string fileName = infoBase.Uuid.ToString().ToLowerInvariant();
+
+            provider.Dump(ConfigTables.Config, fileName, $"C:\\temp\\1c-dump\\config_unf.txt");
+
+            //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
+            //provider.Dump(ConfigTables.Params, "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
         }
 
         private static void GetMetadataObject()
         {
-            OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
+            //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
+            OneDbMetadataProvider provider = new(DataSourceType.PostgreSql, in PG_CONNECTION);
 
             provider.Initialize();
 
+            long start = Stopwatch.GetTimestamp();
+
             TableDefinition metadata = provider.GetMetadataObject("Справочник.Номенклатура");
 
-            Console.WriteLine($"[{metadata.DbName}] {metadata.Name}");
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine($"[{metadata.DbName}] {metadata.Name} in {elapsed.TotalMilliseconds} ms");
         }
     }
 }

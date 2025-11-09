@@ -97,8 +97,10 @@ namespace DaJet
                 }
             }
 
-            if (missed.Count > 0) //NOTE: Сюда в принципе попадать не планируется ...
+            if (missed.Count > 0)
             {
+                //NOTE: Сюда в принципе попадать не планируется ...
+
                 foreach (DbName item in missed)
                 {
                     registry.AddMissedDbName(item.Uuid, item.Code, item.Name);

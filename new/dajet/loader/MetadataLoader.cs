@@ -87,29 +87,32 @@ namespace DaJet
 
             using (ConfigFileBuffer file = Load(root))
             {
-                infoBase = InfoBase.Parse(file.AsReadOnlySpan());
+                Guid uuid = new(file.FileName);
+
+                infoBase = InfoBase.Parse(uuid, file.AsReadOnlySpan());
             }
 
             return infoBase;
         }
-        internal Dictionary<Guid, Guid[]> GetMetadataItems()
+        internal MetadataRegistry GetMetadataRegistry(bool UseExtensions = false)
         {
             Guid root = GetRoot();
+
+            int version;
 
             Dictionary<Guid, Guid[]> metadata;
 
             using (ConfigFileBuffer file = Load(root))
             {
-                metadata = InfoBase.ParseRegistry(file.AsReadOnlySpan());
+                version = InfoBase.Parse(file.AsReadOnlySpan(), out metadata);
             }
 
-            return metadata;
-        }
-        internal MetadataRegistry GetMetadataRegistry(bool UseExtensions = false)
-        {
-            Dictionary<Guid, Guid[]> metadata = GetMetadataItems();
+            MetadataRegistry registry = new()
+            {
+                CompatibilityVersion = version
+            };
 
-            MetadataRegistry registry = new();
+            //TODO: registry.EnsureCapacity(in metadata); // add DBNames into count
 
             Guid[] items;
 
@@ -130,9 +133,7 @@ namespace DaJet
                     registry.AddEntry(uuid, new DefinedType(uuid));
                 }
             }
-
-            //TODO: calculate capacity + registry.EnsureCapacity(metadata + dbnames)
-
+            
             InitializeDBNames(in registry, UseExtensions);
 
             InitializeMetadataRegistry(in metadata, in registry);

@@ -37,38 +37,6 @@
             // Коллекция владельцев данного справочника (uuid'ы объектов метаданных)
             //_converter[1][12] += Owners;
         }
-        private void Owners(ref ConfigFileReader source)
-        {
-            // 1.12.0 - UUID коллекции владельцев справочника !?
-            // 1.12.1 - количество владельцев справочника
-            // 1.12.N - описание владельцев
-            // 1.12.N.2.1 - uuid'ы владельцев (file names)
-
-            _ = source.Read(); // [1][12][0] - UUID коллекции владельцев справочника
-            _ = source.Read(); // [1][12][1] - количество владельцев справочника
-
-            int count = source.ValueAsNumber;
-
-            if (count == 0)
-            {
-                return;
-            }
-
-            int offset = 2; // начальный индекс N [1][12][2]
-
-            for (int n = 0; n < count; n++)
-            {
-                //_converter[1][12][offset + n][2][1] += OwnerUuid;
-            }
-        }
-        private void OwnerUuid(ref ConfigFileReader source)
-        {
-            //if (_entry != null)
-            //{
-            //    _entry.CatalogOwners.Add(source.GetUuid());
-            //}
-        }
-
         internal override TableDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
         {
             TableDefinition table = new();
@@ -78,39 +46,30 @@
                 return null; // Идентификатор объекта не найден или не соответствует его типу
             }
 
-            // Коллекция владельцев данного справочника (uuid'ы объектов метаданных)
-            //_converter[1][12] += Owners;
-
             table.Name = entry.Name;
             table.DbName = entry.GetMainDbName();
 
             ConfigFileReader reader = new(file);
 
-            int codeLength = reader[2][18].SeekNumber();
-            CodeType codeType = (CodeType)reader[2][19].SeekNumber();
-            int nameLength = reader[2][20].SeekNumber();
-            HierarchyType hierarchyType = (HierarchyType)reader[2][37].SeekNumber();
-            bool isHierarchical = reader[2][28].SeekNumber() != 0;
+            // Коллекция владельцев данного справочника (uuid'ы объектов метаданных)
+            Guid[] owners = GetOwners(ref reader); // [2][13][0]
 
-            if (isHierarchical && hierarchyType == HierarchyType.Groups)
-            {
-                Configurator.ConfigurePropertyЭтоГруппа(in table);
-            }
+            // Длина кода
+            int codeLength = reader[2][18].SeekNumber();
+
+            // Тип кода (строка или число)
+            CodeType codeType = (CodeType)reader[2][19].SeekNumber();
+
+            // Длина наименования
+            int nameLength = reader[2][20].SeekNumber();
+
+            // Тип иерархии (группы или элементы)
+            HierarchyType hierarchyType = (HierarchyType)reader[2][37].SeekNumber();
+
+            // Флаг, является ли справочник иерархическим
+            bool isHierarchical = reader[2][38].SeekNumber() != 0;
 
             Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
-            Configurator.ConfigurePropertyПометкаУдаления(in table);
-
-            //List<Guid> owners = cache.GetCatalogOwners(catalog.Uuid);
-
-            //if (owners != null && owners.Count > 0)
-            //{
-            //    ConfigurePropertyВладелец(in cache, in catalog, in owners);
-            //}
-
-            if (isHierarchical)
-            {
-                //TODO: Configurator.ConfigurePropertyРодитель(in table);
-            }
 
             if (codeLength > 0)
             {
@@ -122,16 +81,101 @@
                 Configurator.ConfigurePropertyНаименование(in table, nameLength);
             }
 
-            //TODO: Configurator.ConfigurePropertyПредопределённый(in table, in infoBase);
+            if (owners is not null && owners.Length > 0)
+            {
+                int ownerCode = 0;
+
+                if (owners.Length == 1)
+                {
+                    ownerCode = registry.GetTypeCode(owners[0]);
+                }
+                
+                Configurator.ConfigurePropertyВладелец(in table, in owners, ownerCode);
+            }
+
+            if (isHierarchical)
+            {
+                Configurator.ConfigurePropertyРодитель(in table, entry.TypeCode);
+            }
+
+            if (isHierarchical && hierarchyType == HierarchyType.Groups)
+            {
+                Configurator.ConfigurePropertyЭтоГруппа(in table);
+            }
+
+            Configurator.ConfigurePropertyПометкаУдаления(in table);
+
+            Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
 
             Configurator.ConfigurePropertyВерсияДанных(in table);
+            
+            uint root = 6; // 932159f9-95b2-4e76-a8dd-8849fe5c5ded - идентификатор коллекции табличных частей
 
-            //_converter[5] += TablePartCollection; // 932159f9-95b2-4e76-a8dd-8849fe5c5ded - идентификатор коллекции табличных частей
-            //_converter[6] += PropertyCollection; // cf4abea7-37b2-11d4-940f-008048da11f9 - идентификатор коллекции реквизитов
+            if (reader[root][ConfigFileToken.StartObject].Seek())
+            {
+                TableDefinition[] tables = TablePart.Parse(ref reader, root, entry, in registry);
+
+                if (tables is not null)
+                {
+                    table.Tables.AddRange(tables);
+                }
+            }
+            
+            root = 7; // Коллекция свойств объекта - PropertyTypes.Catalog_Properties
+
+            uint[] offset = [7];
+
+            if (reader[root][ConfigFileToken.StartObject].Seek())
+            {
+                PropertyDefinition[] properties = Property.Parse(ref reader, offset, in registry);
+
+                if (properties is not null)
+                {
+                    table.Properties.AddRange(properties);
+                }
+            }
 
             //TODO: Добавить общие реквизиты
 
             return table;
+        }
+
+        private static Guid[] GetOwners(ref ConfigFileReader reader)
+        {
+            // 2.13.0 - корень коллекции (фигурная скобка)
+            // 2.13.1 - UUID коллекции владельцев справочника !?
+            // 2.13.2 - количество владельцев справочника
+            // 2.13.N - описание владельцев
+            // 2.13.N.3.2 - uuid'ы владельцев (file names)
+
+            if (!reader[2][13][ConfigFileToken.StartObject].Seek())
+            {
+                return null;
+            }
+
+            if (!reader.Read()) // [2][13][1] - Пропускаем
+            {
+                return null; // Что-то пошло не так =)
+            }
+
+            // Количество владельцев справочника
+            int count = reader[2][13][2].SeekNumber();
+
+            if (count == 0)
+            {
+                return null; // Данный справочник не имеет владельцев
+            }
+
+            Guid[] owners = new Guid[count];
+
+            uint offset = 3; // Cмещение от корневого узла [2][13][0]
+
+            for (uint i = 0; i < owners.Length; i++)
+            {
+                owners[i] = reader[2][13][i + offset][3][2].SeekUuid();
+            }
+
+            return owners;
         }
     }
 }

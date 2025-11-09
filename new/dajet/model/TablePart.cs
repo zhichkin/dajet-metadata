@@ -1,4 +1,6 @@
-﻿namespace DaJet
+﻿using System.Buffers;
+
+namespace DaJet
 {
     internal sealed class TablePart : DatabaseObject
     {
@@ -16,13 +18,82 @@
                 _LineNo = code;
             }
         }
-        internal string GetColumnNameСсылка()
-        {
-            return string.Format("_{0}{1}_{2}", DbName, TypeCode, MetadataToken.IDRRef);
-        }
         internal string GetColumnNameНомерСтроки()
         {
             return string.Format("_{0}{1}", MetadataToken.LineNo, _LineNo);
+        }
+
+        internal static TableDefinition[] Parse(ref ConfigFileReader reader, uint root, in DatabaseObject owner, in MetadataRegistry registry)
+        {
+            Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
+            int count = reader[root][2].SeekNumber(); // количество элементов коллекции
+
+            if (count == 0) { return null; }
+
+            TableDefinition[] array = new TableDefinition[count];
+
+            for (uint i = 0; i < array.Length; i++)
+            {
+                TableDefinition table = new(); array[i] = table;
+
+                uint offset = i + 3; // Добавляем смещение от корневого узла
+
+                if (reader[root][offset][ConfigFileToken.StartObject].Seek())
+                {
+                    Guid uuid = reader[root][offset][1][2][6][2][2][3].SeekUuid();
+
+                    if (registry.TryGetEntry(uuid, out TablePart entry))
+                    {
+                        table.DbName = string.Format("{0}{1}", owner.GetMainDbName(), entry.GetMainDbName());
+                    }
+                    else
+                    {
+                        //TODO: Зафиксировать ошибку.
+                        //TODO: Табличная часть не найдена в реестре объектов метаданных,
+                        //TODO: а это значит, что у неё нет соответствующей таблицы в базе данных
+                    }
+
+                    table.Name = reader[root][offset][1][2][6][2][3].SeekString();
+
+                    //NOTE: доинициализация объекта реестра метаданных !?
+                    //if (string.IsNullOrEmpty(entry.Name))
+                    //{
+                    //    entry.Name = table.Name;
+                    //}
+
+                    //if (_cache != null && _cache.Extension != null) // [5][2] 0.1.5.1.8 = 0 если заимствование отстутствует
+                    //{
+                    //    _converter[0][1][5][1][9] += Parent; // uuid расширяемого объекта метаданных
+                    //}
+
+                    Configurator.ConfigureTablePart(in table, in entry, in owner);
+
+                    //uint[] anchor = [root, offset, 3];
+
+                    uint[] anchor = ArrayPool<uint>.Shared.Rent(3);
+                    anchor[0] = root;
+                    anchor[1] = offset;
+                    anchor[2] = 3;
+                    ReadOnlySpan<uint> slice = anchor.AsSpan()[0..3];
+
+                    if (reader[slice][ConfigFileToken.StartObject].Seek())
+                    {
+                        PropertyDefinition[] properties = Property.Parse(ref reader, slice, in registry);
+
+                        if (properties is not null)
+                        {
+                            table.Properties.AddRange(properties);
+                        }
+                    }
+
+                    if (anchor is not null)
+                    {
+                        ArrayPool<uint>.Shared.Return(anchor);
+                    }
+                }
+            }
+
+            return array;
         }
     }
 }

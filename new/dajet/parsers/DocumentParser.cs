@@ -66,6 +66,7 @@
             for (uint i = 2; i < count; i++)
             {
                 Guid register = reader[2][25][i + 1][3][2].SeekUuid();
+
                 registry.AddRecorderToRegister(document, register);
             }
         }

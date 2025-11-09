@@ -7,11 +7,21 @@ namespace Benchmark
     public static class Program
     {
         private static int size = 16;
-        private static byte left, right;
-        //private static ConfigFileVector span2 = new();
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<InitializeMetadataBenchmarks>();
+            if (args is not null && args.Length > 0)
+            {
+                if (args[0] == "table")
+                {
+                    BenchmarkRunner.Run<GetTableDefinitionBenchmarks>();
+                }
+            }
+            else
+            {
+                BenchmarkRunner.Run<InitializeMetadataBenchmarks>();
+            }
+            
+            //BenchmarkRunner.Run<InitializeMetadataBenchmarks>();
             //BenchmarkRunner.Run<ConfigFileReaderBenchmarks>();
 
             //ReadOnlySpan<byte> array = [0, 1, 2, 3];
