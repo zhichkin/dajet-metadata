@@ -15,6 +15,10 @@
         {
             _loader.Dump(in tableName, in fileName, in outputPath);
         }
+        public void Initialize()
+        {
+            _registry = _loader.GetMetadataRegistry(UseExtensions);
+        }
         public int GetYearOffset()
         {
             return _loader.GetYearOffset();
@@ -46,16 +50,20 @@
                 return null;
             }
 
+            TableDefinition table;
             CatalogParser parser = new();
 
             using (ConfigFileBuffer file = _loader.Load(metadata.Uuid))
             {
-                return parser.Load(metadata.Uuid, file.AsReadOnlySpan(), in _registry);
+                table = parser.Load(metadata.Uuid, file.AsReadOnlySpan(), in _registry);
             }
+
+            return table;
         }
-        public void Initialize()
+
+        public TableDefinition ParseConfigFile(Guid metadataUuid, ReadOnlySpan<byte> fileData)
         {
-            _registry = _loader.GetMetadataRegistry(UseExtensions);
+            return new CatalogParser().Load(metadataUuid, fileData, in _registry);
         }
     }
 }

@@ -1,6 +1,4 @@
-﻿using System.Reflection.Metadata;
-
-namespace DaJet
+﻿namespace DaJet
 {
     internal static class Configurator
     {
@@ -50,8 +48,7 @@ namespace DaJet
                 Name = "Ссылка",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsEntity = true;
-            property.Type.TypeCode = owner.TypeCode;
+            property.Type = DataType.Entity(owner.TypeCode);
 
             //if (cache.ResolveReferences)
             //{
@@ -101,7 +98,7 @@ namespace DaJet
                 Name = "KeyField",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsBinary = true;
+            property.Type = DataType.Integer();
 
             //property.Columns.Add(new MetadataColumn()
             //{
@@ -143,10 +140,8 @@ namespace DaJet
                 Name = "НомерСтроки",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsDecimal = true;
-            property.Type.NumericKind = NumericKind.AlwaysPositive;
-            property.Type.NumericScale = 0;
-            property.Type.NumericPrecision = 5; //TODO: Начиная с 8.3.27, может быть 9
+            //TODO: Начиная с 8.3.27, параметр precision может быть равен 9
+            property.Type = DataType.Decimal(5, 0, NumericKind.AlwaysPositive);
 
             //property.Columns.Add(new MetadataColumn()
             //{
@@ -190,8 +185,7 @@ namespace DaJet
                 Name = "Ссылка",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsEntity = true;
-            property.Type.TypeCode = typeCode;
+            property.Type = DataType.Entity(typeCode);
 
             //if (options.ResolveReferences)
             //{
@@ -218,7 +212,7 @@ namespace DaJet
                 Name = "ВерсияДанных",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsBinary = true;
+            property.Type = DataType.Integer(8);
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -240,7 +234,7 @@ namespace DaJet
                 Name = "ПометкаУдаления",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsBoolean = true;
+            property.Type = DataType.Boolean();
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -264,9 +258,7 @@ namespace DaJet
 
             if (codeType == CodeType.String)
             {
-                property.Type.IsString = true;
-                property.Type.StringKind = StringKind.Variable;
-                property.Type.StringLength = codeLength;
+                property.Type = DataType.String((ushort)codeLength, StringKind.Variable);
 
                 property.Columns = new List<ColumnDefinition>(1)
                 {
@@ -280,10 +272,7 @@ namespace DaJet
             }
             else
             {
-                property.Type.IsDecimal = true;
-                property.Type.NumericKind = NumericKind.AlwaysPositive;
-                property.Type.NumericScale = 0;
-                property.Type.NumericPrecision = codeLength;
+                property.Type = DataType.Decimal((byte)codeLength, 0, NumericKind.AlwaysPositive);
 
                 property.Columns = new List<ColumnDefinition>(1)
                 {
@@ -306,8 +295,8 @@ namespace DaJet
                 Name = "Наименование",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsString = true;
-            property.Type.StringLength = nameLength;
+            //NOTE: длина наименования ограничена 150 символами
+            property.Type = DataType.String((ushort)nameLength, StringKind.Variable);
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -331,8 +320,7 @@ namespace DaJet
                 Purpose = PropertyPurpose.System
             };
 
-            property.Type.IsEntity = true;
-            property.Type.TypeCode = typeCode;
+            property.Type = DataType.Entity(typeCode);
 
             //if (options.ResolveReferences)
             //{
@@ -358,7 +346,7 @@ namespace DaJet
                 Name = "ЭтоГруппа",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsBoolean = true;
+            property.Type = DataType.Boolean();
 
             property.Columns = new List<ColumnDefinition>()
             {
@@ -379,7 +367,7 @@ namespace DaJet
                 Name = "Владелец",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsEntity = true;
+            property.Type = DataType.Entity();
 
             //if (options.ResolveReferences && owners is not null && owners.Count > 0)
             //{
@@ -454,7 +442,7 @@ namespace DaJet
                 Name = "Предопределенный",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsBoolean = true;
+            property.Type = DataType.Boolean();
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -475,7 +463,7 @@ namespace DaJet
                 Name = "Предопределенный",
                 Purpose = PropertyPurpose.System
             };
-            property.Type.IsUuid = true;
+            property.Type = DataType.Uuid();
 
             property.Columns = new List<ColumnDefinition>(1)
             {

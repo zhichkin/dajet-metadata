@@ -15,6 +15,10 @@ namespace Benchmark
                 {
                     BenchmarkRunner.Run<GetTableDefinitionBenchmarks>();
                 }
+                else if (args[0] == "parser")
+                {
+                    BenchmarkRunner.Run<ConfigFileReaderBenchmarks>();
+                }
             }
             else
             {

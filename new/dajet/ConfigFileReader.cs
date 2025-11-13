@@ -84,16 +84,100 @@ namespace DaJet
                 return ref Unsafe.AsRef(in this);
             }
         }
-
-        public ReadOnlySpan<byte> ValueAsSpan
+        public string VectorAsString
         {
             get
             {
-                if (_valueStart == 0 && _valueEnd == 0)
+                StringBuilder vector = new(64);
+
+                for (int element = 0; element <= _element; element++)
+                {
+                    uint value = _vector[element];
+
+                    if (value == ConfigFileToken.StartObject) { vector.Append(' ').Append('{'); }
+                    else if (value == ConfigFileToken.EndObject) { vector.Append(' ').Append('}'); }
+                    else
+                    {
+                        vector.Append('[');
+                        vector.Append(value);
+                        vector.Append(']');
+                    }
+                }
+
+                return vector.ToString();
+            }
+        }
+
+        public readonly ReadOnlySpan<byte> GetBytes()
+        {
+            int length = _valueEnd - _valueStart;
+
+            if (length < 1)
+            {
+                return ReadOnlySpan<byte>.Empty;
+            }
+
+            if (_token != ConfigFileToken.String)
+            {
+                return _buffer[_valueStart.._valueEnd];
+            }
+
+            if (length < 2)
+            {
+                return ReadOnlySpan<byte>.Empty; // Пустая строка
+            }
+
+            int start = _valueStart + 1;
+            length = _valueEnd - 1;
+
+            return _buffer[start..length];
+        }
+        public readonly int GetChars(Span<char> buffer)
+        {
+            int length = _valueEnd - _valueStart;
+
+            if (length < 1)
+            {
+                return 0; // Пустое значение
+            }
+
+            ReadOnlySpan<byte> value;
+
+            if (_token != ConfigFileToken.String)
+            {
+                value = _buffer[_valueStart..Math.Min(length, buffer.Length)];
+
+                return Encoding.UTF8.GetChars(value, buffer);
+            }
+
+            if (length < 2)
+            {
+                return 0; // Пустая строка
+            }
+
+            int start = _valueStart + 1;
+            
+            length = _valueEnd -1;
+
+            value = _buffer[start..length];
+
+            return Encoding.UTF8.GetChars(value, buffer);
+        }
+
+        private ReadOnlySpan<byte> ValueAsSpan
+        {
+            get
+            {
+                int length = _valueEnd - _valueStart;
+
+                if (length < 1)
                 {
                     return ReadOnlySpan<byte>.Empty;
                 }
-                return _buffer[_valueStart.._valueEnd];
+                else
+                {
+                    return _buffer[_valueStart.._valueEnd];
+                }
             }
         }
         public Guid ValueAsUuid
@@ -179,30 +263,7 @@ namespace DaJet
                 return result;
             }
         }
-        public string VectorAsString
-        {
-            get
-            {
-                StringBuilder vector = new(64);
-
-                for (int element = 0; element <= _element; element++)
-                {
-                    uint value = _vector[element];
-
-                    if (value == ConfigFileToken.StartObject) { vector.Append(' ').Append('{'); }
-                    else if (value == ConfigFileToken.EndObject) { vector.Append(' ').Append('}'); }
-                    else
-                    {
-                        vector.Append('[');
-                        vector.Append(value);
-                        vector.Append(']');
-                    }
-                }
-
-                return vector.ToString();
-            }
-        }
-
+        
         public Guid SeekUuid() => Seek() ? ValueAsUuid : Guid.Empty;
         public int SeekNumber() => Seek() ? ValueAsNumber : 0;
         public string SeekString() => Seek() ? ValueAsString : string.Empty;

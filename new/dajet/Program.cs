@@ -9,7 +9,9 @@ namespace DaJet
 
         public static void Main(string[] args)
         {
-            GetMetadataObject(); return;
+            TestDataType(); return;
+
+            //GetMetadataObject(); return;
 
             //DumpFile(); return;
 
@@ -62,6 +64,30 @@ namespace DaJet
             //provider.Dump(ConfigTables.Params, "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
         }
 
+        private static void TestDataType()
+        {
+            DataType type = new();
+            type.IsBoolean = true;
+            Console.WriteLine(type.ToString());
+            Console.WriteLine($"IsUnion = {type.IsUnion}");
+
+            type.IsDecimal = true;
+            Console.WriteLine(type.ToString());
+            Console.WriteLine($"IsUnion = {type.IsUnion}");
+
+            type.IsUuid = true;
+            Console.WriteLine(type.ToString());
+            Console.WriteLine($"IsUnion = {type.IsUnion}");
+
+            type = DataType.Union(DataType.String(10), DataType.Entity(123));
+            Console.WriteLine(type.ToString());
+            Console.WriteLine($"IsUnion = {type.IsUnion}");
+
+            type.IsInteger = true;
+            Console.WriteLine(type.ToString());
+            Console.WriteLine($"IsUnion = {type.IsUnion}");
+        }
+
         private static void GetMetadataObject()
         {
             //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
@@ -77,7 +103,7 @@ namespace DaJet
 
             TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
 
-            Console.WriteLine($"[{metadata.DbName}] {metadata.Name} in {elapsed.TotalMilliseconds} ms");
+            Console.WriteLine($"[{metadata.DbName}] {metadata.Name} loaded in {elapsed.TotalMilliseconds} ms");
         }
     }
 }

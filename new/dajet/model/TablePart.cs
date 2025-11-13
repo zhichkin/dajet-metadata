@@ -1,6 +1,4 @@
-﻿using System.Buffers;
-
-namespace DaJet
+﻿namespace DaJet
 {
     internal sealed class TablePart : DatabaseObject
     {
@@ -32,15 +30,17 @@ namespace DaJet
 
             TableDefinition[] array = new TableDefinition[count];
 
+            uint[] vector = [root, 0, 3]; // Адрес коллекции свойств табличной части
+
             for (uint i = 0; i < array.Length; i++)
             {
                 TableDefinition table = new(); array[i] = table;
 
-                uint offset = i + 3; // Добавляем смещение от корневого узла
+                uint N = i + 3; // Добавляем смещение от корневого узла [root][0]
 
-                if (reader[root][offset][ConfigFileToken.StartObject].Seek())
+                if (reader[root][N][ConfigFileToken.StartObject].Seek())
                 {
-                    Guid uuid = reader[root][offset][1][2][6][2][2][3].SeekUuid();
+                    Guid uuid = reader[root][N][1][2][6][2][2][3].SeekUuid();
 
                     if (registry.TryGetEntry(uuid, out TablePart entry))
                     {
@@ -53,13 +53,7 @@ namespace DaJet
                         //TODO: а это значит, что у неё нет соответствующей таблицы в базе данных
                     }
 
-                    table.Name = reader[root][offset][1][2][6][2][3].SeekString();
-
-                    //NOTE: доинициализация объекта реестра метаданных !?
-                    //if (string.IsNullOrEmpty(entry.Name))
-                    //{
-                    //    entry.Name = table.Name;
-                    //}
+                    table.Name = reader[root][N][1][2][6][2][3].SeekString();
 
                     //if (_cache != null && _cache.Extension != null) // [5][2] 0.1.5.1.8 = 0 если заимствование отстутствует
                     //{
@@ -68,27 +62,16 @@ namespace DaJet
 
                     Configurator.ConfigureTablePart(in table, in entry, in owner);
 
-                    //uint[] anchor = [root, offset, 3];
+                    vector[1] = N; // Коллекция свойств текущей табличной части
 
-                    uint[] anchor = ArrayPool<uint>.Shared.Rent(3);
-                    anchor[0] = root;
-                    anchor[1] = offset;
-                    anchor[2] = 3;
-                    ReadOnlySpan<uint> slice = anchor.AsSpan()[0..3];
-
-                    if (reader[slice][ConfigFileToken.StartObject].Seek())
+                    if (reader[vector][ConfigFileToken.StartObject].Seek())
                     {
-                        PropertyDefinition[] properties = Property.Parse(ref reader, slice, in registry);
+                        PropertyDefinition[] properties = Property.Parse(ref reader, vector, in registry);
 
                         if (properties is not null)
                         {
                             table.Properties.AddRange(properties);
                         }
-                    }
-
-                    if (anchor is not null)
-                    {
-                        ArrayPool<uint>.Shared.Return(anchor);
                     }
                 }
             }

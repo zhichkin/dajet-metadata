@@ -3,7 +3,7 @@
     public sealed class PropertyDefinition
     {
         public string Name { get; set; } = string.Empty;
-        public TypeDefinition Type { get; set; } = new();
+        public DataType Type { get; set; }
         public PropertyPurpose Purpose { get; set; } = PropertyPurpose.System;
 
         /// <summary>Вариант использования реквизита для групп и элементов</summary>

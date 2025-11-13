@@ -3,7 +3,7 @@
     public sealed class ColumnDefinition
     {
         public string Name { get; set; } = string.Empty;
-        public ColumnPurpose Purpose { get; set; } = ColumnPurpose.Default;
+        public ColumnPurpose Purpose { get; set; } = ColumnPurpose.Value;
         public string Type { get; set; } = string.Empty;
         ///<summary>Квалификатор: длина строки в символах. Неограниченная длина равна 0.</summary>
         public int Length { get; set; }

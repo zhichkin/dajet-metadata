@@ -23,11 +23,16 @@ namespace Benchmark
         private static byte[] _data; // database data
         private static byte[] _buffer; // decompressed
 
+        private static Guid metadataUuid = new Guid("bea7f781-5f18-4219-997c-9a767fb284be");
+        private static readonly OneDbMetadataProvider ms_unf_provider = new(DataSourceType.SqlServer, MS_CONNECTION);
+
         [GlobalSetup]
         public void GlobalSetup()
         {
-            GetConfigFileData("46bd4919-eaaa-4d20-9448-1c15fffa60a4"); // Справочник
+            GetConfigFileData("bea7f781-5f18-4219-997c-9a767fb284be"); // Справочник "Номенклатура"
             DecompressConfigFile();
+
+            ms_unf_provider.Initialize();
         }
         [GlobalCleanup]
         public void GlobalCleanup()
@@ -99,130 +104,144 @@ namespace Benchmark
             }
         }
 
-        [Benchmark(Description = "Seek (old)")]
-        public int SeekConfigFile()
+        [Benchmark(Description = "Parser")]
+        public TableDefinition ParseConfigFile()
         {
-            int result = 0;
+            TableDefinition table = ms_unf_provider.ParseConfigFile(metadataUuid, _buffer);
 
-            ConfigFileReader reader = new(_buffer);
+            //Console.WriteLine($"[{table.DbName}] {table.Name} {{{table.Properties.Count}}} = {_buffer.Length} bytes");
 
-            uint[] vector = ArrayPool<uint>.Shared.Rent(16);
-
-            vector[0] = 2;
-            vector[1] = 10;
-            vector[2] = 2;
-            vector[3] = 3;
-
-            if (reader.Seek(vector.AsSpan(0, 4)))
-            {
-                result++;
-            }
-
-            vector[0] = 2;
-            vector[1] = 10;
-            vector[2] = 2;
-            vector[3] = 4;
-            vector[4] = 3;
-
-            if (reader.Seek(vector.AsSpan(0, 5)))
-            {
-                result++;
-            }
-
-            vector[0] = 7;
-            vector[1] = 17;
-            vector[2] = 1;
-            vector[3] = 2;
-            vector[4] = 2;
-            vector[5] = 2;
-            vector[6] = 3;
-
-            if (reader.Seek(vector.AsSpan(0, 7)))
-            {
-                result++;
-            }
-
-            vector[0] = ConfigFileToken.EndObject;
-
-            if (reader.Seek(vector.AsSpan(0, 1)))
-            {
-                result++;
-            }
-
-            ArrayPool<uint>.Shared.Return(vector);
-
-            return result;
+            return table;
         }
 
-        [Benchmark(Description = "Seek (new)")]
-        public int FindConfigFile()
-        {
-            int result = 0;
+        #region "Старые тесты allocation-free stack-based парсера"
 
-            ConfigFileReader reader = new(_buffer);
+        //        [Benchmark(Description = "Seek (old)")]
+        //        public int SeekConfigFile()
+        //        {
+        //            int result = 0;
 
-            if (reader[2][10][2][3].Seek())
-            {
-                result++;
-            }
+        //            ConfigFileReader reader = new(_buffer);
 
-            if (reader[2][10][2][4][3].Seek())
-            {
-                result++;
-            }
+        //            uint[] vector = ArrayPool<uint>.Shared.Rent(16);
 
-            if (reader[7][17][1][2][2][2][3].Seek())
-            {
-                result++;
-            }
+        //            vector[0] = 2;
+        //            vector[1] = 10;
+        //            vector[2] = 2;
+        //            vector[3] = 3;
 
-            if (reader[7][17][1][2][5][3].Seek())
-            {
-                result++;
-            }
+        //            if (reader.Seek(vector.AsSpan(0, 4)))
+        //            {
+        //                result++;
+        //            }
 
-            if (reader[ConfigFileToken.EndObject].Seek())
-            {
-                result++;
-            }
+        //            vector[0] = 2;
+        //            vector[1] = 10;
+        //            vector[2] = 2;
+        //            vector[3] = 4;
+        //            vector[4] = 3;
 
-            return result;
-        }
+        //            if (reader.Seek(vector.AsSpan(0, 5)))
+        //            {
+        //                result++;
+        //            }
 
-        [Benchmark(Description = "Vectorized")]
-        public int VectorizedSeekConfigFile()
-        {
-#pragma warning disable CFREADER_VECTORIZED
+        //            vector[0] = 7;
+        //            vector[1] = 17;
+        //            vector[2] = 1;
+        //            vector[3] = 2;
+        //            vector[4] = 2;
+        //            vector[5] = 2;
+        //            vector[6] = 3;
 
-            int result = 0;
+        //            if (reader.Seek(vector.AsSpan(0, 7)))
+        //            {
+        //                result++;
+        //            }
 
-            ConfigFileReader reader = new(_buffer);
+        //            vector[0] = ConfigFileToken.EndObject;
 
-            if (reader[2][10][2][3].SeekVectorized())
-            {
-                result++;
-            }
+        //            if (reader.Seek(vector.AsSpan(0, 1)))
+        //            {
+        //                result++;
+        //            }
 
-            if (reader[2][10][2][4][3].SeekVectorized())
-            {
-                result++;
-            }
+        //            ArrayPool<uint>.Shared.Return(vector);
 
-            if (reader[7][17][1][2][2][2][3].SeekVectorized())
-            {
-                result++;
-            }
+        //            return result;
+        //        }
 
-            if (reader[ConfigFileToken.EndObject].SeekVectorized())
-            {
-                result++;
-            }
+        //        [Benchmark(Description = "Seek (new)")]
+        //        public int FindConfigFile()
+        //        {
+        //            int result = 0;
 
-            //Console.WriteLine($"Result = {result}");
+        //            ConfigFileReader reader = new(_buffer);
 
-#pragma warning restore CFREADER_VECTORIZED
+        //            if (reader[2][10][2][3].Seek())
+        //            {
+        //                result++;
+        //            }
 
-            return result;
-        }
+        //            if (reader[2][10][2][4][3].Seek())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[7][17][1][2][2][2][3].Seek())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[7][17][1][2][5][3].Seek())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[ConfigFileToken.EndObject].Seek())
+        //            {
+        //                result++;
+        //            }
+
+        //            return result;
+        //        }
+
+        //        [Benchmark(Description = "Vectorized")]
+        //        public int VectorizedSeekConfigFile()
+        //        {
+        //#pragma warning disable CFREADER_VECTORIZED
+
+        //            int result = 0;
+
+        //            ConfigFileReader reader = new(_buffer);
+
+        //            if (reader[2][10][2][3].SeekVectorized())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[2][10][2][4][3].SeekVectorized())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[7][17][1][2][2][2][3].SeekVectorized())
+        //            {
+        //                result++;
+        //            }
+
+        //            if (reader[ConfigFileToken.EndObject].SeekVectorized())
+        //            {
+        //                result++;
+        //            }
+
+        //            //Console.WriteLine($"Result = {result}");
+
+        //#pragma warning restore CFREADER_VECTORIZED
+
+        //            return result;
+        //        }
+
+        #endregion
     }
 }

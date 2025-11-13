@@ -108,8 +108,8 @@
             Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
 
             Configurator.ConfigurePropertyВерсияДанных(in table);
-            
-            uint root = 6; // 932159f9-95b2-4e76-a8dd-8849fe5c5ded - идентификатор коллекции табличных частей
+
+            uint root = 6; // Коллекция табличных частей объекта - PropertyTypes.Catalog_TableParts  
 
             if (reader[root][ConfigFileToken.StartObject].Seek())
             {
@@ -123,11 +123,11 @@
             
             root = 7; // Коллекция свойств объекта - PropertyTypes.Catalog_Properties
 
-            uint[] offset = [7];
+            uint[] vector = [root];
 
             if (reader[root][ConfigFileToken.StartObject].Seek())
             {
-                PropertyDefinition[] properties = Property.Parse(ref reader, offset, in registry);
+                PropertyDefinition[] properties = Property.Parse(ref reader, vector, in registry);
 
                 if (properties is not null)
                 {
@@ -136,6 +136,8 @@
             }
 
             //TODO: Добавить общие реквизиты
+
+            //Console.WriteLine($"Consumed {reader.Consumed} bytes");
 
             return table;
         }

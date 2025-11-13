@@ -1,5 +1,4 @@
 ﻿using System.Collections.Frozen;
-using System.Text;
 
 namespace DaJet
 {
@@ -38,7 +37,6 @@ namespace DaJet
             string name;
             bool supported = false;
             int length;
-            ReadOnlySpan<byte> token;
             Span<char> buffer = stackalloc char[32];
 
             List<DbName> missed = [];
@@ -58,14 +56,7 @@ namespace DaJet
 
                     if (reader.Read() && reader.Token == ConfigFileToken.String)
                     {
-                        token = reader.ValueAsSpan;
-
-                        if (token.StartsWith(CharBytes.Quote))
-                        {
-                            token = token[1..(token.Length - 1)];
-                        }
-
-                        length = Encoding.UTF8.GetChars(token, buffer);
+                        length = reader.GetChars(buffer);
 
                         supported = lookup.TryGetValue(buffer[..length], out name);
                     }

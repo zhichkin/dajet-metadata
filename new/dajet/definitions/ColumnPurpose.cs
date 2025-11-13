@@ -1,11 +1,11 @@
 ﻿namespace DaJet
 {
-    public enum ColumnPurpose
+    public enum ColumnPurpose : byte
     {
         ///<summary>Single type value of the property. _Fld
-        ///<br>Default purpose - single value storage.</br>
+        ///<br>Value purpose - single value storage.</br>
         ///</summary>
-        Default,
+        Value,
         ///<summary><b>Discriminated (tagged) union</b>
         ///<br>Составной тип данных _Fld + _TYPE binary(1)</br>
         ///<br><b>0x01</b> - Неопределено = null</br>
@@ -26,7 +26,7 @@
         DateTime,
         ///<summary>0x05 String value (string) _Fld + _S nvarchar | nchar</summary>
         String,
-        ///<summary>0x06 Binary value (byte[]) _Fld + _B binary(max)</summary>
+        ///<summary>0x06 Binary value (byte[]) _Fld + _B varbinary(max)</summary>
         Binary,
         ///<summary>Type code of the reference type (int) _Fld + _RTRef binary(4)</summary>
         TypeCode,
@@ -37,7 +37,7 @@
     {
         public static string GetNameRu(this ColumnPurpose purpose)
         {
-            if (purpose == ColumnPurpose.Default) { return "Значение"; }
+            if (purpose == ColumnPurpose.Value) { return "Значение"; }
             else if (purpose == ColumnPurpose.Tag) { return "Дискриминатор"; }
             else if (purpose == ColumnPurpose.Boolean) { return "Булево"; }
             else if (purpose == ColumnPurpose.Numeric) { return "Число"; }
@@ -61,7 +61,7 @@
 
             char test = fieldName[fieldName.Length - 1];
 
-            if (char.IsDigit(test)) return ColumnPurpose.Default;
+            if (char.IsDigit(test)) return ColumnPurpose.Value;
 
             if (test == L)
             {
@@ -103,7 +103,7 @@
                 return ColumnPurpose.Identity;
             }
 
-            return ColumnPurpose.Default;
+            return ColumnPurpose.Value;
         }
         public static string GetLiteral(this ColumnPurpose purpose)
         {
@@ -166,46 +166,9 @@
                 return "0x" + DbUtilities.ByteArrayToString(bytes); // '\\x00000024'
             }
         }
-        public static UnionTag GetUnionTag(this ColumnPurpose purpose)
-        {
-            if (purpose == ColumnPurpose.Tag)
-            {
-                return UnionTag.Tag;
-            }
-            else if (purpose == ColumnPurpose.Boolean)
-            {
-                return UnionTag.Boolean;
-            }
-            else if (purpose == ColumnPurpose.Numeric)
-            {
-                return UnionTag.Decimal;
-            }
-            else if (purpose == ColumnPurpose.DateTime)
-            {
-                return UnionTag.DateTime;
-            }
-            else if (purpose == ColumnPurpose.String)
-            {
-                return UnionTag.String;
-            }
-            else if (purpose == ColumnPurpose.Binary)
-            {
-                return UnionTag.Binary;
-            }
-            else if (purpose == ColumnPurpose.TypeCode)
-            {
-                return UnionTag.TypeCode;
-            }
-            else if (purpose == ColumnPurpose.Identity)
-            {
-                return UnionTag.Entity;
-            }
-
-            return UnionTag.Undefined; // ColumnPurpose.Default
-        }
         public static string GetColumnPostfix(this ColumnPurpose purpose)
         {
-            if (purpose == ColumnPurpose.Default) { return string.Empty; }
+            if (purpose == ColumnPurpose.Value) { return string.Empty; }
             else if (purpose == ColumnPurpose.Tag) { return "_TYPE"; }
             else if (purpose == ColumnPurpose.Boolean) { return "_L"; }
             else if (purpose == ColumnPurpose.Numeric) { return "_N"; }
