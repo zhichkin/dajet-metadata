@@ -88,10 +88,10 @@ namespace DaJet
 
         private readonly Dictionary<Guid, MetadataObject> _registry = new();
         private readonly Dictionary<int, Guid> _reference_type_codes = new();
+        private readonly ConcurrentDictionary<Guid, Guid> _references = new();
         private readonly Dictionary<Guid, Guid> _defined_types = new();
         private readonly Dictionary<Guid, Guid> _characteristics = new();
         private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
-        private readonly ConcurrentDictionary<Guid, Guid> _references = new();
         private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
         {
             [MetadataName.SharedProperty] = new Dictionary<string, Guid>(),
@@ -255,6 +255,95 @@ namespace DaJet
         }
         #endregion
 
+        internal bool TryGetReference(Guid reference, out DatabaseObject entry)
+        {
+            if (!_references.TryGetValue(reference, out Guid uuid))
+            {
+                entry = null;
+                return false;
+            }
+
+            return TryGetEntry(uuid, out entry);
+        }
+        internal bool TryGetDefinedType(Guid reference, out DefinedType entry)
+        {
+            if (!_defined_types.TryGetValue(reference, out Guid uuid))
+            {
+                entry = null;
+                return false;
+            }
+
+            return TryGetEntry(uuid, out entry);
+        }
+        internal bool TryGetCharacteristic(Guid reference, out Characteristic entry)
+        {
+            if (!_characteristics.TryGetValue(reference, out Guid uuid))
+            {
+                entry = null;
+                return false;
+            }
+
+            return TryGetEntry(uuid, out entry);
+        }
+
+        internal int GetGenericTypeCode(Guid generic)
+        {
+            string name = ReferenceType.GetMetadataName(generic);
+
+            if (!_names.TryGetValue(name, out Dictionary<string, Guid> items))
+            {
+                return -1; // Нет ни одного объекта метаданных данного типа
+            }
+
+            if (items is null || items.Count == 0)
+            {
+                return -1; // Нет ни одного объекта метаданных данного типа
+            }
+
+            if (items.Count == 1) // Единственный объект метаданных общего типа
+            {
+                Guid uuid = items.Values.FirstOrDefault();
+
+                if (TryGetEntry(uuid, out DatabaseObject entry))
+                {
+                    return entry.TypeCode;
+                }
+            }
+
+            return 0; // Количество объектов данного типа больше 1
+        }
+        internal int GetGenericTypeCode(in List<Guid> generics)
+        {
+            int typeCode = -1; // Нет ни одного конкретного ссылочного типа
+
+            foreach (Guid generic in generics)
+            {
+                typeCode = GetGenericTypeCode(generic);
+
+                if (typeCode == 0) // Объектов метаданных больше 1
+                {
+                    return 0; // Составной ссылочный тип
+                }
+            }
+
+            return typeCode;
+        }
+
+        internal int GetTypeCode(Guid uuid)
+        {
+            if (!_registry.TryGetValue(uuid, out MetadataObject entry))
+            {
+                return -1;
+            }
+
+            if (entry is not DatabaseObject dbo)
+            {
+                return -1;
+            }
+
+            return dbo.TypeCode;
+        }
+
         internal bool TryGetEntry(Guid uuid, [MaybeNullWhen(false)] out MetadataObject entry)
         {
             return _registry.TryGetValue(uuid, out entry);
@@ -296,19 +385,35 @@ namespace DaJet
             return value is not null;
         }
 
-        internal int GetTypeCode(Guid uuid)
+        internal IEnumerable<MetadataObject> GetMetadataObjects(string type)
         {
-            if (!_registry.TryGetValue(uuid, out MetadataObject entry))
+            if (!_names.TryGetValue(type, out Dictionary<string, Guid> items))
             {
-                return -1;
+                yield break;
             }
 
-            if (entry is not DatabaseObject dbo)
+            foreach (KeyValuePair<string, Guid> item in items)
             {
-                return -1;
+                if (TryGetEntry(item.Value, out MetadataObject entry))
+                {
+                    yield return entry;
+                }
+            }
+        }
+        internal IEnumerable<DefinedType> GetDefinedTypes()
+        {
+            if (!_names.TryGetValue(MetadataName.DefinedType, out Dictionary<string, Guid> items))
+            {
+                yield break;
             }
 
-            return dbo.TypeCode;
+            foreach (KeyValuePair<string, Guid> item in items)
+            {
+                if (TryGetEntry(item.Value, out DefinedType entry))
+                {
+                    yield return entry;
+                }
+            }
         }
 
         internal void UpdateEntry(Guid uuid)

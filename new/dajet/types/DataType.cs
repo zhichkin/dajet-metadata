@@ -3,15 +3,6 @@ using System.Text;
 
 namespace DaJet
 {
-    internal static class DataTypeChars // 0x01 _TYPE
-    {
-        internal const byte B = (byte)'B'; // 0x02 _L
-        internal const byte N = (byte)'N'; // 0x03 _N
-        internal const byte D = (byte)'D'; // 0x04 _T
-        internal const byte S = (byte)'S'; // 0x05 _S
-        internal const byte R = (byte)'#'; // 0x08 [_TRef] _RRef
-    }
-
     [Flags] internal enum DataTypeFlag : ushort
     {
         Null     = 0x0000,
@@ -25,6 +16,7 @@ namespace DaJet
         Entity   = 0x0080,
         Object   = 0x0100,
         Array    = 0x0200,
+        SimpleTypes = Boolean | Decimal | DateTime | String,
         UnionTypes = Boolean | Decimal | DateTime | String | Entity
     }
     [Flags] internal enum QualifierFlag : ushort
@@ -318,12 +310,12 @@ namespace DaJet
                 else if (value == DateTimePart.Date)
                 {
                     _qualifiers |= QualifierFlag.Date;
-                    _qualifiers &= QualifierFlag.Time;
+                    _qualifiers &= ~QualifierFlag.Time;
                 }
                 else
                 {
                     _qualifiers |= QualifierFlag.Time;
-                    _qualifiers &= QualifierFlag.Date;
+                    _qualifiers &= ~QualifierFlag.Date;
                 }
             }
         }
@@ -388,36 +380,18 @@ namespace DaJet
                 uint union = (uint)(_types & DataTypeFlag.UnionTypes);
 
                 int count = BitOperations.PopCount(union);
-                
-                return count > 1;
 
-                //if (IsUuid || IsBinary)
-                //{
-                //    return false; // УникальныйИдентификатор или ХранилищеЗначения
-                //}
+                if (count > 1)
+                {
+                    return true;
+                }
 
-                //if (IsString && Size == 0)
-                //{
-                //    return false; // Строка неограниченной длины не поддерживает составной тип данных!
-                //}
+                if (count == 1 && IsEntity && TypeCode == 0)
+                {
+                    return true;
+                }
 
-                //int count = 0;
-                //if (IsBoolean) { count++; }
-                //if (IsDecimal) { count++; }
-                //if (IsDateTime) { count++; }
-                //if (IsString) { count++; }
-                //if (IsEntity) { count++; }
-                //if (count > 1)
-                //{
-                //    return true;
-                //}
-
-                //if (IsEntity && TypeCode == 0)
-                //{
-                //    return true;
-                //}
-
-                //return false;
+                return false;
             }
         }
 
@@ -569,190 +543,6 @@ namespace DaJet
             }
             
             return view.ToString();
-        }
-
-        //public bool IsUnion(out bool canBeSimple, out bool canBeReference)
-        //{
-        //    canBeSimple = false;
-        //    canBeReference = false;
-
-        //    if (IsUuid || IsBinary)
-        //    {
-        //        return false; // УникальныйИдентификатор или ХранилищеЗначения
-        //    }
-
-        //    if (IsString && Size == 0)
-        //    {
-        //        return false; // Строка неограниченной длины не поддерживает составной тип данных!
-        //    }
-
-        //    int count = 0;
-        //    if (IsBoolean) { count++; }
-        //    if (IsDecimal) { count++; }
-        //    if (IsDateTime) { count++; }
-        //    if (IsString) { count++; }
-        //    if (count > 0)
-        //    {
-        //        canBeSimple = true;
-        //    }
-
-        //    if (IsEntity)
-        //    {
-        //        count++; canBeReference = true;
-        //    }
-
-        //    if (count > 1)
-        //    {
-        //        return true;
-        //    }
-
-        //    if (canBeReference && TypeCode == 0)
-        //    {
-        //        return true;
-        //    }
-
-        //    return false;
-        //}
-
-        internal static DataType Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root, out List<Guid> references)
-        {
-            // [root][1][2][2][3][{] - Начало объекта описания типов (открывающая фигурная скобка)
-
-            references = new List<Guid>();
-
-            if (!reader[root][1][2][2][3][1].Seek())
-            {
-                return new DataType(); // Null
-            }
-
-            ReadOnlySpan<byte> pattern = "Pattern"u8;
-
-            ReadOnlySpan<byte> value = reader.GetBytes();
-
-            if (!value.SequenceEqual(pattern))
-            {
-                return null; // Это не объект "ОписаниеТипов" !
-            }
-
-            Span<char> token = stackalloc char[1];
-
-            DataType type = new();
-
-            while (reader.Read())
-            {
-                if (reader.Token == ConfigFileToken.EndObject)
-                {
-                    break; // Конец объекта "ОписаниеТипов"
-                }
-                
-                if (reader.Token == ConfigFileToken.StartObject && reader.Read())
-                {
-                    // Начинаем читать следующее описание типа
-
-                    value = reader.GetBytes();
-
-                    if (value.IsEmpty)
-                    {
-                        break; // Что-то пошло не так !
-                    }
-
-                    byte discriminator = value[0];
-
-                    if (discriminator == DataTypeChars.B) // {"B"}
-                    {
-                        type.IsBoolean = true; // _Fld + code + _L
-                    }
-                    else if (discriminator == DataTypeChars.N) // {"N",10,2,0} | {"N",10,2,1}
-                    {
-                        type.IsDecimal = true; // _Fld + code + _N
-
-                        if (reader.Read()) { type.Precision = (byte)reader.ValueAsNumber; }
-                        if (reader.Read()) { type.Scale = (byte)reader.ValueAsNumber; }
-                        if (reader.Read()) { type.NumericQualifier = (NumericKind)reader.ValueAsNumber; }
-                    }
-                    else if (discriminator == DataTypeChars.D) // {"D"} | {"D","D"} | {"D","T"}
-                    {
-                        type.IsDateTime = true; // _Fld + code + _T
-
-                        if (reader.Read())
-                        {
-                            if (reader.Token == ConfigFileToken.EndObject)
-                            {
-                                type.DateTimeQualifier = DateTimePart.DateTime;
-                            }
-                            else if (reader.ValueAsString == "D")
-                            {
-                                type.DateTimeQualifier = DateTimePart.Date;
-                            }
-                            else
-                            {
-                                type.DateTimeQualifier = DateTimePart.Time;
-                            }
-                        }
-                    }
-                    else if (discriminator == DataTypeChars.S) // {"S"} | {"S",10,0} | {"S",10,1}
-                    {
-                        type.IsString = true; // _Fld + code + _S
-
-                        if (reader.Read())
-                        {
-                            if (reader.Token == ConfigFileToken.EndObject)
-                            {
-                                type.Size = 0; // Строка неограниченной длины
-                                type.StringQualifier = StringKind.Variable;
-                            }
-                            else
-                            {
-                                type.Size = (ushort)reader.ValueAsNumber;
-
-                                if (reader.Read() && reader.Token != ConfigFileToken.EndObject)
-                                {
-                                    type.StringQualifier = (StringKind)reader.ValueAsNumber;
-                                }
-                            }
-                        }
-                    }
-                    else if (discriminator == DataTypeChars.R) // {"#",70497451-981e-43b8-af46-fae8d65d16f2}
-                    {
-                        if (reader.Read())
-                        {
-                            Guid uuid = reader.ValueAsUuid;
-
-                            if (uuid == SingleTypes.ValueStorage)
-                            {
-                                type.IsBinary = true;
-                            }
-                            else if (uuid == SingleTypes.UniqueIdentifier)
-                            {
-                                type.IsUuid = true;
-                            }
-                            else
-                            {
-                                references.Add(uuid);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (references.Count > 0)
-            {
-                // Конфигурирование ссылочных типов данных объекта "ОписаниеТипов".
-                // Внимание!
-                // Если описание типов ссылается на определяемый тип или характеристику,
-                // которые не являются или не содержат в своём составе ссылочные типы данных,
-                // то в таком случае описание типов будет содержать только примитивные типы данных.
-                // Выполняется конфигурирование только свойств:
-                // - target.CanBeReference (bool)
-                // - target.TypeCode (int)
-                // - target.Reference (Guid)
-
-                type.IsEntity = true;
-
-                //TODO: Configurator.ConfigureDataTypeDescriptor(in _cache, in target, in references);
-            }
-
-            return type;
         }
     }
 }

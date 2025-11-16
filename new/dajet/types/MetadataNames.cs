@@ -1,4 +1,6 @@
-﻿namespace DaJet
+﻿using System.Collections.Frozen;
+
+namespace DaJet
 {
     public static class MetadataName
     {
@@ -16,5 +18,37 @@
         public static readonly string AccountingRegister = "РегистрБухгалтерии";
         public static readonly string BusinessProcess = "БизнесПроцесс";
         public static readonly string BusinessTask = "Задача";
+        
+        private static readonly FrozenDictionary<string, Guid> MetadataTypes = CreateMetadataTypesLookup();
+        private static FrozenDictionary<string, Guid> CreateMetadataTypesLookup()
+        {
+            List<KeyValuePair<string, Guid>> list =
+            [
+                new KeyValuePair<string, Guid>(SharedProperty, MetadataType.SharedProperty),
+                new KeyValuePair<string, Guid>(Publication, MetadataType.Publication),
+                new KeyValuePair<string, Guid>(DefinedType, MetadataType.DefinedType),
+                new KeyValuePair<string, Guid>(Constant, MetadataType.Constant),
+                new KeyValuePair<string, Guid>(Catalog, MetadataType.Catalog),
+                new KeyValuePair<string, Guid>(Document, MetadataType.Document),
+                new KeyValuePair<string, Guid>(Enumeration, MetadataType.Enumeration),
+                new KeyValuePair<string, Guid>(Characteristic, MetadataType.Characteristic),
+                new KeyValuePair<string, Guid>(Account, MetadataType.Account),
+                new KeyValuePair<string, Guid>(InformationRegister, MetadataType.InformationRegister),
+                new KeyValuePair<string, Guid>(AccumulationRegister, MetadataType.AccumulationRegister),
+                new KeyValuePair<string, Guid>(AccountingRegister, MetadataType.AccountingRegister),
+                new KeyValuePair<string, Guid>(BusinessProcess, MetadataType.BusinessProcess),
+                new KeyValuePair<string, Guid>(BusinessTask, MetadataType.BusinessTask)
+            ];
+            return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
+        }
+        public static Guid GetMetadataType(in string name)
+        {
+            if (MetadataTypes.TryGetValue(name, out Guid type))
+            {
+                return type;
+            }
+
+            return Guid.Empty;
+        }
     }
 }

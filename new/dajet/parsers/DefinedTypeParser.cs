@@ -17,7 +17,7 @@
                 Guid reference = reader.ValueAsUuid;
                 registry.AddDefinedType(uuid, reference);
             }
-            
+
             // Идентификатор объекта метаданных - значение поля FileName в таблице Config
             //if (reader[2][4][2][3].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
 
@@ -27,6 +27,13 @@
                 string name = reader.ValueAsString;
                 metadata.Name = name;
                 registry.AddMetadataName(MetadataName.DefinedType, in name, uuid);
+            }
+
+            if (reader[2][5][ConfigFileToken.StartObject].Seek())
+            {
+                uint[] root = [2, 5];
+
+                metadata.Type = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);
             }
 
             //if (options.IsExtension)

@@ -1,4 +1,6 @@
-﻿namespace DaJet
+﻿using System.Collections.Frozen;
+
+namespace DaJet
 {
     public static class MetadataType
     {
@@ -17,5 +19,37 @@
         public static readonly Guid AccountingRegister = new("2deed9b8-0056-4ffe-a473-c20a6c32a0bc"); // Регистры бухгатерии
         public static readonly Guid BusinessTask = new("3e63355c-1378-4953-be9b-1deb5fb6bec5"); // Задача бизнес-процесса
         public static readonly Guid BusinessProcess = new("fcd3404e-1523-48ce-9bc0-ecdb822684a1"); // Бизнес-процесс
+        
+        private static readonly FrozenDictionary<Guid, string> MetadataNames = CreateMetadataNamesLookup();
+        private static FrozenDictionary<Guid, string> CreateMetadataNamesLookup()
+        {
+            List<KeyValuePair<Guid, string>> list =
+            [
+                new KeyValuePair<Guid, string>(SharedProperty, MetadataName.SharedProperty),
+                new KeyValuePair<Guid, string>(Publication, MetadataName.Publication),
+                new KeyValuePair<Guid, string>(DefinedType, MetadataName.DefinedType),
+                new KeyValuePair<Guid, string>(Constant, MetadataName.Constant),
+                new KeyValuePair<Guid, string>(Catalog, MetadataName.Catalog),
+                new KeyValuePair<Guid, string>(Document, MetadataName.Document),
+                new KeyValuePair<Guid, string>(Enumeration, MetadataName.Enumeration),
+                new KeyValuePair<Guid, string>(Characteristic, MetadataName.Characteristic),
+                new KeyValuePair<Guid, string>(Account, MetadataName.Account),
+                new KeyValuePair<Guid, string>(InformationRegister, MetadataName.InformationRegister),
+                new KeyValuePair<Guid, string>(AccumulationRegister, MetadataName.AccumulationRegister),
+                new KeyValuePair<Guid, string>(AccountingRegister, MetadataName.AccountingRegister),
+                new KeyValuePair<Guid, string>(BusinessProcess, MetadataName.BusinessProcess),
+                new KeyValuePair<Guid, string>(BusinessTask, MetadataName.BusinessTask)
+            ];
+            return FrozenDictionary.ToFrozenDictionary(list);
+        }
+        public static string GetMetadataName(Guid type)
+        {
+            if (MetadataNames.TryGetValue(type, out string name))
+            {
+                return name;
+            }
+
+            return string.Empty;
+        }
     }
 }

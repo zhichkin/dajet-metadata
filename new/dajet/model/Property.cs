@@ -77,7 +77,20 @@
 
             if (reader[root][1][2][2][3][ConfigFileToken.StartObject].Seek())
             {
-                property.Type = DataType.Parse(ref reader, root, out List<Guid> references);
+                // Необходимо указать смещение от корня
+
+                uint[] offset = new uint[root.Length + 4];
+
+                root.CopyTo(offset);
+
+                offset[root.Length + 0] = 1;
+                offset[root.Length + 1] = 2;
+                offset[root.Length + 2] = 2;
+                offset[root.Length + 3] = 3;
+
+                property.Type = DataTypeParser.Parse(ref reader, offset, in registry, out List <Guid> references);
+
+                //TODO: сохранить коллекцию прочитанных ссылок, если LoadingMode == Logical
             }
 
             if (type == PropertyTypes.Catalog_Properties ||

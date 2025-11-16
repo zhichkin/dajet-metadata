@@ -2,6 +2,98 @@
 {
     internal static class Configurator
     {
+        #region "Конфигурирование типа данных"
+        internal static void ConfigureDataTypeReferences(in MetadataRegistry registry, ref DataType type, in List<Guid> references)
+        {
+            bool found = false;
+
+            for (int i = 0; i < references.Count; i++)
+            {
+                Guid reference = references[i];
+
+                if (i == 0) // Единственно допустимая ссылка данного типа
+                {
+                    // Тип "Определяемый тип" (переопределяет входной тип данных)
+
+                    if (registry.TryGetDefinedType(reference, out DefinedType defined))
+                    {
+                        type = defined.Type; return; // Описание типа берётся из определяемого типа
+                    }
+
+                    // Тип "Характеристика" (переопределяет входной тип данных)
+
+                    if (registry.TryGetCharacteristic(reference, out Characteristic characteristic))
+                    {
+                        type = characteristic.Type; return; // Описание типа берётся из характеристики
+                    }
+                }
+
+                // Конкретный ссылочный тип
+
+                if (registry.TryGetReference(reference, out DatabaseObject entry))
+                {
+                    if (found) // Ранее минимум одна ссылка уже была найдена
+                    {
+                        type.IsEntity = true;
+                        type.TypeCode = 0;
+                        return; // Составной ссылочный тип
+                    }
+                    else // Пока что единственный найденный ссылочный тип
+                    {
+                        found = true;
+                        type.IsEntity = true;
+                        type.TypeCode = entry.TypeCode;
+                    }
+                }
+                else // Общий ссылочный тип
+                {
+                    int typeCode; // Результат анализа возможного количества объектов метаданных
+
+                    if (reference == ReferenceType.AnyReference)
+                    {
+                        typeCode = registry.GetGenericTypeCode(ReferenceType.AllReferenceTypes);
+                    }
+                    else
+                    {
+                        typeCode = registry.GetGenericTypeCode(reference);
+                    }
+
+                    if (typeCode == 0) // Составной ссылочный тип
+                    {
+                        type.IsEntity = true;
+                        type.TypeCode = 0;
+                        return;
+                    }
+                    else if (typeCode > 0) // Единственный ссылочный тип
+                    {
+                        if (found) // Ранее минимум одна ссылка уже была найдена
+                        {
+                            type.IsEntity = true;
+                            type.TypeCode = 0;
+                            return; // Составной ссылочный тип
+                        }
+                        else // Пока что единственный найденный ссылочный тип
+                        {
+                            found = true;
+                            type.IsEntity = true;
+                            type.TypeCode = typeCode;
+                        }
+                    }
+                }
+            }
+
+            // Если не удалось найти хотя бы один конкретный ссылочный тип,
+            // а входной тип данных не содержит ни одного простого типа,
+            // тогда применяем следующее правило - ссылка составного типа
+
+            if (!found && type.IsUndefined)
+            {
+                type.IsEntity = true;
+                type.TypeCode = 0;
+            }
+        }
+        #endregion
+
         #region "Табличная часть"
         internal static void ConfigureTablePart(in TableDefinition table, in TablePart metadata, in DatabaseObject owner)
         {

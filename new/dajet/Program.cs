@@ -4,6 +4,7 @@ namespace DaJet
 {
     public static class Program
     {
+        private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
         private static readonly string MS_CONNECTION = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_CONNECTION = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
 
@@ -66,26 +67,36 @@ namespace DaJet
 
         private static void TestDataType()
         {
-            DataType type = new();
-            type.IsBoolean = true;
-            Console.WriteLine(type.ToString());
-            Console.WriteLine($"IsUnion = {type.IsUnion}");
+            OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
 
-            type.IsDecimal = true;
-            Console.WriteLine(type.ToString());
-            Console.WriteLine($"IsUnion = {type.IsUnion}");
+            provider.Initialize();
 
-            type.IsUuid = true;
-            Console.WriteLine(type.ToString());
-            Console.WriteLine($"IsUnion = {type.IsUnion}");
+            TableDefinition metadata = provider.GetMetadataObject("Справочник.Тестовый");
 
-            type = DataType.Union(DataType.String(10), DataType.Entity(123));
-            Console.WriteLine(type.ToString());
-            Console.WriteLine($"IsUnion = {type.IsUnion}");
+            Console.WriteLine($"Name: {metadata.Name}");
+            Console.WriteLine($"DbName: {metadata.DbName}");
+            
+            foreach (PropertyDefinition property in metadata.Properties)
+            {
+                Console.WriteLine("**************************");
+                Console.WriteLine($"Name: {property.Name}");
+                Console.WriteLine($"Type: {property.Type}");
+            }
 
-            type.IsInteger = true;
-            Console.WriteLine(type.ToString());
-            Console.WriteLine($"IsUnion = {type.IsUnion}");
+            foreach (TableDefinition table in metadata.Tables)
+            {
+                Console.WriteLine();
+                Console.WriteLine("-------------------------");
+                Console.WriteLine($"Name: {table.Name}");
+                Console.WriteLine($"DbName: {table.DbName}");
+
+                foreach (PropertyDefinition property in table.Properties)
+                {
+                    Console.WriteLine("**************************");
+                    Console.WriteLine($"Name: {property.Name}");
+                    Console.WriteLine($"Type: {property.Type}");
+                }
+            }
         }
 
         private static void GetMetadataObject()

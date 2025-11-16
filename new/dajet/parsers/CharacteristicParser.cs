@@ -36,6 +36,13 @@
                 registry.AddMetadataName(MetadataName.Characteristic, in name, uuid);
             }
 
+            if (reader[2][19][ConfigFileToken.StartObject].Seek())
+            {
+                uint[] root = [2, 19];
+
+                metadata.Type = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);
+            }
+
             //if (options.IsExtension)
             //{
             //    _converter[1][13][1][11] += Parent;
