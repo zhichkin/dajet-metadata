@@ -8,7 +8,7 @@
         }
         internal Property(Guid uuid, int code, string name) : base(uuid, code, name) { }
 
-        internal static PropertyDefinition[] Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root, in MetadataRegistry registry)
+        internal static PropertyDefinition[] Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root, in MetadataRegistry registry, bool relations)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
             int count = reader[root][2].SeekNumber(); // количество элементов коллекции
@@ -28,13 +28,13 @@
 
                 if (reader[vector][ConfigFileToken.StartObject].Seek())
                 {
-                    array[i] = Parse(ref reader, vector, type, in registry);
+                    array[i] = Parse(ref reader, vector, type, in registry, relations);
                 }
             }
 
             return array;
         }
-        private static PropertyDefinition Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root, Guid type, in MetadataRegistry registry)
+        private static PropertyDefinition Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root, Guid type, in MetadataRegistry registry, bool relations)
         {
             // Свойство объекта:
             // -----------------
@@ -55,21 +55,8 @@
 
             property.Purpose = PropertyTypes.GetPropertyPurpose(type);
 
+            // Идентификатор объекта метаданных (свойства)
             Guid uuid = reader[root][1][2][2][2][2][3].SeekUuid();
-
-            if (registry.TryGetEntry(uuid, out DatabaseObject entry))
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = entry.GetMainDbName()
-                });
-            }
-            else
-            {
-                //TODO: Зафиксировать ошибку.
-                //TODO: Свойство не найдено в реестре объектов метаданных, а это значит,
-                //TODO: что у него нет поля/полей в соответствующей таблице базы данных
-            }
 
             property.Name = reader[root][1][2][2][2][3].SeekString();
 
@@ -90,36 +77,67 @@
 
                 property.Type = DataTypeParser.Parse(ref reader, offset, in registry, out List <Guid> references);
 
-                //TODO: сохранить коллекцию прочитанных ссылок, если LoadingMode == Logical
+                if (relations)
+                {
+                    property.References = references;
+                }
             }
 
-            if (type == PropertyTypes.Catalog_Properties ||
-                type == PropertyTypes.Characteristic_Properties)
+            if (registry.TryGetEntry(uuid, out Property entry))
             {
-                property.PropertyUsage = (PropertyUsage)reader[root][1][4].SeekNumber();
+                Configurator.ConfigureDatabaseColumns(in entry, in property);
             }
-            else if (type == PropertyTypes.InformationRegister_Dimension)
+            else
             {
-                property.CascadeDelete = reader[root][1][3].SeekNumber() == 1;
-                property.UseForChangeTracking = reader[root][1][6].SeekNumber() == 1;
-            }
-            else if (type == PropertyTypes.AccountingRegister_Dimension)
-            {
-                property.IsBalance = reader[root][1][3].SeekNumber() == 1; // Балансовый
-                property.AccountingFlag = reader[root][1][4].SeekUuid(); // Признак учёта
-            }
-            else if (type == PropertyTypes.AccountingRegister_Measure)
-            {
-                property.IsBalance = reader[root][1][3].SeekNumber() == 1; // Балансовый
-                property.AccountingFlag = reader[root][1][4].SeekUuid(); // Признак учёта
-                property.AccountingDimensionFlag = reader[root][1][5].SeekUuid(); // Признак учёта субконто
-            }
-            else if (type == PropertyTypes.BusinessTask_Routing_Property)
-            {
-                property.RoutingDimension = reader[root][1][4].SeekUuid(); // Измерение адресации
+                //TODO: Зафиксировать ошибку.
+                //TODO: Свойство не найдено в реестре объектов метаданных, а это значит,
+                //TODO: что у него нет поля/полей в соответствующей таблице базы данных
             }
 
             return property;
+
+            //if (type == PropertyTypes.Catalog_Properties ||
+            //    type == PropertyTypes.Characteristic_Properties)
+            //{
+            //    /// <summary>Вариант использования реквизита для групп и элементов</summary>
+            //    property.PropertyUsage = (PropertyUsage)reader[root][1][4].SeekNumber();
+            //}
+            //else if (type == PropertyTypes.InformationRegister_Dimension)
+            //{
+            //    /// <summary>Признак измерения регистра сведений (ведущее):
+            //    /// <br>запись будет подчинена объектам, записываемым в данном измерении</br></summary>
+            //    property.CascadeDelete = reader[root][1][3].SeekNumber() == 1; // Каскадное удаление по внешнему ключу
+
+            //    /// <summary>Использование измерения периодического или непереодического регистра сведений,
+            //    /// <br>который не подчинён регистратору, в качестве основного отбора при регистрации изменений в плане обмена</br></summary>
+            //    property.UseForChangeTracking = reader[root][1][6].SeekNumber() == 1;
+            //}
+            //else if (type == PropertyTypes.AccountingRegister_Dimension)
+            //{
+            //    property.IsBalance = reader[root][1][3].SeekNumber() == 1; // Балансовый
+            //    property.AccountingFlag = reader[root][1][4].SeekUuid(); // Признак учёта
+            //}
+            //else if (type == PropertyTypes.AccountingRegister_Measure)
+            //{
+            //    ///<summary><b>Использование отдельных свойств для дебета и кредита:</b>
+            //    ///<br>true - не использовать</br>
+            //    ///<br>false - использовать</br></summary>
+            //    property.IsBalance = reader[root][1][3].SeekNumber() == 1; // Балансовый (измерения и ресурсы)
+
+            //    ///<summary>Признак учёта (для счёта плана счетов)</summary>
+            //    property.AccountingFlag = reader[root][1][4].SeekUuid(); // Признак учёта (измерения и ресурсы)
+
+            //    ///<summary><b>Признак учёта субконто</b>
+            //    ///<br>Используется в стандартной (системной) табличной части "ВидыСубконто"</br>
+            //    ///<br>если <see cref="Account.MaxDimensionCount"/> больше нуля.</br></summary>
+            //    property.AccountingDimensionFlag = reader[root][1][5].SeekUuid(); // Признак учёта субконто (только ресурсы)
+            //}
+            //else if (type == PropertyTypes.BusinessTask_Routing_Property)
+            //{
+            //    ///<summary>Ссылка на измерение регистра сведений,
+            //    ///<br>указанного в свойстве "Адресация" задачи</br></summary>
+            //    property.RoutingDimension = reader[root][1][4].SeekUuid(); // Измерение адресации
+            //}
         }
     }
 }

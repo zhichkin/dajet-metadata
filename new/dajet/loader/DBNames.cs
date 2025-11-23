@@ -23,6 +23,11 @@ namespace DaJet
         }
         internal static void Parse(ReadOnlySpan<byte> fileData, in MetadataRegistry registry)
         {
+            if (fileData.Length == 0)
+            {
+                return; // Пустой файл
+            }
+
             FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> lookup = MetadataRegistry.SupportedTokensLookup;
 
             ConfigFileReader reader = new(fileData);

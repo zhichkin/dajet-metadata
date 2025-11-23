@@ -1,29 +1,32 @@
-﻿namespace DaJet
+﻿using System.Collections.Generic;
+
+namespace DaJet
 {
-    public sealed class OneDbMetadataProvider : IMetadataProvider
+    public sealed class OneDbMetadataProvider : MetadataProvider
     {
         private MetadataRegistry _registry;
-        private readonly bool UseExtensions;
         private readonly MetadataLoader _loader;
-        public OneDbMetadataProvider(DataSourceType dataSource, in string connectionString, bool useExtensions = false)
+        public OneDbMetadataProvider(DataSourceType dataSource, in string connectionString)
         {
-            UseExtensions = useExtensions;
-
             _loader = MetadataLoader.Create(dataSource, in connectionString);
         }
         public void Dump(in string tableName, in string fileName, in string outputPath)
         {
             _loader.Dump(in tableName, in fileName, in outputPath);
         }
-        public void Initialize()
+        public void DumpRaw(in string tableName, in string fileName, in string outputPath)
         {
-            _registry = _loader.GetMetadataRegistry(UseExtensions);
+            _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
-        public int GetYearOffset()
+        public override void Initialize()
+        {
+            _registry = _loader.GetMetadataRegistry();
+        }
+        public override int GetYearOffset()
         {
             return _loader.GetYearOffset();
         }
-        public InfoBase GetInfoBase()
+        public override InfoBase GetInfoBase()
         {
             InfoBase infoBase = _loader.GetInfoBase();
             
@@ -31,10 +34,36 @@
 
             return infoBase;
         }
-        public TableDefinition GetMetadataObject(string metadataName)
+        
+        public override EntityDefinition GetMetadataObject(in string fullName)
         {
-            //TODO: добавить параметр - bool LoadingMode.Full = false
+            int dot = fullName.IndexOf('.');
 
+            if (dot < 0)
+            {
+                return null;
+            }
+
+            string type = fullName[..dot];
+            string name = fullName[(dot + 1)..];
+
+            if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
+            {
+                return null;
+            }
+
+            return _loader.Load(in type, entry.Uuid, in _registry);
+        }
+        public override IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
+        {
+            foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
+            {
+                yield return _loader.Load(in typeName, entry.Uuid, in _registry);
+            }
+        }
+        
+        public EntityDefinition GetMetadataObjectWithRelations(in string metadataName)
+        {
             int dot = metadataName.IndexOf('.');
 
             if (dot < 0)
@@ -50,20 +79,19 @@
                 return null;
             }
 
-            TableDefinition table;
-            CatalogParser parser = new();
-
-            using (ConfigFileBuffer file = _loader.Load(metadata.Uuid))
+            return _loader.LoadWithRelations(in type, metadata.Uuid, in _registry);
+        }
+        public IEnumerable<EntityDefinition> GetMetadataObjectsWithRelations(string type)
+        {
+            foreach (MetadataObject entry in _registry.GetMetadataObjects(type))
             {
-                table = parser.Load(metadata.Uuid, file.AsReadOnlySpan(), in _registry);
+                yield return _loader.LoadWithRelations(in type, entry.Uuid, in _registry);
             }
-
-            return table;
         }
 
-        public TableDefinition ParseConfigFile(Guid metadataUuid, ReadOnlySpan<byte> fileData)
+        public List<string> ResolveReferences(in List<Guid> references)
         {
-            return new CatalogParser().Load(metadataUuid, fileData, in _registry);
+            return _registry.ResolveReferences(in references);
         }
     }
 }

@@ -21,20 +21,20 @@
             return string.Format("_{0}{1}", MetadataToken.LineNo, _LineNo);
         }
 
-        internal static TableDefinition[] Parse(ref ConfigFileReader reader, uint root, in DatabaseObject owner, in MetadataRegistry registry)
+        internal static EntityDefinition[] Parse(ref ConfigFileReader reader, uint root, in DatabaseObject owner, in MetadataRegistry registry, bool relations)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
             int count = reader[root][2].SeekNumber(); // количество элементов коллекции
 
             if (count == 0) { return null; }
 
-            TableDefinition[] array = new TableDefinition[count];
+            EntityDefinition[] array = new EntityDefinition[count];
 
             uint[] vector = [root, 0, 3]; // Адрес коллекции свойств табличной части
 
             for (uint i = 0; i < array.Length; i++)
             {
-                TableDefinition table = new(); array[i] = table;
+                EntityDefinition table = new(); array[i] = table;
 
                 uint N = i + 3; // Добавляем смещение от корневого узла [root][0]
 
@@ -66,7 +66,7 @@
 
                     if (reader[vector][ConfigFileToken.StartObject].Seek())
                     {
-                        PropertyDefinition[] properties = Property.Parse(ref reader, vector, in registry);
+                        PropertyDefinition[] properties = Property.Parse(ref reader, vector, in registry, relations);
 
                         if (properties is not null)
                         {

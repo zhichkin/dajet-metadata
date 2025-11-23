@@ -17,38 +17,6 @@ namespace DaJet
 
             throw new InvalidOperationException($"Unsupported data source [{dataSource}]");
         }
-        private static readonly Dictionary<Guid, ConfigFileParser> _parsers = new(14)
-        {
-            [MetadataType.SharedProperty] = new SharedPropertyParser(),
-            [MetadataType.DefinedType] = new DefinedTypeParser(),
-            [MetadataType.Catalog] = new CatalogParser(),
-            [MetadataType.Constant] = new ConstantParser(),
-            [MetadataType.Document] = new DocumentParser(),
-            [MetadataType.Enumeration] = new EnumerationParser(),
-            [MetadataType.Publication] = new PublicationParser(),
-            [MetadataType.Characteristic] = new CharacteristicParser(),
-            [MetadataType.InformationRegister] = new InformationRegisterParser(),
-            [MetadataType.AccumulationRegister] = new AccumulationRegisterParser(),
-            [MetadataType.Account] = new AccountParser(),
-            [MetadataType.AccountingRegister] = new AccountingRegisterParser(),
-            [MetadataType.BusinessTask] = new BusinessTaskParser(),
-            [MetadataType.BusinessProcess] = new BusinessProcessParser()
-        };
-        private static ConfigFileParser GetConfigFileParser(Guid type)
-        {
-            if (!_parsers.TryGetValue(type, out ConfigFileParser parser))
-            {
-                return null;
-            }
-
-            return parser;
-        }
-
-        internal abstract int GetYearOffset();
-        internal abstract ConfigFileBuffer Load(in string fileName);
-        internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
-        internal abstract IEnumerable<ConfigFileBuffer> Stream(Guid[] files);
-
         internal void Dump(in string tableName, in string fileName, in string outputPath)
         {
             using (StreamWriter writer = new(outputPath, false, Encoding.UTF8))
@@ -61,11 +29,22 @@ namespace DaJet
                 }
             }
         }
-
-        internal ConfigFileBuffer Load(Guid fileUuid)
+        internal void DumpRaw(in string tableName, in string fileName, in string outputPath)
         {
-            return Load(fileUuid.ToString().ToLowerInvariant());
+            using (FileStream writer = new(outputPath, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                {
+                    writer.Write(file.AsReadOnlySpan());
+                }
+            }
         }
+
+        internal abstract int GetYearOffset();
+        internal abstract ConfigFileBuffer Load(in string fileName);
+        internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
+        internal abstract IEnumerable<ConfigFileBuffer> Stream(Guid[] files);
+
         internal Guid GetRoot()
         {
             Guid root = Guid.Empty;
@@ -94,7 +73,43 @@ namespace DaJet
 
             return infoBase;
         }
-        internal MetadataRegistry GetMetadataRegistry(bool UseExtensions = false)
+        internal ConfigFileBuffer Load(Guid fileUuid)
+        {
+            return Load(fileUuid.ToString().ToLowerInvariant());
+        }
+        internal EntityDefinition Load(in string type, Guid uuid, in MetadataRegistry registry)
+        {
+            if (!ConfigFileParser.TryGetParser(in type, out ConfigFileParser parser))
+            {
+                return null;
+            }
+
+            EntityDefinition definition;
+
+            using (ConfigFileBuffer file = Load(uuid))
+            {
+                definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+            }
+
+            return definition;
+        }
+        internal EntityDefinition LoadWithRelations(in string type, Guid uuid, in MetadataRegistry registry)
+        {
+            if (!ConfigFileParser.TryGetParser(in type, out ConfigFileParser parser))
+            {
+                return null;
+            }
+
+            EntityDefinition definition;
+
+            using (ConfigFileBuffer file = Load(uuid))
+            {
+                definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, true);
+            }
+
+            return definition;
+        }
+        internal MetadataRegistry GetMetadataRegistry()
         {
             Guid root = GetRoot();
 
@@ -133,8 +148,14 @@ namespace DaJet
                     registry.AddEntry(uuid, new DefinedType(uuid));
                 }
             }
-            
-            InitializeDBNames(in registry, UseExtensions);
+
+            // Инициализация объектов реестра метаданных,
+            // загрузка кодов ссылочных типов и имён СУБД
+
+            InitializeDBNames(in registry);
+
+            // Инициализация объектов реестра метаданных зависит
+            // от предварительной загрузки кодов ссылочных типов
 
             InitializeMetadataRegistry(in metadata, in registry);
 
@@ -146,34 +167,36 @@ namespace DaJet
             internal Guid[] Entries;
             internal MetadataRegistry Registry;
         }
-        private void InitializeDBNames(in MetadataRegistry registry, bool UseExtensions = false)
+        private void InitializeDBNames(in MetadataRegistry registry)
         {
             using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames"))
             {
                 DBNames.Parse(file.AsReadOnlySpan(), in registry);
             }
 
-            if (UseExtensions)
+            using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-1"))
             {
-                using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-1"))
-                {
-                    DBNames.Parse(file.AsReadOnlySpan(), in registry);
-                }
-
-                //using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-%"))
-                //{
-                //    DbNamesParser.Parse(file.AsReadOnlySpan(), in registry);
-                //}
+                DBNames.Parse(file.AsReadOnlySpan(), in registry);
             }
+
+            //using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-%"))
+            //{
+            //    DbNamesParser.Parse(file.AsReadOnlySpan(), in registry);
+            //}
         }
         private void InitializeMetadataRegistry(in Dictionary<Guid, Guid[]> metadata, in MetadataRegistry registry)
         {
-            Task[] tasks = new Task[metadata.Keys.Count];
+            Task[] tasks = new Task[metadata.Keys.Count - 2]; // Всего 14 объектов метаданных
 
             int index = 0;
 
             foreach (var item in metadata)
             {
+                if (item.Key == MetadataType.DefinedType || item.Key == MetadataType.SharedProperty)
+                {
+                    continue; // Отложенная инициализация (смотри комментарии ниже)
+                }
+
                 Task task = Task.Factory.StartNew(
                     InitializeMetadataRegistryEntries,
                     new ConfigFileBatchWork()
@@ -197,13 +220,64 @@ namespace DaJet
             }
             catch (Exception exception)
             {
-                if (exception is AggregateException errors)
+                throw; //TODO: log and report errors
+
+                //if (exception is AggregateException errors)
+                //{
+                //    foreach (Exception error in errors.InnerExceptions)
+                //    {
+                //
+                //    }
+                //}
+            }
+
+            // Инициализация свойства "Type" характеристик зависит от предварительной
+            // инициализации коллекции _references, так как тип данных характеристики
+            // может ссылаться сам на себя как на ссылочный тип.
+
+            if (metadata.TryGetValue(MetadataType.Characteristic, out Guid[] entries))
+            {
+                try
                 {
-                    foreach (Exception error in errors.InnerExceptions)
+                    foreach (ConfigFileBuffer file in Stream(entries))
                     {
-                        //TODO: log and report errors
+                        ConfigFileReader reader = new(file.AsReadOnlySpan());
+
+                        Guid uuid = new(file.FileName);
+
+                        Characteristic.InitializeDataType(uuid, file.AsReadOnlySpan(), registry);
                     }
                 }
+                catch (Exception error)
+                {
+                    throw;
+                }
+            }
+
+            // Инициализация свойства "Type" определяемых типов зависит от предварительной
+            // инициализации коллекции _references, которая заполняется многопоточно выше.
+
+            if (metadata.TryGetValue(MetadataType.DefinedType, out entries))
+            {
+                InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
+                {
+                    Type = MetadataType.DefinedType,
+                    Entries = entries,
+                    Registry = registry
+                });
+            }
+
+            // Инициализация свойства "Type" общих реквизитов зависит от предварительной
+            // инициализации коллекций _references, _characteristics и _defined_types.
+
+            if (metadata.TryGetValue(MetadataType.SharedProperty, out entries))
+            {
+                InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
+                {
+                    Type = MetadataType.SharedProperty,
+                    Entries = entries,
+                    Registry = registry
+                });
             }
         }
         private void InitializeMetadataRegistryEntries(object parameters)
@@ -215,7 +289,10 @@ namespace DaJet
 
             MetadataRegistry registry = work.Registry;
 
-            ConfigFileParser parser = GetConfigFileParser(work.Type);
+            if (!ConfigFileParser.TryGetParser(work.Type, out ConfigFileParser parser))
+            {
+                return;
+            }
 
             try
             {
@@ -223,12 +300,9 @@ namespace DaJet
                 {
                     ConfigFileReader reader = new(file.AsReadOnlySpan());
 
-                    if (parser is not null)
-                    {
-                        Guid uuid = new(file.FileName);
+                    Guid uuid = new(file.FileName);
 
-                        parser.Parse(uuid, file.AsReadOnlySpan(), in registry);
-                    }
+                    parser.Initialize(uuid, file.AsReadOnlySpan(), in registry);
                 }
             }
             catch (Exception error)

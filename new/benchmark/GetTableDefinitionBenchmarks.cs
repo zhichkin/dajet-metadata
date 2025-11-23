@@ -6,7 +6,7 @@ namespace Benchmark
     [MemoryDiagnoser]
     [MinColumn]
     [MaxColumn]
-    public class GetTableDefinitionBenchmarks
+    public class GetEntityDefinitionBenchmarks
     {
         private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
         private static readonly string MS_ERP = "Data Source=ZHICHKIN;Initial Catalog=erp_uh;Integrated Security=True;Encrypt=False;";
@@ -28,22 +28,22 @@ namespace Benchmark
         }
 
         [Benchmark(Description = "MS UNF")]
-        public TableDefinition SqlServerUnf()
+        public EntityDefinition SqlServerUnf()
         {
             return ms_unf_provider.GetMetadataObject("Справочник.Номенклатура");
         }
         [Benchmark(Description = "PG UNF")]
-        public TableDefinition PostgreSqlUnf()
+        public EntityDefinition PostgreSqlUnf()
         {
             return pg_unf_provider.GetMetadataObject("Справочник.Номенклатура");
         }
         [Benchmark(Description = "MS ERP")]
-        public TableDefinition SqlServerErp()
+        public EntityDefinition SqlServerErp()
         {
             return ms_erp_provider.GetMetadataObject("Справочник.Номенклатура");
         }
         [Benchmark(Description = "PG ERP")]
-        public TableDefinition PostgreSqlErp()
+        public EntityDefinition PostgreSqlErp()
         {
             return pg_erp_provider.GetMetadataObject("Справочник.Номенклатура");
         }

@@ -13,12 +13,12 @@ namespace Benchmark
             {
                 if (args[0] == "table")
                 {
-                    BenchmarkRunner.Run<GetTableDefinitionBenchmarks>();
+                    BenchmarkRunner.Run<GetEntityDefinitionBenchmarks>();
                 }
-                else if (args[0] == "parser")
-                {
-                    BenchmarkRunner.Run<ConfigFileReaderBenchmarks>();
-                }
+                //else if (args[0] == "parser")
+                //{
+                //    BenchmarkRunner.Run<ConfigFileReaderBenchmarks>();
+                //}
             }
             else
             {

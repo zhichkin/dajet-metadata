@@ -1,7 +1,15 @@
-﻿using System.Collections.Generic;
-
-namespace DaJet
+﻿namespace DaJet
 {
+    internal enum NumericKind
+    {
+        Signed = 0, // Знаковое
+        UnSigned = 1 // Беззнаковое
+    }
+    internal enum StringKind
+    {
+        Fixed = 0, // Фиксированная длина
+        Variable = 1 // Переменная длина
+    }
     internal static class DataTypeChars // 0x01 _TYPE
     {
         internal const byte B = (byte)'B'; // 0x02 _L
@@ -20,7 +28,7 @@ namespace DaJet
 
             if (!reader[root][1].Seek()) // [1][2][2][3]
             {
-                return new DataType(); // Null
+                return DataType.Undefined;
             }
 
             ReadOnlySpan<byte> pattern = "Pattern"u8;
@@ -29,11 +37,17 @@ namespace DaJet
 
             if (!value.SequenceEqual(pattern))
             {
-                return null; // Это не объект "ОписаниеТипов" !
+                return DataType.Undefined; // Это не объект "ОписаниеТипов" !
             }
 
-            DataType type = new(); // Неопределённый тип данных
-
+            // Структура DataType в "разобранном" виде
+            DataTypeFlags types = DataTypeFlags.Undefined;
+            QualifierFlags qualifiers = QualifierFlags.None;
+            ushort size = 0;
+            byte precision = 0;
+            byte scale = 0;
+            int typeCode = 0;
+            
             while (reader.Read())
             {
                 if (reader.Token == ConfigFileToken.EndObject)
@@ -53,25 +67,31 @@ namespace DaJet
 
                     if (discriminator == DataTypeChars.B) // {"B"}
                     {
-                        type.IsBoolean = true; // _Fld + code + _L
+                        types |= DataTypeFlags.Boolean; // _Fld + code + _L
                     }
                     else if (discriminator == DataTypeChars.N) // {"N",10,2,0} | {"N",10,2,1}
                     {
-                        type.IsDecimal = true; // _Fld + code + _N
+                        types |= DataTypeFlags.Decimal; // _Fld + code + _N
 
-                        if (reader.Read()) { type.Precision = (byte)reader.ValueAsNumber; }
-                        if (reader.Read()) { type.Scale = (byte)reader.ValueAsNumber; }
-                        if (reader.Read()) { type.NumericQualifier = (NumericKind)reader.ValueAsNumber; }
+                        if (reader.Read()) { precision = (byte)reader.ValueAsNumber; }
+                        if (reader.Read()) { scale = (byte)reader.ValueAsNumber; }
+                        if (reader.Read())
+                        {
+                            if ((NumericKind)reader.ValueAsNumber == NumericKind.UnSigned)
+                            {
+                                qualifiers |= QualifierFlags.UnSigned;
+                            }
+                        }
                     }
                     else if (discriminator == DataTypeChars.D) // {"D"} | {"D","D"} | {"D","T"}
                     {
-                        type.IsDateTime = true; // _Fld + code + _T
+                        types |= DataTypeFlags.DateTime; // _Fld + code + _T
 
                         if (reader.Read())
                         {
                             if (reader.Token == ConfigFileToken.EndObject)
                             {
-                                type.DateTimeQualifier = DateTimePart.DateTime;
+                                qualifiers |= QualifierFlags.DateTime;
                                 continue; // Переходим к описанию следующего типа
                             }
                             else
@@ -80,7 +100,7 @@ namespace DaJet
 
                                 if (value.IsEmpty)
                                 {
-                                    type.DateTimeQualifier = DateTimePart.DateTime;
+                                    qualifiers |= QualifierFlags.DateTime;
                                 }
                                 else
                                 {
@@ -88,11 +108,11 @@ namespace DaJet
 
                                     if (discriminator == DataTypeChars.D)
                                     {
-                                        type.DateTimeQualifier = DateTimePart.Date;
+                                        qualifiers |= QualifierFlags.Date;
                                     }
                                     else
                                     {
-                                        type.DateTimeQualifier = DateTimePart.Time;
+                                        qualifiers |= QualifierFlags.Time;
                                     }
                                 }
                             }
@@ -100,23 +120,25 @@ namespace DaJet
                     }
                     else if (discriminator == DataTypeChars.S) // {"S"} | {"S",10,0} | {"S",10,1}
                     {
-                        type.IsString = true; // _Fld + code + _S
+                        types |= DataTypeFlags.String; // _Fld + code + _S
 
                         if (reader.Read())
                         {
                             if (reader.Token == ConfigFileToken.EndObject)
                             {
-                                type.Size = 0; // Строка неограниченной длины
-                                type.StringQualifier = StringKind.Variable;
+                                // Строка неограниченной длины
                                 continue; // Переходим к описанию следующего типа
                             }
                             else
                             {
-                                type.Size = (ushort)reader.ValueAsNumber;
-
+                                size = (ushort)reader.ValueAsNumber;
+                                
                                 if (reader.Read())
                                 {
-                                    type.StringQualifier = (StringKind)reader.ValueAsNumber;
+                                    if ((StringKind)reader.ValueAsNumber == StringKind.Fixed)
+                                    {
+                                        qualifiers |= QualifierFlags.Fixed;
+                                    }
                                 }
                             }
                         }
@@ -129,11 +151,11 @@ namespace DaJet
 
                             if (uuid == SingleType.ValueStorage)
                             {
-                                type.IsBinary = true;
+                                types |= DataTypeFlags.Binary;
                             }
                             else if (uuid == SingleType.UniqueIdentifier)
                             {
-                                type.IsUuid = true;
+                                types |= DataTypeFlags.Uuid;
                             }
                             else
                             {
@@ -154,16 +176,93 @@ namespace DaJet
                 // Конфигурирование ссылочных типов данных объекта "ОписаниеТипов".
                 // Внимание!
                 // Если описание типов ссылается на определяемый тип или характеристику,
-                // которые не являются или не содержат в своём составе ссылочные типы данных,
-                // то в таком случае описание типов будет содержать только примитивные типы данных.
-                // Выполняется конфигурирование следующих свойств:
-                // - DataType.IsEntity (bool)
-                // - DataType.TypeCode (int)
+                // то используется именно определённый этими объектами тип данных.
 
-                Configurator.ConfigureDataTypeReferences(in registry, ref type, in references);
+                //Configurator.ConfigureDataTypeReferences(in registry, ref type, in references);
+
+                for (int i = 0; i < references.Count; i++)
+                {
+                    Guid reference = references[i];
+
+                    if (i == 0) // Единственно допустимая ссылка данного типа
+                    {
+                        // Тип "Определяемый тип" (переопределяет входной тип данных)
+
+                        if (registry.TryGetDefinedType(reference, out DefinedType defined))
+                        {
+                            return defined.Type; // Описание типа берётся из определяемого типа
+                        }
+
+                        // Тип "Характеристика" (переопределяет входной тип данных)
+
+                        if (registry.TryGetCharacteristic(reference, out Characteristic characteristic))
+                        {
+                            return characteristic.Type; // Описание типа берётся из характеристики
+                        }
+                    }
+
+                    // Конкретный ссылочный тип
+
+                    if (registry.TryGetReference(reference, out DatabaseObject entry))
+                    {
+                        if ((types & DataTypeFlags.Entity) == DataTypeFlags.Entity) // Ранее минимум одна ссылка уже была найдена
+                        {
+                            typeCode = 0; break; // Составной ссылочный тип (дальше не ищем)
+                        }
+                        else // Пока что единственный найденный ссылочный тип (ищем дальше)
+                        {
+                            types |= DataTypeFlags.Entity;
+                            typeCode = entry.TypeCode;
+                        }
+                    }
+                    else // Общий ссылочный тип
+                    {
+                        int result; // Результат поиска конкретных ссылочных типов
+
+                        if (reference == ReferenceType.AnyReference)
+                        {
+                            result = registry.GetGenericTypeCode(ReferenceType.AllReferenceTypes);
+                        }
+                        else
+                        {
+                            result = registry.GetGenericTypeCode(reference);
+                        }
+
+                        if (result == 0) // Составной ссылочный тип
+                        {
+                            types |= DataTypeFlags.Entity;
+                            typeCode = 0;
+                            break; // Дальше не ищем
+                        }
+                        else if (result > 0) // Единственный ссылочный тип данного общего типа
+                        {
+                            if ((types & DataTypeFlags.Entity) == DataTypeFlags.Entity) // Ранее минимум одна ссылка уже была найдена
+                            {
+                                types |= DataTypeFlags.Entity;
+                                typeCode = 0; // Составной ссылочный тип
+                                break; // Дальше не ищем
+                            }
+                            else // Пока что единственный найденный ссылочный тип
+                            {
+                                types |= DataTypeFlags.Entity;
+                                typeCode = result; // Ищем дальше
+                            }
+                        }
+                    }
+                }
+
+                // Если не удалось найти хотя бы один конкретный ссылочный тип,
+                // а описание типа данных не содержит ни одного простого типа,
+                // тогда применяем следующее правило - ссылка составного типа
+
+                if ((types & DataTypeFlags.Entity) == 0 && types == DataTypeFlags.Undefined)
+                {
+                    types |= DataTypeFlags.Entity;
+                    typeCode = 0;
+                }
             }
 
-            return type;
+            return new DataType(types, qualifiers, size, precision, scale, typeCode);
         }
 
         // RULES (правила разрешения ссылочных типов данных для объекта "ОписаниеТипов"):

@@ -19,8 +19,8 @@ namespace DaJet
         public static readonly string BusinessProcess = "БизнесПроцесс";
         public static readonly string BusinessTask = "Задача";
         
-        private static readonly FrozenDictionary<string, Guid> MetadataTypes = CreateMetadataTypesLookup();
-        private static FrozenDictionary<string, Guid> CreateMetadataTypesLookup()
+        private static readonly FrozenDictionary<string, Guid> MetadataNames = CreateMetadataNamesLookup();
+        private static FrozenDictionary<string, Guid> CreateMetadataNamesLookup()
         {
             List<KeyValuePair<string, Guid>> list =
             [
@@ -43,12 +43,44 @@ namespace DaJet
         }
         public static Guid GetMetadataType(in string name)
         {
-            if (MetadataTypes.TryGetValue(name, out Guid type))
+            if (MetadataNames.TryGetValue(name, out Guid type))
             {
                 return type;
             }
 
             return Guid.Empty;
+        }
+
+        private static readonly FrozenDictionary<Type, string> MetadataTypes = CreateMetadataTypesLookup();
+        private static FrozenDictionary<Type, string> CreateMetadataTypesLookup()
+        {
+            List<KeyValuePair<Type, string>> list =
+            [
+                new KeyValuePair<Type, string>(typeof(SharedProperty), SharedProperty),
+                new KeyValuePair<Type, string>(typeof(Publication), Publication),
+                new KeyValuePair<Type, string>(typeof(DefinedType), DefinedType),
+                new KeyValuePair<Type, string>(typeof(Constant), Constant),
+                new KeyValuePair<Type, string>(typeof(Catalog), Catalog),
+                new KeyValuePair<Type, string>(typeof(Document), Document),
+                new KeyValuePair<Type, string>(typeof(Enumeration), Enumeration),
+                new KeyValuePair<Type, string>(typeof(Characteristic), Characteristic),
+                new KeyValuePair<Type, string>(typeof(Account), Account),
+                new KeyValuePair<Type, string>(typeof(InformationRegister), InformationRegister),
+                new KeyValuePair<Type, string>(typeof(AccumulationRegister), AccumulationRegister),
+                new KeyValuePair<Type, string>(typeof(AccountingRegister), AccountingRegister),
+                new KeyValuePair<Type, string>(typeof(BusinessProcess), BusinessProcess),
+                new KeyValuePair<Type, string>(typeof(BusinessTask), BusinessTask)
+            ];
+            return FrozenDictionary.ToFrozenDictionary(list);
+        }
+        public static string GetMetadataName(Type type)
+        {
+            if (MetadataTypes.TryGetValue(type, out string name))
+            {
+                return name;
+            }
+
+            return string.Empty;
         }
     }
 }

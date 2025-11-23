@@ -104,15 +104,15 @@ namespace Benchmark
             }
         }
 
-        [Benchmark(Description = "Parser")]
-        public TableDefinition ParseConfigFile()
-        {
-            TableDefinition table = ms_unf_provider.ParseConfigFile(metadataUuid, _buffer);
+        //[Benchmark(Description = "Parser")]
+        //public EntityDefinition ParseConfigFile()
+        //{
+        //    EntityDefinition table = ms_unf_provider.ParseConfigFile(metadataUuid, _buffer);
 
-            //Console.WriteLine($"[{table.DbName}] {table.Name} {{{table.Properties.Count}}} = {_buffer.Length} bytes");
+        //    //Console.WriteLine($"[{table.DbName}] {table.Name} {{{table.Properties.Count}}} = {_buffer.Length} bytes");
 
-            return table;
-        }
+        //    return table;
+        //}
 
         #region "Старые тесты allocation-free stack-based парсера"
 

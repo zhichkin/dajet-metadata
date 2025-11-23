@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using Microsoft.Win32;
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
@@ -400,20 +402,70 @@ namespace DaJet
                 }
             }
         }
-        internal IEnumerable<DefinedType> GetDefinedTypes()
+        internal IEnumerable<T> GetMetadataObjects<T>() where T : MetadataObject
         {
-            if (!_names.TryGetValue(MetadataName.DefinedType, out Dictionary<string, Guid> items))
+            string name = MetadataName.GetMetadataName(typeof(T));
+
+            if (string.IsNullOrEmpty(name))
+            {
+                yield break;
+            }
+
+            if (!_names.TryGetValue(name, out Dictionary<string, Guid> items))
             {
                 yield break;
             }
 
             foreach (KeyValuePair<string, Guid> item in items)
             {
-                if (TryGetEntry(item.Value, out DefinedType entry))
+                if (TryGetEntry(item.Value, out T entry))
                 {
                     yield return entry;
                 }
             }
+        }
+
+        internal List<string> ResolveReferences(in List<Guid> references)
+        {
+            List<string> types = new();
+
+            for (int i = 0; i < references.Count; i++)
+            {
+                Guid reference = references[i];
+
+                if (i == 0) // Единственно допустимая ссылка данного типа
+                {
+                    if (TryGetDefinedType(reference, out DefinedType defined))
+                    {
+                        types.Add(string.Format("ОпределяемыйТип.{0}", defined.Name)); break;
+                    }
+
+                    if (TryGetCharacteristic(reference, out Characteristic characteristic))
+                    {
+                        types.Add(string.Format("Характеристика.{0}", characteristic.Name)); break;
+                    }
+                }
+
+                // Конкретный ссылочный тип
+
+                if (TryGetReference(reference, out DatabaseObject entry))
+                {
+                    types.Add(entry.ToString());
+                }
+                else // Общий ссылочный тип
+                {
+                    if (reference == ReferenceType.AnyReference)
+                    {
+                        types.Add("ЛюбаяСсылка");
+                    }
+                    else
+                    {
+                        types.Add(string.Format("{0}Ссылка", ReferenceType.GetMetadataName(reference)));
+                    }
+                }
+            }
+
+            return types;
         }
 
         internal void UpdateEntry(Guid uuid)
