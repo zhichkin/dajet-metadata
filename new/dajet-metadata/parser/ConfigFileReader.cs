@@ -1,9 +1,6 @@
 ﻿using System.Buffers;
 using System.Buffers.Text;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 using System.Text;
 
 namespace DaJet.Metadata
@@ -564,85 +561,6 @@ namespace DaJet.Metadata
             }
 
             return 0; // both vectors are equal
-        }
-
-        [Obsolete("Заменён на индексатор и метод Seek без параметров.")]
-        public bool Seek(ReadOnlySpan<uint> target)
-        {
-            int result = Compare(target);
-
-            if (result == 0)
-            {
-                return true; // the search path is equal to the current
-            }
-
-            if (result > 0)
-            {
-                return false; // the search path is not available
-            }
-
-            while (result < 0 && Read())
-            {
-                result = Compare(target);
-            }
-
-            return (result == 0); // the search path is found, unavailable or outside the bounds of the file
-        }
-        private readonly int Compare(in ReadOnlySpan<uint> target)
-        {
-            int size = _element + 1;
-            ReadOnlySpan<uint> current = _vector[0..size];
-
-            int length = Math.Min(current.Length, target.Length);
-
-            for (int element = 0; element < length; element++)
-            {
-                if (current[element] < target[element])
-                {
-                    return -1; // current path is less than target
-                }
-                else if (current[element] > target[element])
-                {
-                    return 1; // current path is greater than target
-                }
-            }
-
-            if (current.Length < target.Length)
-            {
-                return -1; // current path is less than target
-            }
-            else if (current.Length > target.Length)
-            {
-                return 1; // current path is greater than target
-            }
-            
-            return 0; // both paths are equal
-        }
-
-        [Experimental("CFREADER_VECTORIZED")]
-        public bool SeekVectorized()
-        {
-            if (Avx2.IsSupported)
-            {
-                Vector512<uint> vector = Vector512.Create(_vector.AsReadOnlySpan(16));
-                Vector512<uint> target = Vector512.Create(_target.AsReadOnlySpan(16));
-                Vector512<uint> result = Vector512.LessThan(vector, target);
-
-                while (result != Vector512<uint>.Zero && Read())
-                {
-                    vector = Vector512.Create(_vector.AsReadOnlySpan(16));
-                    result = Vector512.LessThan(vector, target);
-                }
-
-                bool found = Vector512.EqualsAll(vector, target);
-
-                _length = -1; // Нужно для использования индесатора
-                return found; // vector is greater than target
-            }
-            else
-            {
-                return Seek();
-            }
         }
     }
 }

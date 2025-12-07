@@ -28,11 +28,11 @@ namespace DaJet
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
-            GetMetadataObject("Справочник.Номенклатура.ДополнительныеРеквизиты"); return;
+            //GetMetadataObject("Справочник.Номенклатура"); return;
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
-            //CompareMetadataToDatabase();
+            CompareMetadataToDatabase();
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -105,7 +105,7 @@ namespace DaJet
 
             provider.Initialize();
 
-            EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName); // WithRelations
+            EntityDefinition metadata = provider.GetMetadataObjectWithRelations(in metadataFullName);
 
             Console.WriteLine($"Name: {metadata.Name}");
             Console.WriteLine($"DbName: {metadata.DbName}");
@@ -192,23 +192,23 @@ namespace DaJet
 
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_ERP);
 
             List<string> metadataNames = new()
             {
-                MetadataNames.Constant,
-                MetadataNames.Publication,
-                MetadataNames.Catalog,
-                MetadataNames.Document,
-                MetadataNames.Characteristic,
-                MetadataNames.InformationRegister,
-                MetadataNames.AccumulationRegister,
-                MetadataNames.BusinessTask,
-                MetadataNames.BusinessProcess,
-                MetadataNames.Account,
-                MetadataNames.AccountingRegister
+                //MetadataNames.Constant
+                //MetadataNames.Publication,
+                //MetadataNames.Catalog,
+                //MetadataNames.Document,
+                //MetadataNames.Characteristic,
+                MetadataNames.InformationRegister
+                //MetadataNames.AccumulationRegister,
+                //MetadataNames.BusinessTask,
+                //MetadataNames.BusinessProcess,
+                //MetadataNames.Account,
+                //MetadataNames.AccountingRegister
             };
 
             string report = provider.CompareMetadataToDatabase(metadataNames);

@@ -91,7 +91,7 @@ namespace DaJet.Metadata
                 offset[root.Length + 2] = 2;
                 offset[root.Length + 3] = 3;
 
-                property.Type = DataTypeParser.Parse(ref reader, offset, in registry, out List <Guid> references);
+                property.Type = DataTypeParser.Parse(ref reader, offset, in registry, out List<Guid> references);
 
                 if (relations)
                 {
@@ -136,10 +136,23 @@ namespace DaJet.Metadata
 
                 return; // Особый случай - очень редкое выполнение
             }
-            
+
             Configurator.ConfigureDatabaseColumns(in entry, in property);
-            
+
             table.Properties.Add(property);
+
+            if (type == PropertyTypes.InformationRegister_Dimension)
+            {
+                //NOTE: Использование измерения периодического или непереодического регистра сведений,
+                //NOTE: который не подчинён регистратору, в качестве основного отбора при регистрации изменений в плане обмена
+                
+                bool UseForChangeTracking = reader[root][1][6].SeekNumber() == 1;
+
+                if (UseForChangeTracking)
+                {
+                    property.Purpose |= PropertyPurpose.UseForChangeTracking;
+                }
+            }
 
             //if (type == PropertyTypes.Catalog_Properties ||
             //    type == PropertyTypes.Characteristic_Properties)

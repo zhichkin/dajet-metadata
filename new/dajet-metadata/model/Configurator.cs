@@ -1,162 +1,9 @@
 ﻿using DaJet.TypeSystem;
-using System.Xml.Linq;
 
 namespace DaJet.Metadata
 {
     internal static class Configurator
     {
-        #region "Колонки таблиц базы данных"
-        internal static void ConfigureDatabaseColumns(in Property metadata, in PropertyDefinition property)
-        {
-            string databaseName = metadata.GetMainDbName();
-            ConfigureDatabaseColumns(in property, in databaseName);
-        }
-        internal static void ConfigureDatabaseColumns(in SharedProperty metadata, in PropertyDefinition property)
-        {
-            string databaseName = metadata.GetMainDbName();
-            ConfigureDatabaseColumns(in property, in databaseName);
-        }
-        internal static void ConfigureDatabaseColumns(in PropertyDefinition property, in string databaseName)
-        {
-            if (property.Type.IsUnion)
-            {
-                ConfigureDatabaseColumnsForUnionType(in property, in databaseName);
-            }
-            else
-            {
-                ConfigureDatabaseColumnsForSimpleType(in property, in databaseName);
-            }
-        }
-        private static void ConfigureDatabaseColumnsForUnionType(in PropertyDefinition property, in string databaseName)
-        {
-            property.Columns.Add(new ColumnDefinition()
-            {
-                Name = string.Format("{0}_{1}", databaseName, MetadataToken.TYPE),
-                Type = DataType.Binary(1, false),
-                Purpose = ColumnPurpose.Tag
-            });
-
-            if (property.Type.IsBoolean)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.L),
-                    Type = DataType.Binary(1, false),
-                    Purpose = ColumnPurpose.Boolean
-                });
-            }
-
-            if (property.Type.IsDecimal)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.N),
-                    Type = DataType.Decimal(property.Type.Precision, property.Type.Scale), // numeric
-                    Purpose = ColumnPurpose.Numeric
-                });
-            }
-
-            if (property.Type.IsDateTime)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.T),
-                    Type = DataType.DateTime,
-                    Purpose = ColumnPurpose.DateTime
-                });
-            }
-
-            if (property.Type.IsString)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.S),
-                    Type = DataType.String(property.Type.Size),
-                    Purpose = ColumnPurpose.String
-                });
-            }
-
-            if (property.Type.IsEntity)
-            {
-                if (property.Type.TypeCode == 0) // Составной тип ссылки
-                {
-                    property.Columns.Add(new ColumnDefinition() // Код типа ссылки
-                    {
-                        Name = string.Format("{0}_{1}", databaseName, MetadataToken.RTRef),
-                        Type = DataType.Binary(4, false),
-                        Purpose = ColumnPurpose.TypeCode
-                    });
-                }
-
-                property.Columns.Add(new ColumnDefinition() // Значение ссылки
-                {
-                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.RRRef),
-                    Type = DataType.Binary(16, false),
-                    Purpose = ColumnPurpose.Identity
-                });
-            }
-        }
-        private static void ConfigureDatabaseColumnsForSimpleType(in PropertyDefinition property, in string databaseName)
-        {
-            if (property.Type.IsUuid)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = binary(16)
-                    Type = DataType.Binary(16, false) // pg = bytea
-                });
-            }
-            else if (property.Type.IsBinary)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = varbinary(max)
-                    Type = property.Type // pg = bytea
-                });
-            }
-            else if (property.Type.IsString)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = nchar | nvarchar
-                    Type = property.Type // pg = mchar | mvarchar
-                });
-            }
-            else if (property.Type.IsDecimal)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = numeric
-                    Type = property.Type // pg = numeric
-                });
-            }
-            else if (property.Type.IsBoolean)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = binary(1)
-                    Type = DataType.Binary(1, false) // pg = boolean
-                });
-            }
-            else if (property.Type.IsDateTime)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = databaseName, // ms = datetime2
-                    Type = DataType.DateTime // pg = "timestamp without time zone"
-                });
-            }
-            else if (property.Type.IsEntity)
-            {
-                property.Columns.Add(new ColumnDefinition()
-                {
-                    Name = string.Format("{0}{1}", databaseName, MetadataToken.RRef), // ms = binary(16)
-                    Type = DataType.Binary(16, false) // pg = bytea
-                });
-            }
-        }
-        #endregion
-
         #region "Общие реквизиты"
         internal static void ConfigureSharedProperties(in MetadataRegistry registry, in DatabaseObject entry, in EntityDefinition target)
         {
@@ -310,166 +157,6 @@ namespace DaJet.Metadata
         }
         #endregion
 
-        #region "Табличная часть"
-        internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in DatabaseObject owner)
-        {
-            //foreach (TablePart tablePart in aggregate.TableParts)
-            //{
-            //    if (cache.Extension != null && string.IsNullOrEmpty(tablePart.TableName))
-            //    {
-            //        //NOTE (!) Заимствованные из основной конфигурации табличные части в расширениях
-            //        //не имеют системных свойств (они их наследуют), если только они их не переопределяют.
-            //        continue;
-            //    }
-
-            //    if (tablePart.Uuid == Guid.Empty)
-            //    {
-            //        //NOTE: Системная табличная часть, например, "ВидыСубконто" плана счетов
-            //        continue;
-            //    }
-
-            //    ConfigurePropertyСсылка(in cache, in owner, in tablePart);
-            //    ConfigurePropertyКлючСтроки(in tablePart);
-            //    ConfigurePropertyНомерСтроки(in cache, in tablePart);
-            //}
-
-            ConfigurePropertyСсылка(in table, in owner);
-            ConfigurePropertyКлючСтроки(in table);
-            ConfigurePropertyНомерСтроки(in table, in metadata);
-        }
-        internal static void ConfigurePropertyСсылка(in EntityDefinition table, in DatabaseObject owner)
-        {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "Ссылка",
-            //    Uuid = Guid.Empty,
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = owner.GetMainDbName() + "_IDRRef"
-            //};
-
-            //property.PropertyType.CanBeReference = true;
-            //property.PropertyType.TypeCode = owner.TypeCode;
-            //property.PropertyType.Reference = owner.Uuid;
-
-            PropertyDefinition property = new()
-            {
-                Name = "Ссылка",
-                Purpose = PropertyPurpose.System
-            };
-            property.Type = DataType.Entity(owner.TypeCode);
-
-            //if (cache.ResolveReferences)
-            //{
-            //    property.References.Add(owner.Uuid);
-            //}
-
-            // Собственная табличная часть расширения, но добавленная к заимствованному объекту основной конфигурации:
-            // в таком случае у заимствованного объекта значения TypeCode и Uuid надо искать в основной конфигурации.
-            // Однако, в данный момент мы находимся в контексте расширения и контекст основной конфигруации недоступен!
-            //if (owner.Parent != Guid.Empty)
-            //{
-            // TODO: нужно реализовать алгоритм разрешения ссылок на заимствованные объекты
-            // в процедуре применения расширения к основной конфиграции!
-
-            //MetadataObject parent = cache.GetMetadataObject(owner.Parent);
-            //}
-
-            //TODO: property.PropertyType.References.Add(new MetadataItem(MetadataTypess.Catalog, owner.Uuid, owner.Name));
-
-            property.Columns = new List<ColumnDefinition>(1)
-            {
-                new ColumnDefinition()
-                {
-                    Name = string.Format("{0}_{1}", owner.GetMainDbName(), MetadataToken.IDRRef),
-                    Type = DataType.Binary(16, false),
-                    IsPrimaryKey = true
-                }
-            };
-
-            table.Properties.Add(property);
-        }
-        internal static void ConfigurePropertyКлючСтроки(in EntityDefinition table)
-        {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "KeyField",    // Исправлено на латиницу из-за того, что в некоторых конфигурациях 1С
-            //    Alias = "КлючСтроки", // для реквизитов табличной части иногда используют имя "КлючСтроки".
-            //    Uuid = Guid.Empty,    // Это не запрещено 1С в отличие от имён реквизитов "Ссылка" и "НомерСтроки".
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = "_KeyField"
-            //};
-            //property.PropertyType.IsBinary = true;
-
-            PropertyDefinition property = new()
-            {
-                Name = "KeyField",
-                Purpose = PropertyPurpose.System
-            };
-            property.Type = DataType.Binary(4, false);
-
-            //property.Columns.Add(new MetadataColumn()
-            //{
-            //    Name = "_KeyField",
-            //    Length = 4,
-            //    TypeName = "binary",
-            //    KeyOrdinal = 2,
-            //    IsPrimaryKey = true
-            //});
-
-            property.Columns = new List<ColumnDefinition>(1)
-            {
-                new ColumnDefinition()
-                {
-                    Name = "_KeyField",
-                    Type = property.Type,
-                    IsPrimaryKey = true
-                }
-            };
-
-            table.Properties.Add(property);
-        }
-        private static void ConfigurePropertyНомерСтроки(in EntityDefinition table, in TablePart metadata)
-        {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "НомерСтроки",
-            //    Uuid = Guid.Empty,
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = CreateDbName(dbn.Name, dbn.Code)
-            //};
-            //property.PropertyType.CanBeNumeric = true;
-            //property.PropertyType.NumericKind = NumericKind.UnSigned;
-            //property.PropertyType.NumericPrecision = 5;
-
-            PropertyDefinition property = new()
-            {
-                Name = "НомерСтроки",
-                Purpose = PropertyPurpose.System
-            };
-            //TODO: Начиная с 8.3.27, параметр precision может быть равен 9
-            property.Type = DataType.Decimal(5, 0);
-
-            //property.Columns.Add(new MetadataColumn()
-            //{
-            //    Name = property.DbName,
-            //    Length = 5,
-            //    Precision = 5,
-            //    TypeName = "numeric"
-            //});
-
-            property.Columns = new List<ColumnDefinition>(1)
-            {
-                new ColumnDefinition()
-                {
-                    Name = metadata.GetColumnNameНомерСтроки(),
-                    Type = property.Type
-                }
-            };
-
-            table.Properties.Add(property);
-        }
-        #endregion
-
         #region "Константа"
         internal static void ConfigurePropertyRecordKey(in EntityDefinition table)
         {
@@ -510,30 +197,29 @@ namespace DaJet.Metadata
             //    property.References.AddRange(constant.References);
             //}
         }
-        /////<summary>
-        /////Идентификатор объекта метаданных "Константа", значение которой было изменено
-        /////</summary>
-        //private static void ConfigurePropertyConstID(in ChangeTrackingTable table)
-        //{
-        //    MetadataProperty property = new()
-        //    {
-        //        Name = "ConstID",
-        //        Uuid = Guid.Empty,
-        //        Alias = "ConstID",
-        //        Purpose = PropertyPurpose.System,
-        //        DbName = "_ConstID"
-        //    };
-        //    property.PropertyType.IsBinary = true;
+        ///<summary>
+        ///Идентификатор объекта метаданных "Константа", значение которой было изменено
+        ///</summary>
+        internal static void ConfigurePropertyConstID(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "ConstID",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Binary(16, false);
 
-        //    property.Columns.Add(new MetadataColumn()
-        //    {
-        //        Name = "_ConstID",
-        //        Length = 16,
-        //        TypeName = "binary"
-        //    });
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_ConstID",
+                    Type = DataType.Binary(16, false)
+                }
+            };
 
-        //    table.Properties.Add(property);
-        //}
+            table.Properties.Add(property);
+        }
         #endregion
 
         #region "Перечисление"
@@ -2002,173 +1688,371 @@ namespace DaJet.Metadata
         //}
         #endregion
 
+        #region "Табличная часть"
+        internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in DatabaseObject owner)
+        {
+            //foreach (TablePart tablePart in aggregate.TableParts)
+            //{
+            //    if (cache.Extension != null && string.IsNullOrEmpty(tablePart.TableName))
+            //    {
+            //        //NOTE (!) Заимствованные из основной конфигурации табличные части в расширениях
+            //        //не имеют системных свойств (они их наследуют), если только они их не переопределяют.
+            //        continue;
+            //    }
+
+            //    if (tablePart.Uuid == Guid.Empty)
+            //    {
+            //        //NOTE: Системная табличная часть, например, "ВидыСубконто" плана счетов
+            //        continue;
+            //    }
+
+            //    ConfigurePropertyСсылка(in cache, in owner, in tablePart);
+            //    ConfigurePropertyКлючСтроки(in tablePart);
+            //    ConfigurePropertyНомерСтроки(in cache, in tablePart);
+            //}
+
+            ConfigurePropertyСсылка(in table, in owner);
+            ConfigurePropertyКлючСтроки(in table);
+            ConfigurePropertyНомерСтроки(in table, in metadata);
+        }
+        internal static void ConfigurePropertyСсылка(in EntityDefinition table, in DatabaseObject owner)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "Ссылка",
+            //    Uuid = Guid.Empty,
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = owner.GetMainDbName() + "_IDRRef"
+            //};
+
+            //property.PropertyType.CanBeReference = true;
+            //property.PropertyType.TypeCode = owner.TypeCode;
+            //property.PropertyType.Reference = owner.Uuid;
+
+            PropertyDefinition property = new()
+            {
+                Name = "Ссылка",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Entity(owner.TypeCode);
+
+            //if (cache.ResolveReferences)
+            //{
+            //    property.References.Add(owner.Uuid);
+            //}
+
+            // Собственная табличная часть расширения, но добавленная к заимствованному объекту основной конфигурации:
+            // в таком случае у заимствованного объекта значения TypeCode и Uuid надо искать в основной конфигурации.
+            // Однако, в данный момент мы находимся в контексте расширения и контекст основной конфигруации недоступен!
+            //if (owner.Parent != Guid.Empty)
+            //{
+            // TODO: нужно реализовать алгоритм разрешения ссылок на заимствованные объекты
+            // в процедуре применения расширения к основной конфиграции!
+
+            //MetadataObject parent = cache.GetMetadataObject(owner.Parent);
+            //}
+
+            //TODO: property.PropertyType.References.Add(new MetadataItem(MetadataTypess.Catalog, owner.Uuid, owner.Name));
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", owner.GetMainDbName(), MetadataToken.IDRRef),
+                    Type = DataType.Binary(16, false),
+                    IsPrimaryKey = true
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        internal static void ConfigurePropertyКлючСтроки(in EntityDefinition table)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "KeyField",    // Исправлено на латиницу из-за того, что в некоторых конфигурациях 1С
+            //    Alias = "КлючСтроки", // для реквизитов табличной части иногда используют имя "КлючСтроки".
+            //    Uuid = Guid.Empty,    // Это не запрещено 1С в отличие от имён реквизитов "Ссылка" и "НомерСтроки".
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = "_KeyField"
+            //};
+            //property.PropertyType.IsBinary = true;
+
+            PropertyDefinition property = new()
+            {
+                Name = "KeyField",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Binary(4, false);
+
+            //property.Columns.Add(new MetadataColumn()
+            //{
+            //    Name = "_KeyField",
+            //    Length = 4,
+            //    TypeName = "binary",
+            //    KeyOrdinal = 2,
+            //    IsPrimaryKey = true
+            //});
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_KeyField",
+                    Type = property.Type,
+                    IsPrimaryKey = true
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyНомерСтроки(in EntityDefinition table, in TablePart metadata)
+        {
+            //MetadataProperty property = new()
+            //{
+            //    Name = "НомерСтроки",
+            //    Uuid = Guid.Empty,
+            //    Purpose = PropertyPurpose.System,
+            //    DbName = CreateDbName(dbn.Name, dbn.Code)
+            //};
+            //property.PropertyType.CanBeNumeric = true;
+            //property.PropertyType.NumericKind = NumericKind.UnSigned;
+            //property.PropertyType.NumericPrecision = 5;
+
+            PropertyDefinition property = new()
+            {
+                Name = "НомерСтроки",
+                Purpose = PropertyPurpose.System
+            };
+            //TODO: Начиная с 8.3.27, параметр precision может быть равен 9
+            property.Type = DataType.Decimal(5, 0);
+
+            //property.Columns.Add(new MetadataColumn()
+            //{
+            //    Name = property.DbName,
+            //    Length = 5,
+            //    Precision = 5,
+            //    TypeName = "numeric"
+            //});
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = metadata.GetColumnNameНомерСтроки(),
+                    Type = property.Type
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        #endregion
+
         #region "Таблица регистрации изменений"
-        //internal static void ConfigureChangeTrackingTable(in OneDbMetadataProvider cache, in ChangeTrackingTable table)
-        //{
-        //    if (table.Entity is not ApplicationObject entity)
-        //    {
-        //        return;
-        //    }
+        internal static void ConfigurePropertyУзелПланаОбмена(in EntityDefinition table)
+        {
+            // This property always has the multiple refrence type,
+            // even if there is only one exchange plan configured.
 
-        //    if (!cache.TryGetChngR(table.Entity.Uuid, out DbName changeTable))
-        //    {
-        //        return;
-        //    }
+            PropertyDefinition property = new()
+            {
+                Name = "УзелОбмена",
+                Type = DataType.Entity(),
+                Purpose = PropertyPurpose.System
+            };
 
-        //    bool extended = false;
+            property.Columns = new List<ColumnDefinition>(2)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_NodeTRef",
+                    Type = DataType.Binary(4, false),
+                    Purpose = ColumnPurpose.TypeCode,
+                    IsPrimaryKey = true
+                },
+                new ColumnDefinition()
+                {
+                    Name = "_NodeRRef",
+                    Type = DataType.Binary(16, false),
+                    Purpose = ColumnPurpose.Identity,
+                    IsPrimaryKey = true
+                }
+            };
 
-        //    if (cache.TryGetExtendedInfo(table.Entity.Uuid, out MetadataItemEx item))
-        //    {
-        //        extended = item.ExtensionType.IsChangeTracking();
-        //    }
+            table.Properties.Add(property);
+        }
+        internal static void ConfigurePropertyНомерСообщения(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "НомерСообщения",
+                Type = DataType.Decimal(10, 0),
+                Purpose = PropertyPurpose.System
+            };
 
-        //    table.Uuid = table.Entity.Uuid;
-        //    table.Name = table.Entity.Name + ".Изменения";
-        //    table.Alias = "Таблица регистрации изменений";
-        //    table.TypeCode = table.Entity.TypeCode;
-        //    table.TableName = $"_{changeTable.Name}{changeTable.Code}{(extended ? "x1" : string.Empty)}";
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_MessageNo",
+                    Type = property.Type
+                }
+            };
 
-        //    ConfigurePropertyУзелПланаОбмена(in table);
-        //    ConfigurePropertyНомерСообщения(in table);
+            table.Properties.Add(property);
+        }
+        #endregion
 
-        //    if (entity is Constant constant)
-        //    {
-        //        ConfigurePropertyConstID(in table);
-        //    }
-        //    else if (entity is Catalog || entity is Document || entity is Account || entity is BusinessTask || entity is BusinessProcess)
-        //    {
-        //        MetadataProperty reference = entity.Properties.Where(p => p.Name == "Ссылка").FirstOrDefault();
+        #region "Колонки таблиц базы данных"
+        internal static void ConfigureDatabaseColumns(in Property metadata, in PropertyDefinition property)
+        {
+            string databaseName = metadata.GetMainDbName();
+            ConfigureDatabaseColumns(in property, in databaseName);
+        }
+        internal static void ConfigureDatabaseColumns(in SharedProperty metadata, in PropertyDefinition property)
+        {
+            string databaseName = metadata.GetMainDbName();
+            ConfigureDatabaseColumns(in property, in databaseName);
+        }
+        internal static void ConfigureDatabaseColumns(in PropertyDefinition property, in string databaseName)
+        {
+            if (property.Type.IsUnion)
+            {
+                ConfigureDatabaseColumnsForUnionType(in property, in databaseName);
+            }
+            else
+            {
+                ConfigureDatabaseColumnsForSimpleType(in property, in databaseName);
+            }
+        }
+        private static void ConfigureDatabaseColumnsForUnionType(in PropertyDefinition property, in string databaseName)
+        {
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = string.Format("{0}_{1}", databaseName, MetadataToken.TYPE),
+                Type = DataType.Binary(1, false),
+                Purpose = ColumnPurpose.Tag
+            });
 
-        //        if (reference is not null)
-        //        {
-        //            table.Properties.Add(reference);
-        //        }
-        //    }
-        //    else if (entity is InformationRegister register)
-        //    {
-        //        if (register.UseRecorder) // Регистр, подчинённый регистратору
-        //        {
-        //            MetadataProperty recorder = entity.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+            if (property.Type.IsBoolean)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.L),
+                    Type = DataType.Binary(1, false),
+                    Purpose = ColumnPurpose.Boolean
+                });
+            }
 
-        //            if (recorder is not null)
-        //            {
-        //                table.Properties.Add(recorder);
-        //            }
-        //        }
-        //        else if (register.Periodicity != RegisterPeriodicity.None) // Периодический регистр сведений
-        //        {
-        //            if (register.UsePeriodForChangeTracking)
-        //            {
-        //                MetadataProperty period = entity.Properties.Where(p => p.Name == "Период").FirstOrDefault();
+            if (property.Type.IsDecimal)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.N),
+                    Type = DataType.Decimal(property.Type.Precision, property.Type.Scale), // numeric
+                    Purpose = ColumnPurpose.Numeric
+                });
+            }
 
-        //                if (period is not null)
-        //                {
-        //                    table.Properties.Add(period);
-        //                }
-        //            }
+            if (property.Type.IsDateTime)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.T),
+                    Type = DataType.DateTime,
+                    Purpose = ColumnPurpose.DateTime
+                });
+            }
 
-        //            foreach (MetadataProperty property in register.Properties)
-        //            {
-        //                if (property.Purpose == PropertyPurpose.Dimension && property.UseForChangeTracking)
-        //                {
-        //                    table.Properties.Add(property);
-        //                }
-        //            }
-        //        }
-        //        else // Непериодический и независимый регистр сведений
-        //        {
-        //            foreach (MetadataProperty property in register.Properties)
-        //            {
-        //                if (property.Purpose == PropertyPurpose.Dimension && property.UseForChangeTracking)
-        //                {
-        //                    table.Properties.Add(property);
-        //                }
-        //            }
-        //        }
-        //    }
-        //    else if (entity is AccumulationRegister || entity is AccountingRegister)
-        //    {
-        //        MetadataProperty recorder = entity.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+            if (property.Type.IsString)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.S),
+                    Type = DataType.String(property.Type.Size),
+                    Purpose = ColumnPurpose.String
+                });
+            }
 
-        //        if (recorder is not null)
-        //        {
-        //            table.Properties.Add(recorder);
-        //        }
-        //    }
+            if (property.Type.IsEntity)
+            {
+                if (property.Type.TypeCode == 0) // Составной тип ссылки
+                {
+                    property.Columns.Add(new ColumnDefinition() // Код типа ссылки
+                    {
+                        Name = string.Format("{0}_{1}", databaseName, MetadataToken.RTRef),
+                        Type = DataType.Binary(4, false),
+                        Purpose = ColumnPurpose.TypeCode
+                    });
+                }
 
-        //    foreach (MetadataProperty property in entity.Properties)
-        //    {
-        //        if (property is SharedProperty shared && shared.DataSeparationUsage == DataSeparationUsage.Use)
-        //        {
-        //            table.Properties.Add(shared);
-        //        }
-        //    }
-        //}
-        //private static void ConfigurePropertyУзелПланаОбмена(in ChangeTrackingTable table)
-        //{
-        //    // This property always has the multiple refrence type,
-        //    // even if there is only one exchange plan configured.
-
-        //    MetadataProperty property = new()
-        //    {
-        //        Uuid = Guid.Empty,
-        //        Name = "УзелОбмена",
-        //        Purpose = PropertyPurpose.System,
-        //        DbName = "_Node"
-        //    };
-
-        //    property.PropertyType.CanBeReference = true;
-        //    property.PropertyType.Reference = Guid.Empty;
-        //    //REFACTORING (29.01.2023) property.PropertyType.References.Add(new MetadataItem(ReferenceTypes.Publication, Guid.Empty, "ПланОбменаСсылка"));
-
-        //    property.Columns.Add(new MetadataColumn()
-        //    {
-        //        Name = "_NodeTRef",
-        //        Length = 4,
-        //        TypeName = "binary",
-        //        KeyOrdinal = 2,
-        //        IsPrimaryKey = true,
-        //        Purpose = ColumnPurpose.TypeCode
-        //    });
-
-        //    property.Columns.Add(new MetadataColumn()
-        //    {
-        //        Name = "_NodeRRef",
-        //        Length = 16,
-        //        TypeName = "binary",
-        //        KeyOrdinal = 3,
-        //        IsPrimaryKey = true,
-        //        Purpose = ColumnPurpose.Identity
-        //    });
-
-        //    table.Properties.Add(property);
-        //}
-        //private static void ConfigurePropertyНомерСообщения(in ChangeTrackingTable table)
-        //{
-        //    MetadataProperty property = new()
-        //    {
-        //        Name = "НомерСообщения",
-        //        Uuid = Guid.Empty,
-        //        Purpose = PropertyPurpose.System,
-        //        DbName = "_MessageNo"
-        //    };
-
-        //    property.PropertyType.CanBeNumeric = true;
-        //    property.PropertyType.NumericKind = NumericKind.AlwaysPositive;
-        //    property.PropertyType.NumericScale = 0;
-        //    property.PropertyType.NumericPrecision = 10;
-
-        //    property.Columns.Add(new MetadataColumn()
-        //    {
-        //        Name = property.DbName,
-        //        Length = 9,
-        //        Scale = 0,
-        //        Precision = 10,
-        //        TypeName = "numeric"
-        //    });
-
-        //    table.Properties.Add(property);
-        //}
+                property.Columns.Add(new ColumnDefinition() // Значение ссылки
+                {
+                    Name = string.Format("{0}_{1}", databaseName, MetadataToken.RRRef),
+                    Type = DataType.Binary(16, false),
+                    Purpose = ColumnPurpose.Identity
+                });
+            }
+        }
+        private static void ConfigureDatabaseColumnsForSimpleType(in PropertyDefinition property, in string databaseName)
+        {
+            if (property.Type.IsUuid)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = binary(16)
+                    Type = DataType.Binary(16, false) // pg = bytea
+                });
+            }
+            else if (property.Type.IsBinary)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = varbinary(max)
+                    Type = property.Type // pg = bytea
+                });
+            }
+            else if (property.Type.IsString)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = nchar | nvarchar
+                    Type = property.Type // pg = mchar | mvarchar
+                });
+            }
+            else if (property.Type.IsDecimal)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = numeric
+                    Type = property.Type // pg = numeric
+                });
+            }
+            else if (property.Type.IsBoolean)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = binary(1)
+                    Type = DataType.Binary(1, false) // pg = boolean
+                });
+            }
+            else if (property.Type.IsDateTime)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = databaseName, // ms = datetime2
+                    Type = DataType.DateTime // pg = "timestamp without time zone"
+                });
+            }
+            else if (property.Type.IsEntity)
+            {
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = string.Format("{0}{1}", databaseName, MetadataToken.RRef), // ms = binary(16)
+                    Type = DataType.Binary(16, false) // pg = bytea
+                });
+            }
+        }
         #endregion
     }
 }

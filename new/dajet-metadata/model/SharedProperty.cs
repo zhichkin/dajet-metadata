@@ -137,6 +137,11 @@ namespace DaJet.Metadata
                     Purpose = PropertyPurpose.SharedProperty
                 };
 
+                if (metadata.DataSeparationUsage == DataSeparationUsage.Use)
+                {
+                    definition.Purpose |= PropertyPurpose.UseDataSeparation;
+                }
+
                 Configurator.ConfigureDatabaseColumns(in metadata, in definition);
 
                 metadata.Definition = definition;

@@ -9,6 +9,10 @@ namespace DaJet.Metadata
             return new InformationRegister(uuid, code, name);
         }
         internal InformationRegister(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        
+        internal bool UseRecorder { get; set; } // Регистр сведений, подчинённый регистратору
+        internal RegisterPeriodicity Periodicity { get; set; } // Периодичность записей регистра сведений
+        internal bool UsePeriodForChangeTracking { get; set; } // Регистрация изменений в разрезе реквизита "Период"
 
         private int _InfoRgSF;
         private int _InfoRgSL;
@@ -54,6 +58,63 @@ namespace DaJet.Metadata
             return string.Format("{0}.{1}", MetadataNames.InformationRegister, Name);
         }
 
+        internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
+        {
+            if (IsChangeTrackingEnabled)
+            {
+                EntityDefinition changes = new() // Таблица регистрации изменений
+                {
+                    Name = "Изменения",
+                    DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+                };
+
+                Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
+                Configurator.ConfigurePropertyНомерСообщения(in changes);
+
+                if (UseRecorder) // Регистр, подчинённый регистратору
+                {
+                    PropertyDefinition recorder = owner.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+                    if (recorder is not null)
+                    {
+                        changes.Properties.Add(recorder);
+                    }
+                }
+                else if (Periodicity != RegisterPeriodicity.None) // Периодический регистр сведений
+                {
+                    if (UsePeriodForChangeTracking)
+                    {
+                        PropertyDefinition period = owner.Properties.Where(p => p.Name == "Период").FirstOrDefault();
+
+                        if (period is not null)
+                        {
+                            changes.Properties.Add(period);
+                        }
+                    }
+
+                    foreach (PropertyDefinition property in owner.Properties)
+                    {
+                        if (property.Purpose.IsDimension() && property.Purpose.UseForChangeTracking())
+                        {
+                            changes.Properties.Add(property);
+                        }
+                    }
+                }
+                else // Непериодический и независимый регистр сведений
+                {
+                    foreach (PropertyDefinition property in owner.Properties)
+                    {
+                        if (property.Purpose.IsDimension() && property.Purpose.UseForChangeTracking())
+                        {
+                            changes.Properties.Add(property);
+                        }
+                    }
+                }
+
+                owner.Entities.Add(changes);
+            }
+        }
+
         internal sealed class Parser : ConfigFileParser
         {
             internal override void Initialize(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
@@ -76,6 +137,16 @@ namespace DaJet.Metadata
                     registry.AddMetadataName(MetadataNames.InformationRegister, in name, uuid);
                 }
 
+                // Периодичность стандартного реквизита "Период"
+                metadata.Periodicity = (RegisterPeriodicity)reader[2][19].SeekNumber();
+
+                // Длина кода (всегда строка и минимум 1 символ)
+                metadata.UseRecorder = reader[2][20].SeekNumber() != 0;
+
+                // Используется для определения наличия поля "Период" в таблице
+                // регистрации изменений если это периодический регистр сведений
+                metadata.UsePeriodForChangeTracking = reader[2][24].SeekNumber() == 1;
+
                 //if (options.IsExtension)
                 //{
                 //    _converter[1][15][1][13] += Parent;
@@ -93,18 +164,6 @@ namespace DaJet.Metadata
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
-                ConfigFileReader reader = new(file);
-
-                // Периодичность стандартного реквизита "Период"
-                RegisterPeriodicity Periodicity = (RegisterPeriodicity)reader[2][19].SeekNumber();
-
-                // Длина кода (всегда строка и минимум 1 символ)
-                bool UseRecorder = reader[2][20].SeekNumber() != 0;
-
-                // Используется для определения наличия поля "Период" в таблице
-                // регистрации изменений если это периодический регистр сведений
-                //_converter[1][23] += UsePeriodForChangeTracking;
-
                 // Определяет наличие служебных таблиц итогов "СрезПоследних" и "СрезПервых"
                 //if (_cache is not null && _cache.InfoBase is not null && _cache.InfoBase.CompatibilityVersion >= 80302)
                 //{
@@ -112,17 +171,19 @@ namespace DaJet.Metadata
                 //    _converter[1][35] += UseSliceFirst;
                 //}
 
-                if (UseRecorder)
+                if (entry.UseRecorder)
                 {
                     Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
                     Configurator.ConfigurePropertyАктивность(in table);
                     Configurator.ConfigurePropertyНомерЗаписи(in table);
                 }
 
-                if (Periodicity != RegisterPeriodicity.None)
+                if (entry.Periodicity != RegisterPeriodicity.None)
                 {
                     Configurator.ConfigurePropertyПериод(in table);
                 }
+
+                ConfigFileReader reader = new(file);
 
                 uint[] root = [4]; // Коллекция ресурсов
 
@@ -145,15 +206,17 @@ namespace DaJet.Metadata
                     Property.Parse(ref reader, root, in table, in registry, relations);
                 }
 
+                entry.ConfigureChangeTrackingTable(in table);
+
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
-                if (registry.CompatibilityVersion < 80303 && Periodicity == RegisterPeriodicity.None)
+                if (registry.CompatibilityVersion < 80303 && entry.Periodicity == RegisterPeriodicity.None)
                 {
                     int count = 0;
 
                     for (int i = 0; i < table.Properties.Count; i++)
                     {
-                        if (table.Properties[i].Purpose == PropertyPurpose.Dimension)
+                        if (table.Properties[i].Purpose.IsDimension())
                         {
                             count++;
                         }

@@ -1,6 +1,4 @@
-﻿using DaJet.TypeSystem;
-
-namespace DaJet.TypeSystem
+﻿namespace DaJet.TypeSystem
 {
     public sealed class PropertyDefinition
     {

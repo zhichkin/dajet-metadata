@@ -57,6 +57,30 @@ namespace DaJet.Metadata
             return string.Format("{0}.{1}", MetadataNames.AccumulationRegister, Name);
         }
 
+        internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
+        {
+            if (IsChangeTrackingEnabled)
+            {
+                EntityDefinition changes = new() // Таблица регистрации изменений
+                {
+                    Name = "Изменения",
+                    DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+                };
+
+                Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
+                Configurator.ConfigurePropertyНомерСообщения(in changes);
+
+                PropertyDefinition recorder = owner.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+                if (recorder is not null)
+                {
+                    changes.Properties.Add(recorder);
+                }
+
+                owner.Entities.Add(changes);
+            }
+        }
+
         internal sealed class Parser : ConfigFileParser
         {
             internal override void Initialize(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
@@ -134,6 +158,8 @@ namespace DaJet.Metadata
                 {
                     Property.Parse(ref reader, root, in table, in registry, relations);
                 }
+
+                entry.ConfigureChangeTrackingTable(in table);
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
 

@@ -187,6 +187,8 @@ namespace DaJet.Metadata
                     Property.Parse(ref reader, vector, in table, in registry, relations);
                 }
 
+                entry.ConfigureChangeTrackingTable(in table);
+
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
                 return table;

@@ -1,8 +1,6 @@
 ﻿using DaJet.Data;
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
-using Microsoft.Win32;
-using System.Reflection.Metadata;
 
 namespace DaJet.Metadata
 {
@@ -85,16 +83,17 @@ namespace DaJet.Metadata
 
         public EntityDefinition GetMetadataObject(in string fullName)
         {
+            string type = string.Empty;
+            string name = string.Empty;
+            string table = string.Empty;
+
             int dot = fullName.IndexOf('.');
 
-            if (dot < 0)
+            if (dot > 0)
             {
-                return null;
+                type = fullName[..dot];
+                name = fullName[(dot + 1)..];
             }
-
-            string type = fullName[..dot];
-            string name = fullName[(dot + 1)..];
-            string table = string.Empty;
 
             dot = name.IndexOf('.');
 
@@ -106,31 +105,19 @@ namespace DaJet.Metadata
 
             if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
             {
-                return null;
+                return _loader.GetDbTableSchema(fullName); // Обычная таблица базы данных
             }
+
+            EntityDefinition entity = _loader.Load(in type, entry.Uuid, in _registry);
 
             if (string.IsNullOrEmpty(table))
             {
-                return _loader.Load(in type, entry.Uuid, in _registry);
-            }
-            else if (table == "Изменения")
-            {
-                //TODO: таблица регистрации изменений
-            }
-            else // Табличная часть объекта метаданных
-            {
-                EntityDefinition entity = _loader.Load(in type, entry.Uuid, in _registry);
-
-                foreach (EntityDefinition tablePart in entity.Entities)
-                {
-                    if (tablePart.Name == table)
-                    {
-                        return tablePart;
-                    }
-                }
+                return entity; // Основная таблица объекта метаданных
             }
 
-            return null;
+            // Табличная часть или таблица регистрации изменений объекта метаданных
+
+            return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
         public IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
         {
@@ -193,22 +180,41 @@ namespace DaJet.Metadata
         }
         public EntityDefinition GetMetadataObjectWithRelations(in string fullName)
         {
+            string type = string.Empty;
+            string name = string.Empty;
+            string table = string.Empty;
+
             int dot = fullName.IndexOf('.');
 
-            if (dot < 0)
+            if (dot > 0)
             {
-                return null;
+                type = fullName[..dot];
+                name = fullName[(dot + 1)..];
             }
 
-            string type = fullName[..dot];
-            string name = fullName[(dot + 1)..];
+            dot = name.IndexOf('.');
 
-            if (!_registry.TryGetEntry(in type, in name, out MetadataObject metadata))
+            if (dot > 0)
             {
-                return null;
+                table = name[(dot + 1)..];
+                name = name[..dot];
             }
 
-            return _loader.LoadWithRelations(in type, metadata.Uuid, in _registry);
+            if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
+            {
+                return _loader.GetDbTableSchema(fullName); // Обычная таблица базы данных
+            }
+
+            EntityDefinition entity = _loader.LoadWithRelations(in type, entry.Uuid, in _registry);
+
+            if (string.IsNullOrEmpty(table))
+            {
+                return entity; // Основная таблица объекта метаданных
+            }
+
+            // Табличная часть или таблица регистрации изменений объекта метаданных
+
+            return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
         public IEnumerable<EntityDefinition> GetMetadataObjectsWithRelations(string typeName)
         {

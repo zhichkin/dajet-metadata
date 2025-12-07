@@ -164,7 +164,7 @@ namespace DaJet.Metadata
                 {
                     PropertyDefinition property = table.Properties[index];
 
-                    if (property.Purpose == PropertyPurpose.AccountingDimensionFlag)
+                    if (property.Purpose.IsAccountingDimensionFlag())
                     {
                         dimensions.Add(property);
                         table.Properties.RemoveAt(index);
@@ -195,6 +195,8 @@ namespace DaJet.Metadata
 
                     table.Entities.Add(dimensionTypes);
                 }
+
+                entry.ConfigureChangeTrackingTable(in table);
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
