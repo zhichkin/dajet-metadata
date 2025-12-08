@@ -24,14 +24,13 @@ namespace DaJet.Metadata
                 Configurator.ConfigurePropertyНомерСообщения(in changes);
                 Configurator.ConfigurePropertyСсылка(in changes, TypeCode);
 
-                //TODO:
-                //foreach (MetadataProperty property in entity.Properties)
-                //{
-                //    if (property is SharedProperty shared && shared.DataSeparationUsage == DataSeparationUsage.Use)
-                //    {
-                //        table.Properties.Add(shared);
-                //    }
-                //}
+                foreach (PropertyDefinition property in owner.Properties)
+                {
+                    if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                    {
+                        changes.Properties.Add(property);
+                    }
+                }
 
                 owner.Entities.Add(changes);
             }

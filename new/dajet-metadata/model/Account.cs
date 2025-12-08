@@ -196,9 +196,9 @@ namespace DaJet.Metadata
                     table.Entities.Add(dimensionTypes);
                 }
 
-                entry.ConfigureChangeTrackingTable(in table);
-
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
+
+                entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

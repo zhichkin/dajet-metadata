@@ -142,9 +142,9 @@ namespace DaJet.Metadata
                     TablePart.Parse(ref reader, offset, in table, entry, in registry, relations);
                 }
 
-                entry.ConfigureChangeTrackingTable(in table);
-
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
+
+                entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

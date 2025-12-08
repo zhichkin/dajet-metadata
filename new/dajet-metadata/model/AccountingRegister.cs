@@ -60,6 +60,14 @@ namespace DaJet.Metadata
                     changes.Properties.Add(recorder);
                 }
 
+                foreach (PropertyDefinition property in owner.Properties)
+                {
+                    if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                    {
+                        changes.Properties.Add(property);
+                    }
+                }
+
                 owner.Entities.Add(changes);
             }
         }
@@ -153,9 +161,9 @@ namespace DaJet.Metadata
                 //TODO: _EDHashDt
                 //TODO: _EDHashCt
 
-                entry.ConfigureChangeTrackingTable(in table);
-
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
+
+                entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

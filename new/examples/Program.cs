@@ -28,11 +28,11 @@ namespace DaJet
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
-            //GetMetadataObject("Справочник.Номенклатура"); return;
+            GetMetadataObject("Справочник.Номенклатура"); return;
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
-            CompareMetadataToDatabase();
+            //CompareMetadataToDatabase();
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -198,17 +198,17 @@ namespace DaJet
 
             List<string> metadataNames = new()
             {
-                //MetadataNames.Constant
-                //MetadataNames.Publication,
-                //MetadataNames.Catalog,
-                //MetadataNames.Document,
-                //MetadataNames.Characteristic,
-                MetadataNames.InformationRegister
-                //MetadataNames.AccumulationRegister,
-                //MetadataNames.BusinessTask,
-                //MetadataNames.BusinessProcess,
-                //MetadataNames.Account,
-                //MetadataNames.AccountingRegister
+                MetadataNames.Constant,
+                MetadataNames.Publication,
+                MetadataNames.Catalog,
+                MetadataNames.Document,
+                MetadataNames.Characteristic,
+                MetadataNames.InformationRegister,
+                MetadataNames.AccumulationRegister,
+                MetadataNames.BusinessTask,
+                MetadataNames.BusinessProcess,
+                MetadataNames.Account,
+                MetadataNames.AccountingRegister
             };
 
             string report = provider.CompareMetadataToDatabase(metadataNames);
