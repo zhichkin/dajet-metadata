@@ -1,6 +1,0 @@
-[Документ.ОтчетКомиссионераОПродажах_Товары] [_Document408_VT11400]
-Column names in each view or function must be unique.
-Column name 'КлючСтроки' in view or function 'Документ.ОтчетКомиссионераОПродажах_Товары' is specified more than once.
-
-[РегистрСведений.ДанныеБизнесПроцессов] [_InfoRg31227] Invalid column name '_Fld31228RRef'.
-Измерение "БизнесПроцесс", тип "БизнесПроцессСсылка".

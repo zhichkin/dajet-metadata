@@ -1,4 +1,4 @@
-﻿namespace DaJet.Metadata.Model
+﻿namespace DaJet.Metadata
 {
     public enum Periodicity
     {

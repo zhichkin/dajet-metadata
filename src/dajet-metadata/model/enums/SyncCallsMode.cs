@@ -1,4 +1,4 @@
-﻿namespace DaJet.Metadata.Model
+﻿namespace DaJet.Metadata
 {
     /// <summary>
     /// Режим использования синхронных вызовов расширений платформы и внешних компонент

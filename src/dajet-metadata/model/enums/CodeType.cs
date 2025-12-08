@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace DaJet.Metadata.Model
+﻿namespace DaJet.Metadata
 {
     /// <summary>
     /// Тип данных кода справочника или номера документа

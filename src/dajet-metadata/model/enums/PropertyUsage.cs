@@ -1,4 +1,4 @@
-﻿namespace DaJet.Metadata.Model
+﻿namespace DaJet.Metadata
 {
     /// <summary>
     /// Вариант использования реквизита справочника или плана видов характеристик для групп и элементов
