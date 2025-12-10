@@ -80,6 +80,10 @@ namespace DaJet.Metadata
 
             return infoBase;
         }
+        public List<ExtensionInfo> GetExtensions()
+        {
+            return _loader.GetExtensions();
+        }
 
         public EntityDefinition GetMetadataObject(in string fullName)
         {

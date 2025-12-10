@@ -1,4 +1,5 @@
-﻿using DaJet.Data.PostgreSql;
+﻿using DaJet.Data;
+using DaJet.Data.PostgreSql;
 using DaJet.TypeSystem;
 using Npgsql;
 using System.Data;
@@ -193,6 +194,55 @@ namespace DaJet.Metadata
             }
         }
 
+        internal override T ExecuteScalar<T>(in string script, int timeout)
+        {
+            T result = default;
+
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = script;
+                    command.CommandTimeout = timeout; // seconds
+
+                    object value = command.ExecuteScalar();
+
+                    if (value is not null)
+                    {
+                        result = (T)value;
+                    }
+                }
+            }
+
+            return result;
+        }
+        private IEnumerable<NpgsqlDataReader> ExecuteReader(string script, int timeout)
+        {
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = script;
+                    command.CommandTimeout = timeout;
+
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            yield return reader;
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+        }
 
         private const string SELECT_TABLE_SCHEMA_SCRIPT = "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = LOWER($1);";
         internal override EntityDefinition GetDbTableSchema(in string tableName)
@@ -238,6 +288,53 @@ namespace DaJet.Metadata
             }
 
             return table;
+        }
+
+        
+        private const string IS_NEW_AGE_EXTENSIONS_SUPPORTED = "SELECT 1 FROM information_schema.columns WHERE table_name = '_extensionsinfo' AND column_name = '_extensionzippedinfo';";
+        private const string SELECT_EXTENSIONS_SCRIPT =
+            "SELECT _idrref, _extensionorder, CAST(_extname AS varchar), _updatetime, " +
+            "_extensionusepurpose, _extensionscope, _extensionzippedinfo, " +
+            "CAST(_masternode AS varchar), _usedindistributedinfobase, _version " +
+            "FROM _extensionsinfo ORDER BY " +
+            "CASE WHEN SUBSTRING(CAST(_masternode AS varchar), 1, 34) = '0:00000000000000000000000000000000' " +
+            "THEN 1 ELSE 0 END, _extensionusepurpose, _extensionscope, _extensionorder;";
+        internal override bool IsExtensionsSupported()
+        {
+            return (ExecuteScalar<int>(IS_NEW_AGE_EXTENSIONS_SUPPORTED, 10) == 1);
+        }
+        internal override List<ExtensionInfo> GetExtensions()
+        {
+            int YearOffset = GetYearOffset();
+
+            List<ExtensionInfo> list = new();
+
+            byte[] zippedInfo;
+
+            foreach (NpgsqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
+            {
+                zippedInfo = (byte[])reader.GetValue(6);
+
+                Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
+
+                ExtensionInfo extension = new()
+                {
+                    Identity = uuid, // Поле _IDRRef используется для поиска файла DbNames расширения
+                    Order = (int)reader.GetDecimal(1),
+                    Name = reader.GetString(2),
+                    Updated = reader.GetDateTime(3).AddYears(-YearOffset),
+                    Purpose = (ExtensionPurpose)reader.GetDecimal(4),
+                    Scope = (ExtensionScope)reader.GetDecimal(5),
+                    MasterNode = reader.GetString(7),
+                    IsDistributed = reader.GetBoolean(8)
+                };
+
+                DecodeZippedInfo(in zippedInfo, in extension);
+
+                list.Add(extension);
+            }
+
+            return list;
         }
     }
 }

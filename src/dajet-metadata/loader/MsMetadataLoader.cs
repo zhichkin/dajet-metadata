@@ -1,4 +1,5 @@
-﻿using DaJet.TypeSystem;
+﻿using DaJet.Data;
+using DaJet.TypeSystem;
 using Microsoft.Data.SqlClient;
 using System.Data;
 
@@ -187,6 +188,55 @@ namespace DaJet.Metadata
             }
         }
 
+        internal override T ExecuteScalar<T>(in string script, int timeout)
+        {
+            T result = default;
+
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = script;
+                    command.CommandTimeout = timeout; // seconds
+
+                    object value = command.ExecuteScalar();
+
+                    if (value is not null)
+                    {
+                        result = (T)value;
+                    }
+                }
+            }
+
+            return result;
+        }
+        private IEnumerable<SqlDataReader> ExecuteReader(string script, int timeout)
+        {
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandText = script;
+                    command.CommandTimeout = timeout;
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            yield return reader;
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+        }
 
         private const string SELECT_TABLE_SCHEMA_SCRIPT = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @tableName;";
         internal override EntityDefinition GetDbTableSchema(in string tableName)
@@ -228,6 +278,53 @@ namespace DaJet.Metadata
             }
 
             return table;
+        }
+
+
+        private const string IS_NEW_AGE_EXTENSIONS_SUPPORTED = "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '_ExtensionsInfo' AND COLUMN_NAME = '_ExtensionZippedInfo';";
+        private const string SELECT_EXTENSIONS_SCRIPT =
+            "SELECT _IDRRef, _ExtensionOrder, _ExtName, _UpdateTime, " +
+            "_ExtensionUsePurpose, _ExtensionScope, _ExtensionZippedInfo, " +
+            "_MasterNode, _UsedInDistributedInfoBase, _Version " +
+            "FROM _ExtensionsInfo ORDER BY " +
+            "CASE WHEN SUBSTRING(_MasterNode, CAST(1.0 AS INT), CAST(34.0 AS INT)) = N'0:00000000000000000000000000000000' " +
+            "THEN 0x01 ELSE 0x00 END, _ExtensionUsePurpose, _ExtensionScope, _ExtensionOrder;";
+        internal override bool IsExtensionsSupported()
+        {
+            return (ExecuteScalar<int>(IS_NEW_AGE_EXTENSIONS_SUPPORTED, 10) == 1);
+        }
+        internal override List<ExtensionInfo> GetExtensions()
+        {
+            int YearOffset = GetYearOffset();
+
+            List<ExtensionInfo> list = new();
+
+            byte[] zippedInfo;
+
+            foreach (SqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
+            {
+                zippedInfo = (byte[])reader.GetValue(6);
+
+                Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
+
+                ExtensionInfo extension = new()
+                {
+                    Identity = uuid, // Поле _IDRRef используется для поиска файла DbNames расширения
+                    Order = (int)reader.GetDecimal(1),
+                    Name = reader.GetString(2),
+                    Updated = reader.GetDateTime(3).AddYears(-YearOffset),
+                    Purpose = (ExtensionPurpose)reader.GetDecimal(4),
+                    Scope = (ExtensionScope)reader.GetDecimal(5),
+                    MasterNode = reader.GetString(7),
+                    IsDistributed = (((byte[])reader.GetValue(8))[0] == 1)
+                };
+
+                DecodeZippedInfo(in zippedInfo, in extension);
+
+                list.Add(extension);
+            }
+
+            return list;
         }
     }
 }

@@ -28,7 +28,7 @@ namespace DaJet
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
-            GetMetadataObject("Справочник.Номенклатура"); return;
+            //GetMetadataObject("Справочник.Номенклатура"); return;
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
@@ -40,6 +40,8 @@ namespace DaJet
 
             //DumpFile(); return;
             //DumpRawFile(); return;
+
+            ShowExtensions();
 
             //Console.WriteLine("SQL Server");
             //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
@@ -260,6 +262,22 @@ namespace DaJet
             Console.WriteLine(value.ToString());
             Console.WriteLine();
             Console.WriteLine($"Executed in {elapsed.TotalMilliseconds} ms");
+        }
+
+        private static void ShowExtensions()
+        {
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
+
+            foreach (ExtensionInfo extension in provider.GetExtensions())
+            {
+                Console.WriteLine($"{extension.Name} [{extension.Identity}]");
+                Console.WriteLine($"- Active: {extension.IsActive}");
+                Console.WriteLine($"- Scope: {extension.Scope}");
+                Console.WriteLine($"- Purpose: {extension.Purpose}");
+                Console.WriteLine($"- Version: {extension.Version}");
+                Console.WriteLine($"- Updated: {extension.Updated:dd-MM-yyyy HH:mm:ss}");
+                Console.WriteLine($"- Root file: {extension.RootFile}");
+            }
         }
     }
 }
