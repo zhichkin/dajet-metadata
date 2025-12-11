@@ -1,6 +1,7 @@
 ﻿using DaJet.Data;
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
+using System;
 
 namespace DaJet.Metadata
 {
@@ -82,7 +83,16 @@ namespace DaJet.Metadata
         }
         public List<ExtensionInfo> GetExtensions()
         {
-            return _loader.GetExtensions();
+            List<ExtensionInfo> extensions = _loader.GetExtensions();
+
+            foreach (ExtensionInfo extension in extensions)
+            {
+                _loader.ParseExtensionRootFile(in extension);
+
+                _loader.ApplyExtension(in extension);
+            }
+
+            return extensions;
         }
 
         public EntityDefinition GetMetadataObject(in string fullName)

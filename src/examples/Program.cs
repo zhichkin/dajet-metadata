@@ -9,6 +9,7 @@ namespace DaJet
     public static class Program
     {
         private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
+        private static readonly string PG_METADATA = "Host=localhost;Port=5432;Database=dajet-metadata;Username=postgres;Password=postgres;";
         private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_UNF = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
         private static readonly string MS_ERP = "Data Source=ZHICHKIN;Initial Catalog=erp_uh;Integrated Security=True;Encrypt=False;";
@@ -266,17 +267,28 @@ namespace DaJet
 
         private static void ShowExtensions()
         {
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, PG_METADATA);
 
             foreach (ExtensionInfo extension in provider.GetExtensions())
             {
                 Console.WriteLine($"{extension.Name} [{extension.Identity}]");
+                Console.WriteLine($"- Uuid: [{extension.Uuid}]");
                 Console.WriteLine($"- Active: {extension.IsActive}");
                 Console.WriteLine($"- Scope: {extension.Scope}");
                 Console.WriteLine($"- Purpose: {extension.Purpose}");
                 Console.WriteLine($"- Version: {extension.Version}");
                 Console.WriteLine($"- Updated: {extension.Updated:dd-MM-yyyy HH:mm:ss}");
                 Console.WriteLine($"- Root file: {extension.RootFile}");
+                Console.WriteLine($"- File name: {extension.FileName}");
+                Console.WriteLine($"- File map:");
+                
+                foreach (var map in extension.FileMap)
+                {
+                    Console.WriteLine($"  [{map.Key}] {map.Value}");
+                }
+
+                Console.WriteLine("------------------------------");
             }
         }
     }

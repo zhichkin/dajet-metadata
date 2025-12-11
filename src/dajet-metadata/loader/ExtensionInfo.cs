@@ -52,6 +52,8 @@ namespace DaJet.Metadata
         /// <br>Используется для поиска соответствующего файла DbNames расширения</br>
         /// </summary>
         public Guid Identity { get; set; } = Guid.Empty;
+        /// <summary>Идентификатор расширения как объекта метаданных</summary>
+        public Guid Uuid { get; set; }
         /// <summary>Имя расширения как объекта метаданных
         /// <br>Не должно превышать 80 символов</br></summary>
         public string Name { get; set; }

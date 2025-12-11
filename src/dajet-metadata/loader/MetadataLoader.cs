@@ -1,7 +1,8 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
+using Microsoft.Win32;
+using System;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DaJet.Metadata
 {
@@ -319,22 +320,7 @@ namespace DaJet.Metadata
             }
         }
 
-        private static ulong ReadVarInt(in byte[] data, ref int index)
-        {
-            int offset = 0;
-            ulong value = 0UL;
-            ulong chunk;
 
-            do
-            {
-                chunk = data[index++];
-                value |= (chunk & 0x7F) << offset;
-                offset += 7;
-            }
-            while ((chunk & 0x80) == 0x80);
-
-            return value;
-        }
         protected static void DecodeZippedInfo(in byte[] zippedInfo, in ExtensionInfo extension)
         {
             // Начальные байты 0x43 0xC2 - похоже, что просто константы.
@@ -446,6 +432,151 @@ namespace DaJet.Metadata
                 extension.Version = config;
 
                 extension.IsActive = (zippedInfo[offset + size] == 0x82);
+            }
+        }
+        internal void ApplyExtension(in ExtensionInfo extension)
+        {
+            // ConfigFiles.DbNames + "-ext-" + _extension.Identity.ToString().ToLower()
+
+            //using (ConfigFileReader reader = new(_provider, in _connectionString, ConfigTables.ConfigCAS, _extension.FileName))
+            //{
+            //    new InfoBaseParser(this).Parse(in reader, _extension.Uuid, out infoBase, in metadata);
+            //}
+
+            int version = 0;
+
+            Dictionary<Guid, Guid[]> metadata;
+
+            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, extension.FileName))
+            {
+                version = InfoBase.Parse(file.AsReadOnlySpan(), out metadata);
+            }
+
+            //string tableName = (_extension == null) ? ConfigTables.Config : ConfigTables.ConfigCAS;
+            //string fileName = (_extension == null) ? entry.Key.ToString() : _extension.FileMap[entry.Key.ToString()];
+
+            return;
+
+            MetadataRegistry registry = new()
+            {
+                CompatibilityVersion = version
+            };
+
+            //TODO: registry.EnsureCapacity(in metadata); // add DBNames into count
+
+            Guid[] items;
+
+            // Подготавливаем реестр метаданных для многопоточной обработки
+            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
+            {
+                foreach (Guid uuid in items)
+                {
+                    registry.AddEntry(uuid, new SharedProperty(uuid));
+                }
+            }
+
+            // Подготавливаем реестр метаданных для многопоточной обработки
+            if (metadata.TryGetValue(MetadataTypes.DefinedType, out items))
+            {
+                foreach (Guid uuid in items)
+                {
+                    registry.AddEntry(uuid, new DefinedType(uuid));
+                }
+            }
+
+            // Инициализация объектов реестра метаданных,
+            // загрузка кодов ссылочных типов и имён СУБД
+
+            //TODO: InitializeDBNames(in registry);
+
+            // Инициализация объектов реестра метаданных зависит
+            // от предварительной загрузки кодов ссылочных типов
+
+            InitializeMetadataRegistry(in metadata, in registry);
+        }
+        internal void ParseExtensionRootFile(in ExtensionInfo extension)
+        {
+            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, extension.RootFile))
+            {
+                ReadOnlySpan<byte> buffer = file.AsReadOnlySpan();
+
+                ConfigFileReader reader = new(buffer);
+
+                string root = "";
+                int consumed = 0;
+
+                // Версия платформы 1С:Предприятие 8
+                int version = reader[2][3][1].SeekNumber();
+
+                //NOTE: Ищем конец первого файла
+                if (reader[ConfigFileToken.EndObject].Seek())
+                {
+                    consumed = reader.Consumed;
+
+                    byte current = buffer[consumed];
+
+                    if (current != CharBytes.Comma)
+                    {
+                        throw new FormatException($"Ожидался символ \"запятая\", а не [{buffer[consumed]}].");
+                    }
+
+                    //NOTE: Ищем начало второго файла
+                    while (consumed < buffer.Length && current != CharBytes.OpenBrace)
+                    {
+                        current = buffer[++consumed];
+                    }
+
+                    reader = new ConfigFileReader(buffer[consumed..]);
+
+                    root = reader[2].SeekString();
+                    extension.Uuid = new Guid(root);
+
+                    //NOTE: Ищем конец второго файла
+                    if (reader[ConfigFileToken.EndObject].Seek())
+                    {
+                        consumed += reader.Consumed;
+
+                        current = buffer[consumed];
+
+                        //NOTE: Ищем начало третьего файла
+
+                        //TODO:
+                        //while (reader.Read() && reader.Token != ConfigFileToken.StartObject)
+                        //{
+                        //}
+
+                        while (consumed < buffer.Length && current != CharBytes.OpenBrace)
+                        {
+                            current = buffer[++consumed];
+                        }
+
+                        reader = new ConfigFileReader(buffer[consumed..]);
+
+                        int count = reader[1].SeekNumber(); // количество файлов описания метаданных расширения
+
+                        if (count == 0) { return; }
+
+                        uint next = 2;
+
+                        for (uint i = 0; i < count; i++)
+                        {
+                            string key = reader[next + i].SeekString();
+                            string value = reader[next + i + 1].SeekString();
+                            
+                            next++;
+
+                            byte[] hex = Convert.FromBase64String(value);
+                            string fileName = Convert.ToHexString(hex).ToLowerInvariant();
+
+                            _ = extension.FileMap.TryAdd(key, fileName);
+
+                            if (key == root) // Корневой файл описания объектов расширения
+                            {
+                                extension.FileName = fileName;
+                            }
+                        }
+                    }
+                }
             }
         }
     }

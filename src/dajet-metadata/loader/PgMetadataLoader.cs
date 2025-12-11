@@ -12,6 +12,7 @@ namespace DaJet.Metadata
         private const string PG_PARAMS_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM params WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename IN (";
+        private const string PG_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename = $1::mvarchar";
 
         private readonly NpgsqlDataSource _source;
         internal PgMetadataLoader(in string connectionString)
@@ -105,6 +106,10 @@ namespace DaJet.Metadata
                     if (tableName == ConfigTables.Params)
                     {
                         command.CommandText = PG_PARAMS_SELECT_SCRIPT;
+                    }
+                    else if (tableName == ConfigTables.ConfigCAS)
+                    {
+                        command.CommandText = PG_CONFIG_CAS_SCRIPT;
                     }
                     else
                     {
