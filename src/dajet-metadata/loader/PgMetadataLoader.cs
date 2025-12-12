@@ -13,6 +13,7 @@ namespace DaJet.Metadata
         private const string PG_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename IN (";
         private const string PG_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename = $1::mvarchar";
+        private const string PG_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename IN (";
 
         private readonly NpgsqlDataSource _source;
         internal PgMetadataLoader(in string connectionString)
@@ -198,6 +199,70 @@ namespace DaJet.Metadata
                 }
             }
         }
+        private static string GenerateStreamCommand(in string tableName, in string[] fileNames)
+        {
+            StringBuilder script = tableName == ConfigTables.Config
+                ? new(PG_CONFIG_STREAM_SCRIPT)
+                : new(PG_CONFIG_CAS_STREAM_SCRIPT);
+
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                if (i > 0) { script.Append(','); }
+
+                script.Append('$').Append(i + 1).Append("::mvarchar");
+            }
+
+            script.Append(')');
+
+            return script.ToString();
+        }
+        private static void ConfigureStreamParameters(in NpgsqlCommand command, in string[] fileNames)
+        {
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                command.Parameters.Add(new NpgsqlParameter<string>()
+                {
+                    TypedValue = fileNames[i],
+                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Varchar
+                });
+            }
+        }
+        internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames)
+        {
+            //NpgsqlException: A statement cannot have more than 65535 parameters (PostgreSQL limit)
+
+            if (fileNames is null || fileNames.Length == 0)
+            {
+                yield break;
+            }
+
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 60; // seconds
+
+                    command.CommandText = GenerateStreamCommand(in tableName, in fileNames);
+
+                    ConfigureStreamParameters(in command, in fileNames);
+
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+                        reader.Close();
+                    }
+                }
+            }
+        }
 
         internal override T ExecuteScalar<T>(in string script, int timeout)
         {
@@ -304,21 +369,24 @@ namespace DaJet.Metadata
             "FROM _extensionsinfo ORDER BY " +
             "CASE WHEN SUBSTRING(CAST(_masternode AS varchar), 1, 34) = '0:00000000000000000000000000000000' " +
             "THEN 1 ELSE 0 END, _extensionusepurpose, _extensionscope, _extensionorder;";
-        internal override bool IsExtensionsSupported()
+        private bool IsExtensionsSupported()
         {
             return (ExecuteScalar<int>(IS_NEW_AGE_EXTENSIONS_SUPPORTED, 10) == 1);
         }
         internal override List<ExtensionInfo> GetExtensions()
         {
-            int YearOffset = GetYearOffset();
-
             List<ExtensionInfo> list = new();
 
-            byte[] zippedInfo;
+            if (!IsExtensionsSupported())
+            {
+                return list;
+            }
+
+            int YearOffset = GetYearOffset();
 
             foreach (NpgsqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
             {
-                zippedInfo = (byte[])reader.GetValue(6);
+                byte[] zippedInfo = (byte[])reader.GetValue(6);
 
                 Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
 

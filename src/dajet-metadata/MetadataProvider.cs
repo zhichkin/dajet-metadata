@@ -1,7 +1,6 @@
 ﻿using DaJet.Data;
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
-using System;
 
 namespace DaJet.Metadata
 {
@@ -65,10 +64,6 @@ namespace DaJet.Metadata
             _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
 
-        public void Initialize()
-        {
-            _registry = _loader.GetMetadataRegistry();
-        }
         public int GetYearOffset()
         {
             return _loader.GetYearOffset();
@@ -81,18 +76,14 @@ namespace DaJet.Metadata
 
             return infoBase;
         }
+
+        public void Initialize()
+        {
+            _registry = _loader.GetMetadataRegistry();
+        }
         public List<ExtensionInfo> GetExtensions()
         {
-            List<ExtensionInfo> extensions = _loader.GetExtensions();
-
-            foreach (ExtensionInfo extension in extensions)
-            {
-                _loader.ParseExtensionRootFile(in extension);
-
-                _loader.ApplyExtension(in extension);
-            }
-
-            return extensions;
+            return _loader.GetExtensions();
         }
 
         public EntityDefinition GetMetadataObject(in string fullName)

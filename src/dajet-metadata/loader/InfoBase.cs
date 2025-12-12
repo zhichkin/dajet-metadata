@@ -78,7 +78,7 @@ namespace DaJet.Metadata
 
         #region "Парсер корневого файла конфигурации"
 
-        private static Dictionary<Guid, Guid[]> CreateMetadataRegistry()
+        private static Dictionary<Guid, string[]> CreateMetadataRegistry()
         {
             return new(14)
             {
@@ -116,7 +116,7 @@ namespace DaJet.Metadata
 
             return metadata;
         }
-        internal static int Parse(ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> registry)
+        internal static int Parse(ReadOnlySpan<byte> fileData, out Dictionary<Guid, string[]> registry)
         {
             ConfigFileReader reader = new(fileData);
 
@@ -151,7 +151,7 @@ namespace DaJet.Metadata
 
             return version;
         }
-        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> registry)
+        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData, out Dictionary<Guid, string[]> registry)
         {
             InfoBase metadata = new()
             {
@@ -246,7 +246,7 @@ namespace DaJet.Metadata
             //    _converter[3][1][1][49] += MapMetadataByUuid;
             //}
         }
-        private static void ParsePlatformComponent(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> registry)
+        private static void ParsePlatformComponent(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
         {
             Guid uuid;
 
@@ -280,7 +280,7 @@ namespace DaJet.Metadata
                 ParseComponentMetadataObjects(ref reader, component, in registry);
             }
         }
-        private static void ParseComponentMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> registry)
+        private static void ParseComponentMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
         {
             // [6][2][3] 2  Количество типов объектов метаданных компоненты "Бухгалтерский учёт"
             // [6][2][4] {
@@ -310,7 +310,7 @@ namespace DaJet.Metadata
 
                 Guid uuid = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!registry.TryGetValue(uuid, out Guid[] objects))
+                if (!registry.TryGetValue(uuid, out string[] objects))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
@@ -323,11 +323,11 @@ namespace DaJet.Metadata
                 {
                     if (number_of_objects == 0)
                     {
-                        objects = Array.Empty<Guid>();
+                        objects = Array.Empty<string>();
                     }
                     else
                     {
-                        objects = new Guid[number_of_objects];
+                        objects = new string[number_of_objects];
                     }
                     
                     registry[uuid] = objects;
@@ -337,12 +337,12 @@ namespace DaJet.Metadata
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
                     {
-                        objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
+                        objects[item] = reader.ValueAsString; // Идентификатор объекта метаданных
                     }
                 }
             }
         }
-        private static void ParseOperationsMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> registry)
+        private static void ParseOperationsMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
         {
             if (!reader[component][2][2][3].Seek())
             {
@@ -359,7 +359,7 @@ namespace DaJet.Metadata
 
                 Guid uuid = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!registry.TryGetValue(uuid, out Guid[] objects))
+                if (!registry.TryGetValue(uuid, out string[] objects))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
@@ -370,7 +370,7 @@ namespace DaJet.Metadata
 
                 if (objects is null)
                 {
-                    objects = new Guid[number_of_objects];
+                    objects = new string[number_of_objects];
                     
                     registry[uuid] = objects;
                 }
@@ -379,7 +379,7 @@ namespace DaJet.Metadata
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
                     {
-                        objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
+                        objects[item] = reader.ValueAsString; // Идентификатор объекта метаданных
                     }
                 }
             }

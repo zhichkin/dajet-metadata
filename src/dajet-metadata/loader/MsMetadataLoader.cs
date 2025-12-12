@@ -11,6 +11,7 @@ namespace DaJet.Metadata
         private const string MS_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Config WHERE FileName = @FileName;";
         private const string MS_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, Config.FileName AS FileName, BinaryData FROM Config INNER JOIN #ConfigFileNames AS T ON Config.FileName = T.FileName;";
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";
+        private const string MS_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, ConfigCAS.FileName AS FileName, BinaryData FROM ConfigCAS INNER JOIN #ConfigFileNames AS T ON ConfigCAS.FileName = T.FileName;";
 
         private readonly string _connectionString;
         internal MsMetadataLoader(in string connectionString)
@@ -192,6 +193,71 @@ namespace DaJet.Metadata
                 }
             }
         }
+        private static DataTable CreateFileNamesTable(in string[] fileNames)
+        {
+            DataTable table = new();
+
+            DataColumn column = new()
+            {
+                ColumnName = "FileName",
+                DataType = typeof(string),
+                MaxLength = 128,
+                AllowDBNull = false
+            };
+
+            table.Columns.Add(column);
+
+            for (int i = 0; i < fileNames.Length; i++)
+            {
+                DataRow row = table.NewRow();
+                
+                row[0] = fileNames[i];
+                
+                table.Rows.Add(row);
+            }
+
+            return table;
+        }
+        internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames)
+        {
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "CREATE TABLE #ConfigFileNames (FileName nvarchar(128) NOT NULL);";
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.ExecuteNonQuery();
+
+                    using (SqlBulkCopy insert = new(connection))
+                    {
+                        insert.DestinationTableName = "#ConfigFileNames";
+                        DataTable table = CreateFileNamesTable(in fileNames);
+                        insert.WriteToServer(table);
+                    }
+
+                    command.CommandText = tableName == ConfigTables.Config
+                        ? MS_CONFIG_STREAM_SCRIPT
+                        : MS_CONFIG_CAS_STREAM_SCRIPT;
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 60; // seconds
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+                        reader.Close();
+                    }
+                }
+            }
+        }
 
         internal override T ExecuteScalar<T>(in string script, int timeout)
         {
@@ -294,21 +360,24 @@ namespace DaJet.Metadata
             "FROM _ExtensionsInfo ORDER BY " +
             "CASE WHEN SUBSTRING(_MasterNode, CAST(1.0 AS INT), CAST(34.0 AS INT)) = N'0:00000000000000000000000000000000' " +
             "THEN 0x01 ELSE 0x00 END, _ExtensionUsePurpose, _ExtensionScope, _ExtensionOrder;";
-        internal override bool IsExtensionsSupported()
+        private bool IsExtensionsSupported()
         {
             return (ExecuteScalar<int>(IS_NEW_AGE_EXTENSIONS_SUPPORTED, 10) == 1);
         }
         internal override List<ExtensionInfo> GetExtensions()
         {
-            int YearOffset = GetYearOffset();
-
             List<ExtensionInfo> list = new();
 
-            byte[] zippedInfo;
+            if (!IsExtensionsSupported())
+            {
+                return list;
+            }
 
+            int YearOffset = GetYearOffset();
+            
             foreach (SqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
             {
-                zippedInfo = (byte[])reader.GetValue(6);
+                byte[] zippedInfo = (byte[])reader.GetValue(6);
 
                 Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
 

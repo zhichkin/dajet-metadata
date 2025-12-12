@@ -273,7 +273,7 @@ namespace DaJet
             foreach (ExtensionInfo extension in provider.GetExtensions())
             {
                 Console.WriteLine($"{extension.Name} [{extension.Identity}]");
-                Console.WriteLine($"- Uuid: [{extension.Uuid}]");
+                Console.WriteLine($"- Order: [{extension.Order}]");
                 Console.WriteLine($"- Active: {extension.IsActive}");
                 Console.WriteLine($"- Scope: {extension.Scope}");
                 Console.WriteLine($"- Purpose: {extension.Purpose}");

@@ -111,26 +111,15 @@ namespace DaJet.Metadata
             [MetadataNames.BusinessProcess] = new Dictionary<string, Guid>(),
             [MetadataNames.BusinessTask] = new Dictionary<string, Guid>()
         };
-
-        internal void EnsureCapacity(in Dictionary<Guid, Guid[]> metadata)
+        
+        private readonly Dictionary<string, string> _files = new();
+        internal void AddExtensionFile(in string identifier, in string fileName)
         {
-            //_registry.EnsureCapacity(98918);
-
-            // _characteristics = 24
-            // _defined_types = 660
-            // _references = 4021
-            // _reference_type_codes = 4021
-            // _registry = 98918
-
-            // _names
-
-            //if (metadata.TryGetValue(MetadataTypes.SharedProperty, out Guid[] items))
-            //{
-            //    if (_names.TryGetValue(MetadataNames.SharedProperty, out Dictionary<string, Guid> names))
-            //    {
-            //        names.EnsureCapacity(items.Length);
-            //    }
-            //}
+            _ = _files.TryAdd(identifier, fileName);
+        }
+        internal string GetExtensionFile(in string identifier)
+        {
+            return _files[identifier];
         }
 
         #region "Методы инциализации реестра метаданных"

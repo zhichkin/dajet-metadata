@@ -1,7 +1,6 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
 using Microsoft.Win32;
-using System;
 using System.Text;
 
 namespace DaJet.Metadata
@@ -48,8 +47,8 @@ namespace DaJet.Metadata
         internal abstract ConfigFileBuffer Load(in string fileName);
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(Guid[] files);
+        internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
-        internal abstract bool IsExtensionsSupported();
         internal abstract List<ExtensionInfo> GetExtensions();
         internal abstract T ExecuteScalar<T>(in string script, int timeout);
 
@@ -124,7 +123,7 @@ namespace DaJet.Metadata
 
             int version;
 
-            Dictionary<Guid, Guid[]> metadata;
+            Dictionary<Guid, string[]> metadata;
 
             using (ConfigFileBuffer file = Load(root))
             {
@@ -136,24 +135,24 @@ namespace DaJet.Metadata
                 CompatibilityVersion = version
             };
 
-            //TODO: registry.EnsureCapacity(in metadata); // add DBNames into count
-
-            Guid[] items;
-
             // Подготавливаем реестр метаданных для многопоточной обработки
-            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
+            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out string[] fileNames))
             {
-                foreach (Guid uuid in items)
+                foreach (string fileName in fileNames)
                 {
+                    Guid uuid = new(fileName);
+
                     registry.AddEntry(uuid, new SharedProperty(uuid));
                 }
             }
 
             // Подготавливаем реестр метаданных для многопоточной обработки
-            if (metadata.TryGetValue(MetadataTypes.DefinedType, out items))
+            if (metadata.TryGetValue(MetadataTypes.DefinedType, out fileNames))
             {
-                foreach (Guid uuid in items)
+                foreach (string fileName in fileNames)
                 {
+                    Guid uuid = new(fileName);
+
                     registry.AddEntry(uuid, new DefinedType(uuid));
                 }
             }
@@ -166,14 +165,17 @@ namespace DaJet.Metadata
             // Инициализация объектов реестра метаданных зависит
             // от предварительной загрузки кодов ссылочных типов
 
-            InitializeMetadataRegistry(in metadata, in registry);
+            InitializeMetadataRegistry(in registry, in metadata, ConfigTables.Config);
+
+            ApplyExtensions(in registry);
 
             return registry;
         }
         private sealed class ConfigFileBatchWork
         {
             internal Guid Type;
-            internal Guid[] Entries;
+            internal string TableName;
+            internal string[] FileNames;
             internal MetadataRegistry Registry;
         }
         private void InitializeDBNames(in MetadataRegistry registry)
@@ -193,7 +195,7 @@ namespace DaJet.Metadata
             //    DbNamesParser.Parse(file.AsReadOnlySpan(), in registry);
             //}
         }
-        private void InitializeMetadataRegistry(in Dictionary<Guid, Guid[]> metadata, in MetadataRegistry registry)
+        private void InitializeMetadataRegistry(in MetadataRegistry registry, in Dictionary<Guid, string[]> metadata, in string tableName)
         {
             Task[] tasks = new Task[metadata.Keys.Count - 2]; // Всего 14 объектов метаданных
 
@@ -211,8 +213,9 @@ namespace DaJet.Metadata
                     new ConfigFileBatchWork()
                     {
                         Type = item.Key,
-                        Entries = item.Value,
-                        Registry = registry
+                        Registry = registry,
+                        TableName = tableName,
+                        FileNames = item.Value
                     },
                     CancellationToken.None,
                     TaskCreationOptions.DenyChildAttach,
@@ -244,11 +247,11 @@ namespace DaJet.Metadata
             // инициализации коллекции _references, так как тип данных характеристики
             // может ссылаться сам на себя как на ссылочный тип.
 
-            if (metadata.TryGetValue(MetadataTypes.Characteristic, out Guid[] entries))
+            if (metadata.TryGetValue(MetadataTypes.Characteristic, out string[] fileNames))
             {
                 try
                 {
-                    foreach (ConfigFileBuffer file in Stream(entries))
+                    foreach (ConfigFileBuffer file in Stream(tableName, fileNames))
                     {
                         ConfigFileReader reader = new(file.AsReadOnlySpan());
 
@@ -266,26 +269,28 @@ namespace DaJet.Metadata
             // Инициализация свойства "Type" определяемых типов зависит от предварительной
             // инициализации коллекции _references, которая заполняется многопоточно выше.
 
-            if (metadata.TryGetValue(MetadataTypes.DefinedType, out entries))
+            if (metadata.TryGetValue(MetadataTypes.DefinedType, out fileNames))
             {
                 InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
                 {
                     Type = MetadataTypes.DefinedType,
-                    Entries = entries,
-                    Registry = registry
+                    Registry = registry,
+                    TableName = tableName,
+                    FileNames = fileNames
                 });
             }
 
             // Инициализация свойства "Type" общих реквизитов зависит от предварительной
             // инициализации коллекций _references, _characteristics и _defined_types.
 
-            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out entries))
+            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out fileNames))
             {
                 InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
                 {
                     Type = MetadataTypes.SharedProperty,
-                    Entries = entries,
-                    Registry = registry
+                    Registry = registry,
+                    TableName = tableName,
+                    FileNames = fileNames
                 });
             }
         }
@@ -305,11 +310,11 @@ namespace DaJet.Metadata
 
             try
             {
-                foreach (ConfigFileBuffer file in Stream(work.Entries))
+                foreach (ConfigFileBuffer file in Stream(work.TableName, work.FileNames))
                 {
                     ConfigFileReader reader = new(file.AsReadOnlySpan());
 
-                    Guid uuid = new(file.FileName);
+                    Guid uuid = new(file.FileName); //TODO: get somehow extension object uuid ?
 
                     parser.Initialize(uuid, file.AsReadOnlySpan(), in registry);
                 }
@@ -319,7 +324,6 @@ namespace DaJet.Metadata
                 throw;
             }
         }
-
 
         protected static void DecodeZippedInfo(in byte[] zippedInfo, in ExtensionInfo extension)
         {
@@ -434,67 +438,20 @@ namespace DaJet.Metadata
                 extension.IsActive = (zippedInfo[offset + size] == 0x82);
             }
         }
-        internal void ApplyExtension(in ExtensionInfo extension)
+        private void ApplyExtensions(in MetadataRegistry registry)
         {
-            // ConfigFiles.DbNames + "-ext-" + _extension.Identity.ToString().ToLower()
+            List<ExtensionInfo> extensions = GetExtensions();
 
-            //using (ConfigFileReader reader = new(_provider, in _connectionString, ConfigTables.ConfigCAS, _extension.FileName))
-            //{
-            //    new InfoBaseParser(this).Parse(in reader, _extension.Uuid, out infoBase, in metadata);
-            //}
-
-            int version = 0;
-
-            Dictionary<Guid, Guid[]> metadata;
-
-            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, extension.FileName))
+            foreach (ExtensionInfo extension in extensions)
             {
-                version = InfoBase.Parse(file.AsReadOnlySpan(), out metadata);
+                if (!extension.IsActive) { continue; }
+
+                ParseRootFile(in extension, in registry);
+
+                ApplyExtension(in extension, in registry);
             }
-
-            //string tableName = (_extension == null) ? ConfigTables.Config : ConfigTables.ConfigCAS;
-            //string fileName = (_extension == null) ? entry.Key.ToString() : _extension.FileMap[entry.Key.ToString()];
-
-            return;
-
-            MetadataRegistry registry = new()
-            {
-                CompatibilityVersion = version
-            };
-
-            //TODO: registry.EnsureCapacity(in metadata); // add DBNames into count
-
-            Guid[] items;
-
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
-            {
-                foreach (Guid uuid in items)
-                {
-                    registry.AddEntry(uuid, new SharedProperty(uuid));
-                }
-            }
-
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            if (metadata.TryGetValue(MetadataTypes.DefinedType, out items))
-            {
-                foreach (Guid uuid in items)
-                {
-                    registry.AddEntry(uuid, new DefinedType(uuid));
-                }
-            }
-
-            // Инициализация объектов реестра метаданных,
-            // загрузка кодов ссылочных типов и имён СУБД
-
-            //TODO: InitializeDBNames(in registry);
-
-            // Инициализация объектов реестра метаданных зависит
-            // от предварительной загрузки кодов ссылочных типов
-
-            InitializeMetadataRegistry(in metadata, in registry);
         }
-        internal void ParseExtensionRootFile(in ExtensionInfo extension)
+        private void ParseRootFile(in ExtensionInfo extension, in MetadataRegistry registry)
         {
             using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, extension.RootFile))
             {
@@ -530,6 +487,7 @@ namespace DaJet.Metadata
 
                     root = reader[2].SeekString();
                     extension.Uuid = new Guid(root);
+                    extension.FileName = root;
 
                     //NOTE: Ищем конец второго файла
                     if (reader[ConfigFileToken.EndObject].Seek())
@@ -539,12 +497,6 @@ namespace DaJet.Metadata
                         current = buffer[consumed];
 
                         //NOTE: Ищем начало третьего файла
-
-                        //TODO:
-                        //while (reader.Read() && reader.Token != ConfigFileToken.StartObject)
-                        //{
-                        //}
-
                         while (consumed < buffer.Length && current != CharBytes.OpenBrace)
                         {
                             current = buffer[++consumed];
@@ -562,22 +514,85 @@ namespace DaJet.Metadata
                         {
                             string key = reader[next + i].SeekString();
                             string value = reader[next + i + 1].SeekString();
-                            
+
                             next++;
 
                             byte[] hex = Convert.FromBase64String(value);
                             string fileName = Convert.ToHexString(hex).ToLowerInvariant();
 
-                            _ = extension.FileMap.TryAdd(key, fileName);
+                            registry.AddExtensionFile(in key, in fileName);
 
-                            if (key == root) // Корневой файл описания объектов расширения
-                            {
-                                extension.FileName = fileName;
-                            }
+                            //_ = extension.FileMap.TryAdd(key, fileName);
+
+                            //if (key == root) // Корневой файл описания объектов расширения
+                            //{
+                            //    extension.FileName = fileName; // Реестр метаданных
+                            //}
                         }
                     }
                 }
             }
+        }
+        private void ApplyExtension(in ExtensionInfo extension, in MetadataRegistry registry)
+        {
+            string mainFile = registry.GetExtensionFile(extension.FileName);
+
+            Dictionary<Guid, string[]> metadata;
+
+            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, mainFile))
+            {
+                int version = InfoBase.Parse(file.AsReadOnlySpan(), out metadata);
+            }
+
+            string[] items; // Заимствованные и собственные объекты метаданных расширения
+
+            // Подготавливаем реестр метаданных для многопоточной обработки
+            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
+            {
+                foreach (string item in items)
+                {
+                    Guid uuid = new(item);
+
+                    registry.AddEntry(uuid, new SharedProperty(uuid));
+                }
+            }
+
+            // Подготавливаем реестр метаданных для многопоточной обработки
+            if (metadata.TryGetValue(MetadataTypes.DefinedType, out items))
+            {
+                foreach (string item in items)
+                {
+                    Guid uuid = new(item);
+
+                    registry.AddEntry(uuid, new DefinedType(uuid));
+                }
+            }
+
+            // Инициализация объектов реестра метаданных,
+            // загрузка кодов ссылочных типов и имён СУБД
+
+            //TODO: InitializeDBNames(in registry);
+
+            // ConfigFiles.DbNames + "-ext-" + _extension.Identity.ToString().ToLower()
+
+            // Инициализация объектов реестра метаданных зависит
+            // от предварительной загрузки кодов ссылочных типов
+
+            foreach (var item in metadata)
+            {
+                string[] identifiers = item.Value;
+
+                for (int i = 0; i < identifiers.Length; i++)
+                {
+                    string identifier = identifiers[i];
+
+                    string fileName = registry.GetExtensionFile(in identifier);
+
+                    identifiers[i] = fileName;
+                }
+            }
+
+            InitializeMetadataRegistry(in registry, in metadata, ConfigTables.ConfigCAS);
         }
     }
 }
