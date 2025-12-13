@@ -1,6 +1,5 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
-using Microsoft.Win32;
 using System.Text;
 
 namespace DaJet.Metadata
@@ -44,9 +43,7 @@ namespace DaJet.Metadata
         }
 
         internal abstract int GetYearOffset();
-        internal abstract ConfigFileBuffer Load(in string fileName);
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
-        internal abstract IEnumerable<ConfigFileBuffer> Stream(Guid[] files);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
         internal abstract List<ExtensionInfo> GetExtensions();
@@ -56,7 +53,7 @@ namespace DaJet.Metadata
         {
             Guid root = Guid.Empty;
 
-            using (ConfigFileBuffer file = Load("root"))
+            using (ConfigFileBuffer file = Load(ConfigTables.Config, "root"))
             {
                 ConfigFileReader reader = new(file.AsReadOnlySpan());
 
@@ -69,9 +66,11 @@ namespace DaJet.Metadata
         {
             Guid root = GetRoot();
 
+            string fileName = root.ToString().ToLowerInvariant();
+
             InfoBase infoBase;
 
-            using (ConfigFileBuffer file = Load(root))
+            using (ConfigFileBuffer file = Load(ConfigTables.Config, fileName))
             {
                 Guid uuid = new(file.FileName);
 
@@ -79,10 +78,6 @@ namespace DaJet.Metadata
             }
 
             return infoBase;
-        }
-        internal ConfigFileBuffer Load(Guid fileUuid)
-        {
-            return Load(fileUuid.ToString().ToLowerInvariant());
         }
         internal EntityDefinition Load(in string type, Guid uuid, in MetadataRegistry registry)
         {
@@ -93,7 +88,20 @@ namespace DaJet.Metadata
 
             EntityDefinition definition;
 
-            using (ConfigFileBuffer file = Load(uuid))
+            string tableName;
+            string identifier = uuid.ToString().ToLowerInvariant();
+
+            if (!registry.TryGetFileName(identifier, out string fileName))
+            {
+                fileName = identifier;
+                tableName = ConfigTables.Config;
+            }
+            else
+            {
+                tableName = ConfigTables.ConfigCAS;
+            }
+
+            using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
                 definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
             }
@@ -109,7 +117,20 @@ namespace DaJet.Metadata
 
             EntityDefinition definition;
 
-            using (ConfigFileBuffer file = Load(uuid))
+            string tableName;
+            string identifier = uuid.ToString().ToLowerInvariant();
+
+            if (!registry.TryGetFileName(identifier, out string fileName))
+            {
+                fileName = identifier;
+                tableName = ConfigTables.Config;
+            }
+            else
+            {
+                tableName = ConfigTables.ConfigCAS;
+            }
+
+            using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
                 definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, true);
             }
@@ -121,11 +142,13 @@ namespace DaJet.Metadata
         {
             Guid root = GetRoot();
 
+            string rootFile = root.ToString().ToLowerInvariant();
+
             int version;
 
             Dictionary<Guid, string[]> metadata;
 
-            using (ConfigFileBuffer file = Load(root))
+            using (ConfigFileBuffer file = Load(ConfigTables.Config, rootFile))
             {
                 version = InfoBase.Parse(file.AsReadOnlySpan(), out metadata);
             }
@@ -189,11 +212,6 @@ namespace DaJet.Metadata
             {
                 DBNames.Parse(file.AsReadOnlySpan(), in registry);
             }
-
-            //using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-%"))
-            //{
-            //    DbNamesParser.Parse(file.AsReadOnlySpan(), in registry);
-            //}
         }
         private void InitializeMetadataRegistry(in MetadataRegistry registry, in Dictionary<Guid, string[]> metadata, in string tableName)
         {
@@ -313,10 +331,8 @@ namespace DaJet.Metadata
                 foreach (ConfigFileBuffer file in Stream(work.TableName, work.FileNames))
                 {
                     ConfigFileReader reader = new(file.AsReadOnlySpan());
-
-                    Guid uuid = new(file.FileName); //TODO: get somehow extension object uuid ?
-
-                    parser.Initialize(uuid, file.AsReadOnlySpan(), in registry);
+                    
+                    parser.Initialize(file.AsReadOnlySpan(), in registry);
                 }
             }
             catch (Exception error)
@@ -520,7 +536,7 @@ namespace DaJet.Metadata
                             byte[] hex = Convert.FromBase64String(value);
                             string fileName = Convert.ToHexString(hex).ToLowerInvariant();
 
-                            registry.AddExtensionFile(in key, in fileName);
+                            registry.AddFileName(in key, in fileName);
 
                             //_ = extension.FileMap.TryAdd(key, fileName);
 
@@ -535,7 +551,10 @@ namespace DaJet.Metadata
         }
         private void ApplyExtension(in ExtensionInfo extension, in MetadataRegistry registry)
         {
-            string mainFile = registry.GetExtensionFile(extension.FileName);
+            if (!registry.TryGetFileName(extension.FileName, out string mainFile))
+            {
+                throw new InvalidOperationException();
+            }
 
             Dictionary<Guid, string[]> metadata;
 
@@ -570,14 +589,14 @@ namespace DaJet.Metadata
 
             // Инициализация объектов реестра метаданных,
             // загрузка кодов ссылочных типов и имён СУБД
+            string fileName = string.Format("DBNames-Ext-{0}", extension.Identity.ToString().ToLowerInvariant());
 
-            //TODO: InitializeDBNames(in registry);
+            using (ConfigFileBuffer file = Load(ConfigTables.Params, in fileName))
+            {
+                DBNames.Parse(file.AsReadOnlySpan(), in registry);
+            }
 
-            // ConfigFiles.DbNames + "-ext-" + _extension.Identity.ToString().ToLower()
-
-            // Инициализация объектов реестра метаданных зависит
-            // от предварительной загрузки кодов ссылочных типов
-
+            // Сопоставляем идентифкаторы объектов метаданных файлам в базе данных
             foreach (var item in metadata)
             {
                 string[] identifiers = item.Value;
@@ -586,12 +605,32 @@ namespace DaJet.Metadata
                 {
                     string identifier = identifiers[i];
 
-                    string fileName = registry.GetExtensionFile(in identifier);
+                    //TODO: заимствованные объекты (их нет в DBNames-Ext) ???
 
-                    identifiers[i] = fileName;
+                    Guid uuid = new(identifier);
+
+                    if (item.Key == MetadataTypes.Catalog)
+                    {
+                        registry.AddEntry(uuid, Catalog.Create(uuid, 0, MetadataToken.Reference));
+                    }
+                    else if (item.Key == MetadataTypes.Constant)
+                    {
+                        registry.AddEntry(uuid, Constant.Create(uuid, 0, MetadataToken.Const));
+                    }
+                    else if (item.Key == MetadataTypes.Publication)
+                    {
+                        registry.AddEntry(uuid, Publication.Create(uuid, 0, MetadataToken.Node));
+                    }
+
+                    if (registry.TryGetFileName(identifier, out fileName))
+                    {
+                        identifiers[i] = fileName;
+                    }
                 }
             }
 
+            // Инициализация объектов реестра метаданных зависит
+            // от предварительной загрузки кодов ссылочных типов
             InitializeMetadataRegistry(in registry, in metadata, ConfigTables.ConfigCAS);
         }
     }

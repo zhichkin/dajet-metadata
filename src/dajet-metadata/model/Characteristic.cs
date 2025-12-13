@@ -46,31 +46,26 @@ namespace DaJet.Metadata
 
         internal sealed class Parser : ConfigFileParser
         {
-            internal override void Initialize(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+            internal override void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
-                if (!registry.TryGetEntry(uuid, out Characteristic metadata))
-                {
-                    return; //NOTE: сюда не предполагается попадать!
-                }
-
                 ConfigFileReader reader = new(file);
 
                 // Идентификатор ссылочного типа данных, например, "ПланВидовХарактеристикСсылка.ВидыСубконтоХозрасчетные"
-                if (reader[2][4].Seek())
-                {
-                    Guid reference = reader.ValueAsUuid;
-                    registry.AddReference(uuid, reference);
-                }
+                Guid reference = reader[2][4].SeekUuid();
 
                 // Идентификатор характеристики, например, "Характеристика.ВидыСубконтоХозрасчетные" (опеределение типа данных свойства)
-                if (reader[2][10].Seek())
-                {
-                    Guid characteristic = reader.ValueAsUuid;
-                    registry.AddCharacteristic(uuid, characteristic);
-                }
+                Guid characteristic = reader[2][10].SeekUuid();
 
                 // Идентификатор объекта метаданных - значение поля FileName в таблице Config
-                //if (reader[2][14][2][2][3].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+                Guid uuid = reader[2][14][2][2][3].SeekUuid();
+
+                if (!registry.TryGetEntry(uuid, out Characteristic metadata))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                registry.AddReference(uuid, reference);
+                registry.AddCharacteristic(uuid, characteristic);
 
                 // Имя объекта метаданных конфигурации
                 if (reader[2][14][2][3].Seek())

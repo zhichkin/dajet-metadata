@@ -33,7 +33,7 @@ namespace DaJet
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
-            //CompareMetadataToDatabase();
+            CompareMetadataToDatabase();
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -42,7 +42,7 @@ namespace DaJet
             //DumpFile(); return;
             //DumpRawFile(); return;
 
-            ShowExtensions();
+            //ShowExtensions();
 
             //Console.WriteLine("SQL Server");
             //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
@@ -194,6 +194,7 @@ namespace DaJet
             long start = Stopwatch.GetTimestamp();
 
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
             MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
@@ -268,7 +269,7 @@ namespace DaJet
         private static void ShowExtensions()
         {
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, PG_METADATA);
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
 
             foreach (ExtensionInfo extension in provider.GetExtensions())
             {

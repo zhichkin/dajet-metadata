@@ -12,24 +12,22 @@ namespace DaJet.Metadata
         }
         internal sealed class Parser : ConfigFileParser
         {
-            internal override void Initialize(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+            internal override void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
-                if (!registry.TryGetEntry(uuid, out DefinedType metadata))
-                {
-                    return; //NOTE: сюда не предполагается попадать!
-                }
-
                 ConfigFileReader reader = new(file);
 
                 // Идентификатор ссылочного типа данных, например, "ОпределяемыйТипСсылка.ПриходныеДокументы"
-                if (reader[2][2].Seek())
-                {
-                    Guid reference = reader.ValueAsUuid;
-                    registry.AddDefinedType(uuid, reference);
-                }
+                Guid reference = reader[2][2].SeekUuid();
 
                 // Идентификатор объекта метаданных - значение поля FileName в таблице Config
-                //if (reader[2][4][2][3].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+                Guid uuid = reader[2][4][2][3].SeekUuid();
+
+                if (!registry.TryGetEntry(uuid, out DefinedType metadata))
+                {
+                    throw new InvalidOperationException();
+                }
+
+                registry.AddDefinedType(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
                 if (reader[2][4][3].Seek())

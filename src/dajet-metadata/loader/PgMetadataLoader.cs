@@ -51,48 +51,8 @@ namespace DaJet.Metadata
             }
         }
         
-        internal override ConfigFileBuffer Load(in string fileName)
-        {
-            ConfigFileBuffer buffer = new();
-
-            using (NpgsqlConnection connection = _source.CreateConnection())
-            {
-                connection.Open();
-
-                using (NpgsqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandType = CommandType.Text;
-                    command.CommandText = PG_CONFIG_SELECT_SCRIPT;
-                    command.CommandTimeout = 10; // seconds
-
-                    //command.Parameters.AddWithValue("filename", fileName);
-
-                    command.Parameters.Add(new NpgsqlParameter<string>()
-                    {
-                        TypedValue = fileName,
-                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Varchar
-                    });
-
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            buffer.Load(reader);
-                        }
-                        reader.Close();
-                    }
-                }
-            }
-
-            return buffer;
-        }
         internal override ConfigFileBuffer Load(in string tableName, in string fileName)
         {
-            if (string.IsNullOrEmpty(tableName))
-            {
-                return Load(in fileName); // "config" table
-            }
-
             ConfigFileBuffer buffer = new();
 
             using (NpgsqlConnection connection = _source.CreateConnection())
@@ -112,7 +72,7 @@ namespace DaJet.Metadata
                     {
                         command.CommandText = PG_CONFIG_CAS_SCRIPT;
                     }
-                    else
+                    else // ConfigTables.Config
                     {
                         command.CommandText = PG_CONFIG_SELECT_SCRIPT;
                     }
@@ -137,68 +97,6 @@ namespace DaJet.Metadata
             return buffer;
         }
 
-        private static string GenerateStreamCommand(in Guid[] files)
-        {
-            StringBuilder script = new(PG_CONFIG_STREAM_SCRIPT);
-
-            for (int i = 0; i < files.Length; i++)
-            {
-                if (i > 0) { script.Append(','); }
-
-                script.Append('$').Append(i + 1).Append("::mvarchar");
-            }
-
-            script.Append(')');
-
-            return script.ToString();
-        }
-        private static void ConfigureStreamParameters(in NpgsqlCommand command, in Guid[] files)
-        {
-            for (int i = 0; i < files.Length; i++)
-            {
-                command.Parameters.Add(new NpgsqlParameter<string>()
-                {
-                    NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Varchar,
-                    TypedValue = files[i].ToString().ToLowerInvariant()
-                });
-            }
-        }
-        internal override IEnumerable<ConfigFileBuffer> Stream(Guid[] files)
-        {
-            //NpgsqlException: A statement cannot have more than 65535 parameters (PostgreSQL limit)
-
-            if (files is null || files.Length == 0)
-            {
-                yield break;
-            }
-
-            using (NpgsqlConnection connection = _source.CreateConnection())
-            {
-                connection.Open();
-
-                using (NpgsqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandType = CommandType.Text;
-                    command.CommandTimeout = 60; // seconds
-
-                    command.CommandText = GenerateStreamCommand(in files);
-
-                    ConfigureStreamParameters(in command, in files);
-
-                    using (NpgsqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            using (ConfigFileBuffer buffer = new(reader))
-                            {
-                                yield return buffer;
-                            }
-                        }
-                        reader.Close();
-                    }
-                }
-            }
-        }
         private static string GenerateStreamCommand(in string tableName, in string[] fileNames)
         {
             StringBuilder script = tableName == ConfigTables.Config

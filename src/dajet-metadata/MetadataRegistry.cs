@@ -113,13 +113,15 @@ namespace DaJet.Metadata
         };
         
         private readonly Dictionary<string, string> _files = new();
-        internal void AddExtensionFile(in string identifier, in string fileName)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddFileName(in string identifier, in string fileName)
         {
             _ = _files.TryAdd(identifier, fileName);
         }
-        internal string GetExtensionFile(in string identifier)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryGetFileName(in string identifier, [MaybeNullWhen(false)] out string fileName)
         {
-            return _files[identifier];
+            return _files.TryGetValue(identifier, out fileName);
         }
 
         #region "Методы инциализации реестра метаданных"
