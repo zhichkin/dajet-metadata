@@ -5,9 +5,9 @@ namespace DaJet.Metadata
 {
     internal sealed class TablePart : DatabaseObject
     {
-        internal static TablePart Create(Guid uuid, int code, string name)
+        internal static TablePart Create(Guid uuid, int code)
         {
-            return new TablePart(uuid, code, name);
+            return new TablePart(uuid, code, MetadataToken.VT);
         }
         internal TablePart(Guid uuid, int code, string name) : base(uuid, code, name) { }
 

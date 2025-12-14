@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Account : ChangeTrackingObject
     {
-        internal static Account Create(Guid uuid, int code, string name)
+        internal static Account Create(Guid uuid, int code)
         {
-            return new Account(uuid, code, name);
+            return new Account(uuid, code, MetadataToken.Acc);
         }
         internal Account(Guid uuid, int code, string name) : base(uuid, code, name) { }
         
@@ -59,11 +59,22 @@ namespace DaJet.Metadata
                 registry.AddReference(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][16][2][3].Seek())
+                metadata.Name = reader[2][16][2][3].SeekString();
+
+                if (metadata.TypeCode > 0)
                 {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.Account, in name, uuid);
+                    // Объекты основной конфигурации и собственные объекты расширения
+                    registry.AddMetadataName(MetadataNames.Account, metadata.Name, uuid);
+                }
+                else // Заимствованный объект расширения
+                {
+                    if (registry.TryGetEntry(MetadataNames.Account, metadata.Name, out Account parent))
+                    {
+                        parent.MarkAsBorrowed();
+                        metadata.MarkAsBorrowed();
+                        metadata.TypeCode = parent.TypeCode;
+                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                    }
                 }
 
                 // Виды субконто (план видов характеристик)

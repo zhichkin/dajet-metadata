@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class AccumulationRegister : ChangeTrackingObject
     {
-        internal static AccumulationRegister Create(Guid uuid, int code, string name)
+        internal static AccumulationRegister Create(Guid uuid, int code)
         {
-            return new AccumulationRegister(uuid, code, name);
+            return new AccumulationRegister(uuid, code, MetadataToken.AccumRg);
         }
         internal AccumulationRegister(Guid uuid, int code, string name) : base(uuid, code, name) { }
 

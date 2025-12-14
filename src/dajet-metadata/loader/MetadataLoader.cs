@@ -79,7 +79,7 @@ namespace DaJet.Metadata
 
             return infoBase;
         }
-        internal EntityDefinition Load(in string type, Guid uuid, in MetadataRegistry registry)
+        internal EntityDefinition Load(in string type, in MetadataObject entry, in MetadataRegistry registry)
         {
             if (!ConfigFileParser.TryGetParser(in type, out ConfigFileParser parser))
             {
@@ -88,22 +88,22 @@ namespace DaJet.Metadata
 
             EntityDefinition definition;
 
-            string tableName;
-            string identifier = uuid.ToString().ToLowerInvariant();
+            string tableName = ConfigTables.Config;
+            string fileName = entry.Uuid.ToString().ToLowerInvariant();
 
-            if (!registry.TryGetFileName(identifier, out string fileName))
-            {
-                fileName = identifier;
-                tableName = ConfigTables.Config;
-            }
-            else
+            if (entry.IsExtension && !entry.IsBorrowed)
             {
                 tableName = ConfigTables.ConfigCAS;
+
+                if (!registry.TryGetFileName(fileName, out fileName))
+                {
+                    throw new InvalidOperationException();
+                }
             }
 
             using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
-                definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                definition = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
             }
 
             return definition;
@@ -566,30 +566,27 @@ namespace DaJet.Metadata
             string[] items; // Заимствованные и собственные объекты метаданных расширения
 
             // Подготавливаем реестр метаданных для многопоточной обработки
-            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
-            {
-                foreach (string item in items)
-                {
-                    Guid uuid = new(item);
-
-                    registry.AddEntry(uuid, new SharedProperty(uuid));
-                }
-            }
-
-            // Подготавливаем реестр метаданных для многопоточной обработки
             if (metadata.TryGetValue(MetadataTypes.DefinedType, out items))
             {
                 foreach (string item in items)
                 {
-                    Guid uuid = new(item);
+                    registry.AddExtensionEntry(MetadataTypes.DefinedType, item);
+                }
+            }
 
-                    registry.AddEntry(uuid, new DefinedType(uuid));
+            // Подготавливаем реестр метаданных для многопоточной обработки
+            if (metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
+            {
+                foreach (string item in items)
+                {
+                    registry.AddExtensionEntry(MetadataTypes.SharedProperty, in item);
                 }
             }
 
             // Инициализация объектов реестра метаданных,
             // загрузка кодов ссылочных типов и имён СУБД
-            string fileName = string.Format("DBNames-Ext-{0}", extension.Identity.ToString().ToLowerInvariant());
+            string fileUuid = extension.Identity.ToString().ToLowerInvariant();
+            string fileName = string.Format("DBNames-Ext-{0}", fileUuid);
 
             using (ConfigFileBuffer file = Load(ConfigTables.Params, in fileName))
             {
@@ -605,23 +602,12 @@ namespace DaJet.Metadata
                 {
                     string identifier = identifiers[i];
 
-                    //TODO: заимствованные объекты (их нет в DBNames-Ext) ???
+                    // Добавляем заимствованные и собственные объекты расширения
+                    // в общий реестр метаданных для последующей их инициализации
+                    registry.AddExtensionEntry(item.Key, in identifier);
 
-                    Guid uuid = new(identifier);
-
-                    if (item.Key == MetadataTypes.Catalog)
-                    {
-                        registry.AddEntry(uuid, Catalog.Create(uuid, 0, MetadataToken.Reference));
-                    }
-                    else if (item.Key == MetadataTypes.Constant)
-                    {
-                        registry.AddEntry(uuid, Constant.Create(uuid, 0, MetadataToken.Const));
-                    }
-                    else if (item.Key == MetadataTypes.Publication)
-                    {
-                        registry.AddEntry(uuid, Publication.Create(uuid, 0, MetadataToken.Node));
-                    }
-
+                    // Выполняем замену идентификаторов объектов метаданных
+                    // на соответствующие имена файлов из таблицы ConfigCAS
                     if (registry.TryGetFileName(identifier, out fileName))
                     {
                         identifiers[i] = fileName;

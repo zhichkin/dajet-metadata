@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Constant : ChangeTrackingObject
     {
-        internal static Constant Create(Guid uuid, int code, string name)
+        internal static Constant Create(Guid uuid, int code)
         {
-            return new Constant(uuid, code, name);
+            return new Constant(uuid, code, MetadataToken.Const);
         }
         internal Constant(Guid uuid, int code, string name) : base(uuid, code, name) { }
 

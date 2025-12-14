@@ -5,9 +5,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Property : DatabaseObject
     {
-        internal static Property Create(Guid uuid, int code, string name)
+        internal static Property Create(Guid uuid, int code)
         {
-            return new Property(uuid, code, name);
+            return new Property(uuid, code, MetadataToken.Fld);
         }
         internal Property(Guid uuid, int code, string name) : base(uuid, code, name) { }
 

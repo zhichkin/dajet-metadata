@@ -113,7 +113,7 @@ namespace DaJet.Metadata
                 return _loader.GetDbTableSchema(fullName); // Обычная таблица базы данных
             }
 
-            EntityDefinition entity = _loader.Load(in type, entry.Uuid, in _registry);
+            EntityDefinition entity = _loader.Load(in type, in entry, in _registry);
 
             if (string.IsNullOrEmpty(table))
             {
@@ -128,7 +128,7 @@ namespace DaJet.Metadata
         {
             foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
             {
-                yield return _loader.Load(in typeName, entry.Uuid, in _registry);
+                yield return _loader.Load(in typeName, in entry, in _registry);
             }
         }
 

@@ -67,6 +67,7 @@ namespace DaJet.Metadata
         public string NamePrefix { get; set; }
         /// <summary>
         /// Поддерживать соответствие объектам расширяемой конфигурации по внутренним идентификаторам
+        /// <br>Доступен, начиная с версии 8.3.14</br>
         /// </summary>
         public bool MapMetadataByUuid { get; set; } = true;
         /// <summary>

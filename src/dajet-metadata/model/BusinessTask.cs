@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class BusinessTask : ChangeTrackingObject
     {
-        internal static BusinessTask Create(Guid uuid, int code, string name)
+        internal static BusinessTask Create(Guid uuid, int code)
         {
-            return new BusinessTask(uuid, code, name);
+            return new BusinessTask(uuid, code, MetadataToken.Task);
         }
         internal BusinessTask(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal override void AddDbName(int code, string name)

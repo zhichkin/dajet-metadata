@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class InformationRegister : ChangeTrackingObject
     {
-        internal static InformationRegister Create(Guid uuid, int code, string name)
+        internal static InformationRegister Create(Guid uuid, int code)
         {
-            return new InformationRegister(uuid, code, name);
+            return new InformationRegister(uuid, code, MetadataToken.InfoRg);
         }
         internal InformationRegister(Guid uuid, int code, string name) : base(uuid, code, name) { }
         

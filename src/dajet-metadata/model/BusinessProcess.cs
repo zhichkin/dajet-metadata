@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class BusinessProcess : ChangeTrackingObject
     {
-        internal static BusinessProcess Create(Guid uuid, int code, string name)
+        internal static BusinessProcess Create(Guid uuid, int code)
         {
-            return new BusinessProcess(uuid, code, name);
+            return new BusinessProcess(uuid, code, MetadataToken.BPr);
         }
         internal BusinessProcess(Guid uuid, int code, string name) : base(uuid, code, name) { }
 

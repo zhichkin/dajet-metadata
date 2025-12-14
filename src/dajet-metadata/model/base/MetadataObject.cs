@@ -2,11 +2,21 @@
 {
     internal abstract class MetadataObject
     {
+        private ExtensionType _extension;
         protected MetadataObject(Guid uuid) { Uuid = uuid; }
         ///<summary>Идентификатор объекта метаданных</summary>
         internal Guid Uuid { get; private set; }
         ///<summary>Имя объекта метаданных (регистронезависимое)</summary>
         internal string Name { get; set; } = string.Empty;
+        
+        // Собственный объект расширения
+        internal void MarkAsExtension() { _extension |= ExtensionType.Extension; }
+        internal bool IsExtension { get { return (_extension & ExtensionType.Extension) == ExtensionType.Extension; } }
+
+        // Заимствованный расширением объект основной конфигурации
+        internal void MarkAsBorrowed() { _extension |= ExtensionType.Borrowed; }
+        internal bool IsBorrowed { get { return (_extension & ExtensionType.Borrowed) == ExtensionType.Borrowed; } }
+        
         internal virtual void AddDbName(int code, string name)
         {
             throw new NotImplementedException(); // DefinedType, Enumeration, Property

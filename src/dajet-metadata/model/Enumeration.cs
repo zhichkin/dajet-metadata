@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Enumeration : DatabaseObject
     {
-        internal static Enumeration Create(Guid uuid, int code, string name)
+        internal static Enumeration Create(Guid uuid, int code)
         {
-            return new Enumeration(uuid, code, name);
+            return new Enumeration(uuid, code, MetadataToken.Enum);
         }
         internal Enumeration(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal Dictionary<string, Guid> Values { get; } = new();

@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Document : ChangeTrackingObject
     {
-        internal static Document Create(Guid uuid, int code, string name)
+        internal static Document Create(Guid uuid, int code)
         {
-            return new Document(uuid, code, name);
+            return new Document(uuid, code, MetadataToken.Document);
         }
         internal Document(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal override void AddDbName(int code, string name)

@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Publication : DatabaseObject
     {
-        internal static Publication Create(Guid uuid, int code, string name)
+        internal static Publication Create(Guid uuid, int code)
         {
-            return new Publication(uuid, code, name);
+            return new Publication(uuid, code, MetadataToken.Node);
         }
         internal Publication(Guid uuid, int code, string name) : base(uuid, code, name) { }
 
@@ -35,11 +35,22 @@ namespace DaJet.Metadata
                 registry.AddReference(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][13][3].Seek())
+                metadata.Name = reader[2][13][3].SeekString();
+
+                if (metadata.TypeCode > 0)
                 {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.Publication, in name, uuid);
+                    // Объекты основной конфигурации и собственные объекты расширения
+                    registry.AddMetadataName(MetadataNames.Publication, metadata.Name, uuid);
+                }
+                else // Заимствованный объект расширения
+                {
+                    if (registry.TryGetEntry(MetadataNames.Publication, metadata.Name, out Publication parent))
+                    {
+                        parent.MarkAsBorrowed();
+                        metadata.MarkAsBorrowed();
+                        metadata.TypeCode = parent.TypeCode;
+                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                    }
                 }
 
                 //if (IsExtension) // 1.12.8 = 0 если заимствование отстутствует

@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Characteristic : ChangeTrackingObject
     {
-        internal static Characteristic Create(Guid uuid, int code, string name)
+        internal static Characteristic Create(Guid uuid, int code)
         {
-            return new Characteristic(uuid, code, name);
+            return new Characteristic(uuid, code, MetadataToken.Chrc);
         }
         internal Characteristic(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal DataType Type { get; set; }

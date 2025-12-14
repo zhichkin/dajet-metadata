@@ -4,9 +4,9 @@ namespace DaJet.Metadata
 {
     internal sealed class Catalog : ChangeTrackingObject
     {
-        internal static Catalog Create(Guid uuid, int code, string name)
+        internal static Catalog Create(Guid uuid, int code)
         {
-            return new Catalog(uuid, code, name);
+            return new Catalog(uuid, code, MetadataToken.Reference);
         }
         internal Catalog(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal override void AddDbName(int code, string name)
@@ -84,17 +84,34 @@ namespace DaJet.Metadata
                 registry.AddReference(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][10][2][3].Seek())
-                {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.Catalog, in name, uuid);
-                }
+                metadata.Name = reader[2][10][2][3].SeekString();
 
-                //if (options.IsExtension)
-                //{
-                //    _converter[1][9][1][9] += Parent;
-                //}
+                if (metadata.TypeCode > 0)
+                {
+                    // Объекты основной конфигурации и собственные объекты расширения
+                    registry.AddMetadataName(MetadataNames.Catalog, metadata.Name, uuid);
+                }
+                else // Заимствованный объект расширения
+                {
+                    //if (registry.CompatibilityVersion >= 80314)
+                    //{
+                    //    // Заимствованный объект
+                    //    uuid = reader[2][10][2][10].SeekUuid();
+
+                    //    if (!registry.TryGetEntry(uuid, out Catalog parent))
+                    //    {
+                    //        throw new InvalidOperationException();
+                    //    }
+                    //}
+
+                    if (registry.TryGetEntry(MetadataNames.Catalog, metadata.Name, out Catalog parent))
+                    {
+                        parent.MarkAsBorrowed();
+                        metadata.MarkAsBorrowed();
+                        metadata.TypeCode = parent.TypeCode;
+                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                    }
+                }
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
             {

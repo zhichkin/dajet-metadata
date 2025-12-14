@@ -11,7 +11,12 @@
         internal int TypeCode { get; set; }
         internal string GetMainDbName()
         {
-            return string.Format("_{0}{1}", DbName, TypeCode);
+            string tableName = string.Format("_{0}{1}{2}",
+                DbName,
+                TypeCode,
+                IsExtension && !IsBorrowed ? "x1" : string.Empty);
+
+            return tableName;
         }
     }
 }

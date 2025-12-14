@@ -59,15 +59,6 @@ namespace DaJet.Metadata
                     {
                         if (IsMainConfig) // Основная конфигурация
                         {
-                            //PropertyDefinition definition = new()
-                            //{
-                            //    Name = property.Name,
-                            //    Type = property.Type,
-                            //    Purpose = PropertyPurpose.Property
-                            //};
-
-                            //ConfigureDatabaseColumns(in property, in definition);
-
                             target.Properties.Add(property.Definition);
 
                             ConfigureSharedPropertyForTableParts(in property, in entry, in target);
@@ -103,15 +94,6 @@ namespace DaJet.Metadata
                     {
                         if (property.AutomaticUsage == AutomaticUsage.Use)
                         {
-                            //PropertyDefinition definition = new()
-                            //{
-                            //    Name = property.Name,
-                            //    Type = property.Type,
-                            //    Purpose = PropertyPurpose.Property
-                            //};
-
-                            //ConfigureDatabaseColumns(in property, in definition);
-
                             target.Properties.Add(property.Definition);
 
                             ConfigureSharedPropertyForTableParts(in property, in entry, in target);

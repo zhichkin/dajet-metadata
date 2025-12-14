@@ -5,9 +5,9 @@ namespace DaJet.Metadata
 {
     internal sealed class AccountingRegister : ChangeTrackingObject
     {
-        internal static AccountingRegister Create(Guid uuid, int code, string name)
+        internal static AccountingRegister Create(Guid uuid, int code)
         {
-            return new AccountingRegister(uuid, code, name);
+            return new AccountingRegister(uuid, code, MetadataToken.AccRg);
         }
         internal AccountingRegister(Guid uuid, int code, string name) : base(uuid, code, name) { }
         internal Guid ChartOfAccounts { get; set; } // План счетов
