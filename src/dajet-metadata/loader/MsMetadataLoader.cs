@@ -8,7 +8,6 @@ namespace DaJet.Metadata
     internal sealed class MsMetadataLoader : MetadataLoader
     {
         private const string MS_PARAMS_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Params WHERE FileName = @FileName;";
-        private const string MS_PARAMS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Params WHERE FileName LIKE @FileName;";
         private const string MS_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Config WHERE FileName = @FileName;";
         private const string MS_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, Config.FileName AS FileName, BinaryData FROM Config INNER JOIN #ConfigFileNames AS T ON Config.FileName = T.FileName;";
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";

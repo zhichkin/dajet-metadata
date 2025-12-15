@@ -60,6 +60,7 @@ namespace DaJet.Metadata.Services
 
             if (delete_list.Count == 0 && insert_list.Count == 0)
             {
+                //logger.AppendLine($"SUCCESS [{entity.DbName}] {entity.Name}");
                 return; // success - проверка прошла успешно
             }
 

@@ -3,6 +3,7 @@ using DaJet.Metadata;
 using DaJet.TypeSystem;
 using System.Diagnostics;
 using System.Reflection.Emit;
+using System.Text;
 
 namespace DaJet
 {
@@ -70,6 +71,11 @@ namespace DaJet
             string fileName = "2b870ec1-271d-450b-abe0-ae78dd11fa23";
             MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
             provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}.txt");
+
+            //string fileName = "DBSchema";
+            //MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
+            //provider.Dump("DBSchema", string.Empty, $"C:\\temp\\1c-dump\\{fileName}.txt");
+
             return;
 
             //MetadataRegistry registry = new();

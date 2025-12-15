@@ -30,11 +30,25 @@ namespace DaJet.Metadata
                 registry.AddDefinedType(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][4][3].Seek())
+                metadata.Name = reader[2][4][3].SeekString();
+
+                if (metadata.IsExtension) // Объект расширения
                 {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.DefinedType, in name, uuid);
+                    if (registry.TryGetEntry(MetadataNames.DefinedType, metadata.Name, out DefinedType parent))
+                    {
+                        // Заимствованный объект расширения
+                        parent.MarkAsBorrowed();
+                        metadata.MarkAsBorrowed();
+                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                    }
+                    else // Cобственный объект расширения
+                    {
+                        registry.AddMetadataName(MetadataNames.DefinedType, metadata.Name, uuid);
+                    }
+                }
+                else // Объект основной конфигурации
+                {
+                    registry.AddMetadataName(MetadataNames.DefinedType, metadata.Name, uuid);
                 }
 
                 if (reader[2][5][ConfigFileToken.StartObject].Seek())

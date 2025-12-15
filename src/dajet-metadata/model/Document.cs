@@ -77,11 +77,22 @@ namespace DaJet.Metadata
                 registry.AddReference(uuid, reference);
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][10][2][3].Seek())
+                metadata.Name = reader[2][10][2][3].SeekString();
+
+                if (metadata.TypeCode > 0)
                 {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.Document, in name, uuid);
+                    // Объекты основной конфигурации и собственные объекты расширения
+                    registry.AddMetadataName(MetadataNames.Document, metadata.Name, uuid);
+                }
+                else // Заимствованный объект расширения
+                {
+                    if (registry.TryGetEntry(MetadataNames.Document, metadata.Name, out Document parent))
+                    {
+                        parent.MarkAsBorrowed();
+                        metadata.MarkAsBorrowed();
+                        metadata.TypeCode = parent.TypeCode;
+                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                    }
                 }
 
                 //if (options.IsExtension)
