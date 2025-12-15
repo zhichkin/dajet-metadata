@@ -125,63 +125,68 @@ namespace DaJet.Metadata
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
-                Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
-
                 ConfigFileReader reader = new(file);
 
-                // Коллекция владельцев данного справочника (uuid'ы объектов метаданных)
-                Guid[] owners = GetOwners(ref reader); // [2][13][0]
-
-                // Длина кода
-                int codeLength = reader[2][18].SeekNumber();
-
-                // Тип кода (строка или число)
-                CodeType codeType = (CodeType)reader[2][19].SeekNumber();
-
-                // Длина наименования
-                int nameLength = reader[2][20].SeekNumber();
-
-                // Тип иерархии (группы или элементы)
-                HierarchyType hierarchyType = (HierarchyType)reader[2][37].SeekNumber();
-
-                // Флаг, является ли справочник иерархическим
-                bool isHierarchical = reader[2][38].SeekNumber() != 0;
-
-                if (codeLength > 0)
+                if (!entry.IsExtension || !entry.IsBorrowed)
                 {
-                    Configurator.ConfigurePropertyКод(in table, codeType, codeLength);
-                }
+                    // Объект основной конфигурации или собственный объект расширения
 
-                if (nameLength > 0)
-                {
-                    Configurator.ConfigurePropertyНаименование(in table, nameLength);
-                }
+                    Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
 
-                if (owners is not null && owners.Length > 0)
-                {
-                    int ownerCode = 0;
+                    // Коллекция владельцев данного справочника (uuid'ы объектов метаданных)
+                    Guid[] owners = GetOwners(ref reader); // [2][13][0]
 
-                    if (owners.Length == 1)
+                    // Длина кода
+                    int codeLength = reader[2][18].SeekNumber();
+
+                    // Тип кода (строка или число)
+                    CodeType codeType = (CodeType)reader[2][19].SeekNumber();
+
+                    // Длина наименования
+                    int nameLength = reader[2][20].SeekNumber();
+
+                    // Тип иерархии (группы или элементы)
+                    HierarchyType hierarchyType = (HierarchyType)reader[2][37].SeekNumber();
+
+                    // Флаг, является ли справочник иерархическим
+                    bool isHierarchical = reader[2][38].SeekNumber() != 0;
+
+                    if (codeLength > 0)
                     {
-                        ownerCode = registry.GetTypeCode(owners[0]);
+                        Configurator.ConfigurePropertyКод(in table, codeType, codeLength);
                     }
 
-                    Configurator.ConfigurePropertyВладелец(in table, in owners, ownerCode);
-                }
+                    if (nameLength > 0)
+                    {
+                        Configurator.ConfigurePropertyНаименование(in table, nameLength);
+                    }
 
-                if (isHierarchical)
-                {
-                    Configurator.ConfigurePropertyРодитель(in table, entry.TypeCode);
-                }
+                    if (owners is not null && owners.Length > 0)
+                    {
+                        int ownerCode = 0;
 
-                if (isHierarchical && hierarchyType == HierarchyType.Groups)
-                {
-                    Configurator.ConfigurePropertyЭтоГруппа(in table);
-                }
+                        if (owners.Length == 1)
+                        {
+                            ownerCode = registry.GetTypeCode(owners[0]);
+                        }
 
-                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
+                        Configurator.ConfigurePropertyВладелец(in table, in owners, ownerCode);
+                    }
+
+                    if (isHierarchical)
+                    {
+                        Configurator.ConfigurePropertyРодитель(in table, entry.TypeCode);
+                    }
+
+                    if (isHierarchical && hierarchyType == HierarchyType.Groups)
+                    {
+                        Configurator.ConfigurePropertyЭтоГруппа(in table);
+                    }
+
+                    Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
+                }
 
                 uint root = 6; // Коллекция табличных частей объекта
 

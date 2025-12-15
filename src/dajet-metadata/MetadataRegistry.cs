@@ -187,7 +187,7 @@ namespace DaJet.Metadata
             // Добавляем объект в общий реестр метаданных, если он ещё не существует
             ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
 
-            if (!exists)
+            if (!exists) // Заимствованные объекты расширения
             {
                 if (MainEntryFactories.TryGetValue(type, out Func<Guid, int, MetadataObject> factory))
                 {
@@ -198,12 +198,14 @@ namespace DaJet.Metadata
                     throw new InvalidOperationException();
                 }
             }
-            else // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
+            else 
             {
-                //NOTE: Помечаем объект расширения
-                //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
-                //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
+                // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
             }
+
+            //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
+            //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
+            //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
 
             entry.MarkAsExtension();
         }
@@ -372,6 +374,12 @@ namespace DaJet.Metadata
         internal bool TryGetRegisterRecorders(Guid register, [MaybeNullWhen(false)] out List<Guid> recorders)
         {
             return _register_recorders.TryGetValue(register, out recorders);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryGetExtension(Guid parent, out Guid extension)
+        {
+            return _extensions.TryGetValue(parent, out extension);
         }
 
         internal int GetGenericTypeCode(Guid generic)

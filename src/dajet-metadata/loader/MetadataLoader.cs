@@ -86,16 +86,17 @@ namespace DaJet.Metadata
                 return null;
             }
 
-            EntityDefinition definition;
+            EntityDefinition entity;
 
+            // По умолчанию - объект основной конфигурации
             string tableName = ConfigTables.Config;
             string fileName = entry.Uuid.ToString().ToLowerInvariant();
 
-            if (entry.IsExtension && !entry.IsBorrowed)
+            if (entry.IsExtension && !entry.IsBorrowed) // Собственный объект расширения
             {
                 tableName = ConfigTables.ConfigCAS;
 
-                if (!registry.TryGetFileName(fileName, out fileName))
+                if (!registry.TryGetFileName(in fileName, out fileName))
                 {
                     throw new InvalidOperationException();
                 }
@@ -103,10 +104,71 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
-                definition = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
+                entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
+
+                if (entry.IsExtension && !entry.IsBorrowed) // Собственный объект расширения
+                {
+                    entity.DbName += "x1";
+
+                    foreach (EntityDefinition table in entity.Entities)
+                    {
+                        table.DbName += "x1";
+                    }
+                }
             }
 
-            return definition;
+            if (entry.IsBorrowed && !entry.IsExtension) // Проверяем заимствование объекта основной конфигурации
+            {
+                if (registry.TryGetExtension(entry.Uuid, out Guid uuid))
+                {
+                    fileName = uuid.ToString().ToLowerInvariant();
+                    
+                    tableName = ConfigTables.ConfigCAS;
+
+                    if (!registry.TryGetFileName(in fileName, out fileName))
+                    {
+                        throw new InvalidOperationException();
+                    }
+
+                    EntityDefinition extension;
+
+                    using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                    {
+                        extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                    }
+
+                    bool HasExtensions = extension.Properties.Count > 0 || extension.Entities.Count > 0;
+
+                    if (extension.Properties.Count > 0)
+                    {
+                        entity.Properties.AddRange(extension.Properties);
+                    }
+
+                    if (extension.Entities.Count > 0)
+                    {
+                        entity.Entities.AddRange(extension.Entities);
+                    }
+
+                    if (HasExtensions)
+                    {
+                        entity.DbName += "x1";
+
+                        foreach (EntityDefinition table in entity.Entities)
+                        {
+                            table.DbName += "x1";
+                        }
+                    }
+                    else
+                    {
+                        //TODO: Проверить вхождение объекта в состав плана обмена расширения
+                    }
+                }
+            }
+
+            //TODO: Если объект основной конфигурации имеет реквизит, значением которого является ЛюбаяСсылка,
+            //TODO: и имеются любые расширения, то используются x1-таблицы, даже если такой объект не заимствуется
+
+            return entity;
         }
         internal EntityDefinition LoadWithRelations(in string type, Guid uuid, in MetadataRegistry registry)
         {

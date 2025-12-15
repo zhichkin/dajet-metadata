@@ -124,6 +124,10 @@ namespace DaJet.Metadata
 
             return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
+        public EntityDefinition GetExtensionObject(in string fullName)
+        {
+            throw new NotImplementedException(); //TODO: Отображение в интерфейсе пользователя
+        }
         public IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
         {
             foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
