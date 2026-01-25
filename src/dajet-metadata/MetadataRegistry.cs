@@ -132,6 +132,7 @@ namespace DaJet.Metadata
             [MetadataNames.BusinessProcess] = new Dictionary<string, Guid>(),
             [MetadataNames.BusinessTask] = new Dictionary<string, Guid>()
         };
+        
         private readonly Dictionary<Guid, Guid> _extensions = new();
 
         private readonly Dictionary<string, string> _files = new();

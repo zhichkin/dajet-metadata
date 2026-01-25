@@ -247,7 +247,7 @@ namespace DaJet.Metadata
                     }
                 }
 
-                entry.ConfigureChangeTrackingTable(in table);
+                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

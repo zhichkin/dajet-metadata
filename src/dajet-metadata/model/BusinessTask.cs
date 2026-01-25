@@ -132,7 +132,7 @@ namespace DaJet.Metadata
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
-                entry.ConfigureChangeTrackingTable(in table);
+                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }
