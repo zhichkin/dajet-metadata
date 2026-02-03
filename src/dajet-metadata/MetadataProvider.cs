@@ -64,19 +64,6 @@ namespace DaJet.Metadata
             _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
 
-        public int GetYearOffset()
-        {
-            return _loader.GetYearOffset();
-        }
-        public InfoBase GetInfoBase()
-        {
-            InfoBase infoBase = _loader.GetInfoBase();
-            
-            infoBase.YearOffset = GetYearOffset();
-
-            return infoBase;
-        }
-
         public void Initialize()
         {
             _registry = _loader.GetMetadataRegistry();

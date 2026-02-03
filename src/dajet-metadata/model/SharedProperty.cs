@@ -31,9 +31,9 @@ namespace DaJet.Metadata
         IndependentAndShared = 1
     }
     #endregion
-    internal sealed class SharedProperty : DatabaseObject
+    internal sealed class SharedProperty : MetadataObject
     {
-        internal SharedProperty(Guid uuid) : base(uuid, 0, MetadataToken.Fld) { }
+        internal SharedProperty(Guid uuid) : base(uuid) { }
         internal DataType Type { get; set; }
         internal PropertyDefinition Definition { get; set; }
         internal AutomaticUsage AutomaticUsage { get; set; }
@@ -44,10 +44,17 @@ namespace DaJet.Metadata
         {
             if (name == MetadataToken.Fld)
             {
-                TypeCode = code;
+                Code = code;
             }
         }
-
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Fld, Code);
+        }
+        internal override string GetTableNameИзменения()
+        {
+            throw new NotImplementedException();
+        }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.SharedProperty, Name);
@@ -102,7 +109,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][2][2][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.SharedProperty, metadata.Name, uuid);
@@ -113,8 +120,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 

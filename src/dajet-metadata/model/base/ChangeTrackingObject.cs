@@ -2,12 +2,9 @@
 
 namespace DaJet.Metadata
 {
-    internal abstract class ChangeTrackingObject : DatabaseObject
+    internal abstract class ChangeTrackingObject : MetadataObject
     {
-        protected int _ChngR;
-        protected ChangeTrackingObject(Guid uuid, int code, string name) : base(uuid, code, name) { }
-        internal abstract string GetTableNameИзменения();
-        internal bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
+        protected ChangeTrackingObject(Guid uuid) : base(uuid) { }
         internal virtual void ConfigureChangeTrackingTable(in EntityDefinition owner)
         {
             //NOTE: Реализация по умолчанию для ссылочных объектов метаданных
@@ -22,7 +19,7 @@ namespace DaJet.Metadata
 
                 Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
                 Configurator.ConfigurePropertyНомерСообщения(in changes);
-                Configurator.ConfigurePropertyСсылка(in changes, TypeCode);
+                Configurator.ConfigurePropertyСсылка(in changes, Code);
 
                 foreach (PropertyDefinition property in owner.Properties)
                 {

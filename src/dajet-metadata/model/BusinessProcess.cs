@@ -2,18 +2,23 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class BusinessProcess : ChangeTrackingObject
+    internal sealed class BusinessProcess : MetadataObject
     {
-        internal static BusinessProcess Create(Guid uuid, int code)
+        internal static BusinessProcess Create(Guid uuid)
         {
-            return new BusinessProcess(uuid, code, MetadataToken.BPr);
+            return new BusinessProcess(uuid);
         }
-        internal BusinessProcess(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal BusinessProcess(Guid uuid) : base(uuid) { }
 
+        private int _ChngR;
         private int _BPrPoints;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.BPrPoints)
+            if (name == MetadataToken.BPr)
+            {
+                Code = code;
+            }
+            else if (name == MetadataToken.BPrPoints)
             {
                 _BPrPoints = code;
             }
@@ -21,6 +26,10 @@ namespace DaJet.Metadata
             {
                 _ChngR = code;
             }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.BPr, Code);
         }
         internal string GetTableNameТочкиМаршрута()
         {
@@ -30,7 +39,6 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.BPrChngR, _ChngR);
         }
-
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.BusinessProcess, Name);
@@ -53,7 +61,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.BusinessProcess, metadata.Name, uuid);
@@ -64,8 +72,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 
@@ -103,7 +111,7 @@ namespace DaJet.Metadata
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
-                Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
+                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
                 Configurator.ConfigurePropertyДата(in table);
@@ -154,8 +162,6 @@ namespace DaJet.Metadata
                 }
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

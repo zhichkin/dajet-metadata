@@ -10,6 +10,15 @@ namespace DaJet.Metadata
         {
             return string.Format("{0}.{1}", MetadataNames.DefinedType, Name);
         }
+        internal override string GetMainDbName()
+        {
+            throw new NotImplementedException();
+        }
+        internal override string GetTableNameИзменения()
+        {
+            throw new NotImplementedException();
+        }
+
         internal sealed class Parser : ConfigFileParser
         {
             internal override void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry)
@@ -39,7 +48,7 @@ namespace DaJet.Metadata
                         // Заимствованный объект расширения
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                     else // Cобственный объект расширения
                     {

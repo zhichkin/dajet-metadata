@@ -1,6 +1,5 @@
 ﻿using DaJet.TypeSystem;
 using System.Collections.Concurrent;
-using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -10,106 +9,13 @@ namespace DaJet.Metadata
     internal sealed class MetadataRegistry
     {
         ///<summary>
-        ///Режим совместимости платформы 1С:Предприятие 8,
-        ///<br>согласно которому сконфигурирована база данных</br>
+        ///Режим совместимости платформы 1С:Предприятие 8
+        ///<br>(определяет доступный функционал базы данных)</br>
         ///</summary>
-        internal int CompatibilityVersion { get; set; }
+        internal int Version { get; set; }
 
-        private static readonly FrozenSet<string> SupportedTokens = FrozenSet.ToFrozenSet(
-        [
-            MetadataToken.VT,
-            MetadataToken.LineNo,
-            MetadataToken.Fld,
-            MetadataToken.Enum,
-            MetadataToken.Chrc,
-            MetadataToken.Node,
-            MetadataToken.Const,
-            MetadataToken.Document,
-            MetadataToken.Reference,
-            MetadataToken.BPr,
-            MetadataToken.Task,
-            MetadataToken.BPrPoints,
-            MetadataToken.InfoRg,
-            MetadataToken.InfoRgOpt,
-            MetadataToken.InfoRgSF,
-            MetadataToken.InfoRgSL,
-            MetadataToken.AccumRg,
-            MetadataToken.AccumRgT,
-            MetadataToken.AccumRgOpt,
-            MetadataToken.Acc,
-            MetadataToken.AccRg,
-            MetadataToken.ExtDim,
-            MetadataToken.AccRgED,
-            MetadataToken.AccChngR,
-            MetadataToken.AccRgChngR,
-            MetadataToken.AccumRgChngR,
-            MetadataToken.BPrChngR,
-            MetadataToken.TaskChngR,
-            MetadataToken.ReferenceChngR,
-            MetadataToken.ChrcChngR,
-            MetadataToken.ConstChngR,
-            MetadataToken.DocumentChngR,
-            MetadataToken.InfoRgChngR
-        ], StringComparer.Ordinal);
-        internal static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> SupportedTokensLookup = SupportedTokens.GetAlternateLookup<ReadOnlySpan<char>>();
-
-        private static readonly FrozenSet<string> ReferenceTypeTokens = FrozenSet.ToFrozenSet(
-        [
-            MetadataToken.Acc,
-            MetadataToken.Enum,
-            MetadataToken.Chrc,
-            MetadataToken.Node,
-            MetadataToken.BPr,
-            MetadataToken.Task,
-            MetadataToken.Document,
-            MetadataToken.Reference
-        ], StringComparer.Ordinal);
-        private static readonly FrozenDictionary<string, Func<Guid, int, MetadataObject>> MainEntryTokens = CreateMainEntryTokenLookup();
-        private static FrozenDictionary<string, Func<Guid, int, MetadataObject>> CreateMainEntryTokenLookup()
-        {
-            List<KeyValuePair<string, Func<Guid, int, MetadataObject>>> list =
-            [
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.VT, TablePart.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Fld, Property.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Acc, Account.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Enum, Enumeration.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Chrc, Characteristic.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Node, Publication.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.BPr, BusinessProcess.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Task, BusinessTask.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Const, Constant.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Document, Document.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.Reference, Catalog.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.AccRg, AccountingRegister.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.InfoRg, InformationRegister.Create),
-                new KeyValuePair<string, Func<Guid, int, MetadataObject>>(MetadataToken.AccumRg, AccumulationRegister.Create)
-            ];
-            return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
-        }
-
-        private static readonly FrozenDictionary<Guid, Func<Guid, int, MetadataObject>> MainEntryFactories = CreateMainEntryFactoryLookup();
-        private static FrozenDictionary<Guid, Func<Guid, int, MetadataObject>> CreateMainEntryFactoryLookup()
-        {
-            List<KeyValuePair<Guid, Func<Guid, int, MetadataObject>>> list =
-            [
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Account, Account.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Enumeration, Enumeration.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Characteristic, Characteristic.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Publication, Publication.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.BusinessProcess, BusinessProcess.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.BusinessTask, BusinessTask.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Constant, Constant.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Document, Document.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.Catalog, Catalog.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.AccountingRegister, AccountingRegister.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.InformationRegister, InformationRegister.Create),
-                new KeyValuePair<Guid, Func<Guid, int, MetadataObject>>(MetadataTypes.AccumulationRegister, AccumulationRegister.Create)
-            ];
-            return FrozenDictionary.ToFrozenDictionary(list);
-        }
-
+        private readonly Dictionary<int, Guid> _type_codes = new();
         private readonly Dictionary<Guid, MetadataObject> _registry = new();
-        private readonly Dictionary<int, Guid> _reference_type_codes = new();
         private readonly ConcurrentDictionary<Guid, Guid> _references = new();
         private readonly Dictionary<Guid, Guid> _defined_types = new();
         private readonly Dictionary<Guid, Guid> _characteristics = new();
@@ -132,10 +38,11 @@ namespace DaJet.Metadata
             [MetadataNames.BusinessProcess] = new Dictionary<string, Guid>(),
             [MetadataNames.BusinessTask] = new Dictionary<string, Guid>()
         };
-        
-        private readonly Dictionary<Guid, Guid> _extensions = new();
-
+        private readonly Dictionary<Guid, List<Guid>> _borrowed = new();
+        private readonly List<ExtensionInfo> _extensions = new();
+        private readonly List<Configuration> _configurations = new();
         private readonly Dictionary<string, string> _files = new();
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddFileName(in string identifier, in string fileName)
         {
@@ -148,68 +55,6 @@ namespace DaJet.Metadata
         }
 
         #region "Методы инциализации реестра метаданных"
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntry(Guid uuid, in MetadataObject entry)
-        {
-            // Безусловное добавление объектов "ОбщийРеквизит" и "ОпределяемыйТип"
-            // Выполняется загрузчиком основной конфигурации до заполнения реестра метаданных
-            // Класс MetadataLoader, метод GetMetadataRegistry
-
-            _ = _registry.TryAdd(uuid, entry);
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddExtension(Guid parent, Guid extension)
-        {
-            _ = _extensions.TryAdd(parent, extension);
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddExtensionEntry(Guid type, in string identifier)
-        {
-            // Добавление объектов расширения в общий реестр метаданных
-            // Класс MetadataLoader, метод ApplyExtension
-
-            Guid uuid = new(identifier);
-
-            if (type == MetadataTypes.DefinedType)
-            {
-                DefinedType defined = new(uuid);
-                defined.MarkAsExtension();
-                _registry.TryAdd(uuid, defined);
-                return;
-            }
-            else if (type == MetadataTypes.SharedProperty)
-            {
-                SharedProperty property = new(uuid);
-                property.MarkAsExtension();
-                _registry.TryAdd(uuid, property);
-                return;
-            }
-
-            // Добавляем объект в общий реестр метаданных, если он ещё не существует
-            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
-
-            if (!exists) // Заимствованные объекты расширения
-            {
-                if (MainEntryFactories.TryGetValue(type, out Func<Guid, int, MetadataObject> factory))
-                {
-                    entry = factory(uuid, 0); // Создаём объект метаданных расширения
-                }
-                else // Неподдерживаемый тип метаданных
-                {
-                    throw new InvalidOperationException();
-                }
-            }
-            else 
-            {
-                // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
-            }
-
-            //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
-            //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
-            //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
-
-            entry.MarkAsExtension();
-        }
         internal bool TryAddDbName(Guid uuid, int code, in string token)
         {
             ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
@@ -219,13 +64,15 @@ namespace DaJet.Metadata
                 // Токен главного объекта метаданных должен следовать первым в файле DBNames.
                 // Это штатное поведение платформы 1С. Нарушение порядка следования - ошибка.
 
-                if (MainEntryTokens.TryGetValue(token, out Func<Guid, int, MetadataObject> factory))
+                if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
                 {
-                    entry = factory(uuid, code); // Создаём главный объект метаданных
+                    entry = factory(uuid); // Создаём главный объект метаданных
+                    entry.AddDbName(code, token);
+                    //TODO: ? entry.Code = code;
 
-                    if (ReferenceTypeTokens.TryGetValue(token, out _))
+                    if (Configurator.IsReferenceTypeToken(token))
                     {
-                        _ = _reference_type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
+                        _ = _type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
                     }
                 }
                 else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
@@ -241,13 +88,15 @@ namespace DaJet.Metadata
                 }
                 else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
                 {
-                    if (MainEntryTokens.TryGetValue(token, out Func<Guid, int, MetadataObject> factory))
+                    if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
                     {
-                        entry = factory(uuid, code); // Создаём главный объект метаданных
+                        entry = factory(uuid); // Создаём главный объект метаданных
+                        entry.AddDbName(code, token);
+                        //TODO: ? entry.Code = code;
 
-                        if (ReferenceTypeTokens.TryGetValue(token, out _))
+                        if (Configurator.IsReferenceTypeToken(token))
                         {
-                            _ = _reference_type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
+                            _ = _type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
                         }
                     }
                     else
@@ -291,6 +140,92 @@ namespace DaJet.Metadata
             _ = _references.TryAdd(reference, uuid);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddMetadataName(in string type, in string name, Guid uuid)
+        {
+            if (_names.TryGetValue(type, out Dictionary<string, Guid> names))
+            {
+                _ = names.TryAdd(name, uuid);
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddEntry(Guid uuid, in MetadataObject entry)
+        {
+            // Безусловное добавление объектов "ОбщийРеквизит" и "ОпределяемыйТип"
+            // Выполняется загрузчиком основной конфигурации до заполнения реестра метаданных
+            // Класс MetadataLoader, метод GetMetadataRegistry
+
+            _ = _registry.TryAdd(uuid, entry);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddBorrowed(Guid parent, Guid extension)
+        {
+            //NOTE: Важно! Данный код выполняется однопоточно инициализатором реестра
+            //NOTE: метаданных для объектов одного и того же типа, например, справочников
+
+            if (_borrowed.TryGetValue(parent, out List<Guid> borrowed))
+            {
+                borrowed.Add(extension);
+            }
+            else
+            {
+                _borrowed.Add(parent, new List<Guid>() { extension });
+            }
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryGetBorrowedObjects(Guid parent, out List<Guid> borrowed)
+        {
+            return _borrowed.TryGetValue(parent, out borrowed);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddExtensionEntry(Guid type, in string identifier)
+        {
+            // Добавление объектов расширения в общий реестр метаданных
+            // Класс MetadataLoader, метод ApplyExtension
+
+            Guid uuid = new(identifier);
+
+            if (type == MetadataTypes.DefinedType)
+            {
+                DefinedType defined = new(uuid);
+                defined.MarkAsExtension();
+                _registry.TryAdd(uuid, defined);
+                return;
+            }
+            else if (type == MetadataTypes.SharedProperty)
+            {
+                SharedProperty property = new(uuid);
+                property.MarkAsExtension();
+                _registry.TryAdd(uuid, property);
+                return;
+            }
+
+            // Добавляем объект в общий реестр метаданных, если он ещё не существует
+            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
+
+            if (!exists) // Заимствованные объекты расширения
+            {
+                if (Configurator.TryGetMetadataObjectFactory(type, out Func<Guid, MetadataObject> factory))
+                {
+                    entry = factory(uuid); // Создаём объект метаданных расширения
+                    //TODO: entry.Cfid = ?
+                }
+                else // Неподдерживаемый тип метаданных
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            else 
+            {
+                // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
+            }
+
+            //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
+            //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
+            //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
+
+            entry.MarkAsExtension();
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddDefinedType(Guid uuid, Guid reference)
         {
             _ = _defined_types.TryAdd(reference, uuid);
@@ -328,17 +263,9 @@ namespace DaJet.Metadata
                 processes = new List<Guid>(1) { process };
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddMetadataName(in string type, in string name, Guid uuid)
-        {
-            if (_names.TryGetValue(type, out Dictionary<string, Guid> names))
-            {
-                _ = names.TryAdd(name, uuid);
-            }
-        }
         #endregion
 
-        internal bool TryGetReference(Guid reference, [MaybeNullWhen(false)] out DatabaseObject entry)
+        internal bool TryGetReference(Guid reference, [MaybeNullWhen(false)] out MetadataObject entry)
         {
             if (!_references.TryGetValue(reference, out Guid uuid))
             {
@@ -377,11 +304,7 @@ namespace DaJet.Metadata
             return _register_recorders.TryGetValue(register, out recorders);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool TryGetExtension(Guid parent, out Guid extension)
-        {
-            return _extensions.TryGetValue(parent, out extension);
-        }
+        
 
         internal int GetGenericTypeCode(Guid generic)
         {
@@ -401,9 +324,9 @@ namespace DaJet.Metadata
             {
                 Guid uuid = items.Values.FirstOrDefault();
 
-                if (TryGetEntry(uuid, out DatabaseObject entry))
+                if (TryGetEntry(uuid, out MetadataObject entry))
                 {
-                    return entry.TypeCode;
+                    return entry.Code;
                 }
             }
 
@@ -433,12 +356,7 @@ namespace DaJet.Metadata
                 return -1;
             }
 
-            if (entry is not DatabaseObject dbo)
-            {
-                return -1;
-            }
-
-            return dbo.TypeCode;
+            return entry.Code;
         }
 
         internal bool TryGetEntry(Guid uuid, [MaybeNullWhen(false)] out MetadataObject entry)
@@ -552,7 +470,7 @@ namespace DaJet.Metadata
 
                 // Конкретный ссылочный тип
 
-                if (TryGetReference(reference, out DatabaseObject entry))
+                if (TryGetReference(reference, out MetadataObject entry))
                 {
                     types.Add(entry.ToString());
                 }

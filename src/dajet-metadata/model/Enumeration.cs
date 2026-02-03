@@ -2,14 +2,29 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class Enumeration : DatabaseObject
+    internal sealed class Enumeration : MetadataObject
     {
-        internal static Enumeration Create(Guid uuid, int code)
+        internal static Enumeration Create(Guid uuid)
         {
-            return new Enumeration(uuid, code, MetadataToken.Enum);
+            return new Enumeration(uuid);
         }
-        internal Enumeration(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal Enumeration(Guid uuid) : base(uuid) { }
         internal Dictionary<string, Guid> Values { get; } = new();
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.Enum)
+            {
+                Code = code;
+            }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Enum, Code);
+        }
+        internal override string GetTableNameИзменения()
+        {
+            throw new NotImplementedException();
+        }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Enumeration, Name);
@@ -37,7 +52,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][6][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Enumeration, metadata.Name, uuid);
@@ -48,8 +63,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 

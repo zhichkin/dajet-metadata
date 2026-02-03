@@ -1,11 +1,129 @@
 ﻿using DaJet.TypeSystem;
+using System.Collections.Frozen;
+using System.Runtime.CompilerServices;
 
 namespace DaJet.Metadata
 {
     internal static class Configurator
     {
+        #region "Фабричные методы объектов метаданных"
+        private static readonly FrozenSet<string> SupportedTokens = FrozenSet.ToFrozenSet(
+        [
+            MetadataToken.VT,
+            MetadataToken.LineNo,
+            MetadataToken.Fld,
+            MetadataToken.Enum,
+            MetadataToken.Chrc,
+            MetadataToken.Node,
+            MetadataToken.Const,
+            MetadataToken.Document,
+            MetadataToken.Reference,
+            MetadataToken.BPr,
+            MetadataToken.Task,
+            MetadataToken.BPrPoints,
+            MetadataToken.InfoRg,
+            MetadataToken.InfoRgOpt,
+            MetadataToken.InfoRgSF,
+            MetadataToken.InfoRgSL,
+            MetadataToken.AccumRg,
+            MetadataToken.AccumRgT,
+            MetadataToken.AccumRgOpt,
+            MetadataToken.Acc,
+            MetadataToken.AccRg,
+            MetadataToken.ExtDim,
+            MetadataToken.AccRgED,
+            MetadataToken.AccChngR,
+            MetadataToken.AccRgChngR,
+            MetadataToken.AccumRgChngR,
+            MetadataToken.BPrChngR,
+            MetadataToken.TaskChngR,
+            MetadataToken.ReferenceChngR,
+            MetadataToken.ChrcChngR,
+            MetadataToken.ConstChngR,
+            MetadataToken.DocumentChngR,
+            MetadataToken.InfoRgChngR
+        ], StringComparer.Ordinal);
+        private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> SupportedTokensLookup = SupportedTokens.GetAlternateLookup<ReadOnlySpan<char>>();
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsSupportedToken(ReadOnlySpan<char> token, out string name)
+        {
+            return SupportedTokensLookup.TryGetValue(token, out name);
+        }
+
+        private static readonly FrozenSet<string> ReferenceTypeTokens = FrozenSet.ToFrozenSet(
+        [
+            MetadataToken.Acc,
+            MetadataToken.Enum,
+            MetadataToken.Chrc,
+            MetadataToken.Node,
+            MetadataToken.BPr,
+            MetadataToken.Task,
+            MetadataToken.Document,
+            MetadataToken.Reference
+        ], StringComparer.Ordinal);
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsReferenceTypeToken(in string token)
+        {
+            return ReferenceTypeTokens.Contains(token);
+        }
+
+        private static readonly FrozenDictionary<string, Func<Guid, MetadataObject>> MainEntryTokens = CreateMainEntryTokenLookup();
+        private static FrozenDictionary<string, Func<Guid, MetadataObject>> CreateMainEntryTokenLookup()
+        {
+            List<KeyValuePair<string, Func<Guid, MetadataObject>>> list =
+            [
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.VT, TablePart.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Fld, Property.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Acc, Account.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Enum, Enumeration.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Chrc, Characteristic.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Node, Publication.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.BPr, BusinessProcess.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Task, BusinessTask.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Const, Constant.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Document, Document.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Reference, Catalog.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccRg, AccountingRegister.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.InfoRg, InformationRegister.Create),
+                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccumRg, AccumulationRegister.Create)
+            ];
+            return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool TryGetMetadataObjectFactory(in string token, out Func<Guid, MetadataObject> factory)
+        {
+            return MainEntryTokens.TryGetValue(token, out factory);
+        }
+
+        private static readonly FrozenDictionary<Guid, Func<Guid, MetadataObject>> MainEntryFactories = CreateMainEntryFactoryLookup();
+        private static FrozenDictionary<Guid, Func<Guid, MetadataObject>> CreateMainEntryFactoryLookup()
+        {
+            List<KeyValuePair<Guid, Func<Guid, MetadataObject>>> list =
+            [
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Account, Account.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Enumeration, Enumeration.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Characteristic, Characteristic.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Publication, Publication.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.BusinessProcess, BusinessProcess.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.BusinessTask, BusinessTask.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Constant, Constant.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Document, Document.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Catalog, Catalog.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.AccountingRegister, AccountingRegister.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.InformationRegister, InformationRegister.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.AccumulationRegister, AccumulationRegister.Create)
+            ];
+            return FrozenDictionary.ToFrozenDictionary(list);
+        }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool TryGetMetadataObjectFactory(Guid type, out Func<Guid, MetadataObject> factory)
+        {
+            return MainEntryFactories.TryGetValue(type, out factory);
+        }
+        #endregion
+
         #region "Общие реквизиты"
-        internal static void ConfigureSharedProperties(in MetadataRegistry registry, in DatabaseObject entry, in EntityDefinition target)
+        internal static void ConfigureSharedProperties(in MetadataRegistry registry, in MetadataObject entry, in EntityDefinition target)
         {
             if (entry is Enumeration)
             {
@@ -106,7 +224,7 @@ namespace DaJet.Metadata
                 }
             }
         }
-        internal static void ConfigureSharedPropertyForTableParts(in SharedProperty property, in DatabaseObject target, in EntityDefinition owner)
+        internal static void ConfigureSharedPropertyForTableParts(in SharedProperty property, in MetadataObject target, in EntityDefinition owner)
         {
             if (target is Publication)
             {
@@ -856,9 +974,9 @@ namespace DaJet.Metadata
 
             if (recorders.Count == 1) // Single type value
             {
-                if (registry.TryGetEntry(recorders[0], out DatabaseObject entry))
+                if (registry.TryGetEntry(recorders[0], out MetadataObject entry))
                 {
-                    property.Type = DataType.Entity(entry.TypeCode);
+                    property.Type = DataType.Entity(entry.Code);
                 }
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -966,9 +1084,9 @@ namespace DaJet.Metadata
 
             if (processes.Count == 1) // Single type value
             {
-                if (registry.TryGetEntry(processes[0], out DatabaseObject entry))
+                if (registry.TryGetEntry(processes[0], out MetadataObject entry))
                 {
-                    property.Type = DataType.Entity(entry.TypeCode);
+                    property.Type = DataType.Entity(entry.Code);
                 }
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1030,9 +1148,9 @@ namespace DaJet.Metadata
 
             if (processes.Count == 1) // Single type value
             {
-                if (registry.TryGetEntry(processes[0], out DatabaseObject entry))
+                if (registry.TryGetEntry(processes[0], out MetadataObject entry))
                 {
-                    property.Type = DataType.Entity(entry.TypeCode);
+                    property.Type = DataType.Entity(entry.Code);
                 }
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1149,9 +1267,9 @@ namespace DaJet.Metadata
 
             if (count == 1) // Single type value
             {
-                if (registry.TryGetEntry(task, out DatabaseObject entry))
+                if (registry.TryGetEntry(task, out MetadataObject entry))
                 {
-                    property.Type = DataType.Entity(entry.TypeCode);
+                    property.Type = DataType.Entity(entry.Code);
                 }
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1335,7 +1453,7 @@ namespace DaJet.Metadata
                 Name = "ВидСубконто",
                 Purpose = PropertyPurpose.System
             };
-            property.Type = DataType.Entity(characteristic.TypeCode);
+            property.Type = DataType.Entity(characteristic.Code);
 
             //if (cache.ResolveReferences)
             //{
@@ -1434,7 +1552,7 @@ namespace DaJet.Metadata
                 {
                     Name = "СчетДт",
                     Purpose = PropertyPurpose.System,
-                    Type = DataType.Entity(account.TypeCode)
+                    Type = DataType.Entity(account.Code)
                 };
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1452,7 +1570,7 @@ namespace DaJet.Metadata
                 {
                     Name = "СчетКт",
                     Purpose = PropertyPurpose.System,
-                    Type = DataType.Entity(account.TypeCode)
+                    Type = DataType.Entity(account.Code)
                 };
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1472,7 +1590,7 @@ namespace DaJet.Metadata
                 {
                     Name = "Счет",
                     Purpose = PropertyPurpose.System,
-                    Type = DataType.Entity(account.TypeCode)
+                    Type = DataType.Entity(account.Code)
                 };
 
                 property.Columns = new List<ColumnDefinition>(1)
@@ -1514,14 +1632,14 @@ namespace DaJet.Metadata
                 throw new InvalidOperationException("Объект метаданных \"План видов характеристик\" (субконто) плана счетов не найден!");
             }
 
-            if (registry.CompatibilityVersion >= 80315)
+            if (registry.Version >= 80315)
             {
                 int count = account.MaxDimensionCount + 1;
 
                 //Значения субконто хранятся в основной таблице регистра бухгалтерии
                 //наряду с обычным хранением в системной таблице ЗначенияСубконто (_AccRegED)
 
-                DataType kind = DataType.Entity(characteristic.TypeCode); // Вид субконто
+                DataType kind = DataType.Entity(characteristic.Code); // Вид субконто
                 DataType value = characteristic.Type; // Типы значений субконто
 
                 for (int order = 1; order < count; order++)
@@ -1671,7 +1789,7 @@ namespace DaJet.Metadata
         #endregion
 
         #region "Табличная часть"
-        internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in DatabaseObject owner)
+        internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in MetadataObject owner)
         {
             //foreach (TablePart tablePart in aggregate.TableParts)
             //{
@@ -1697,7 +1815,7 @@ namespace DaJet.Metadata
             ConfigurePropertyКлючСтроки(in table);
             ConfigurePropertyНомерСтроки(in table, in metadata);
         }
-        internal static void ConfigurePropertyСсылка(in EntityDefinition table, in DatabaseObject owner)
+        internal static void ConfigurePropertyСсылка(in EntityDefinition table, in MetadataObject owner)
         {
             //MetadataProperty property = new()
             //{
@@ -1716,7 +1834,7 @@ namespace DaJet.Metadata
                 Name = "Ссылка",
                 Purpose = PropertyPurpose.System
             };
-            property.Type = DataType.Entity(owner.TypeCode);
+            property.Type = DataType.Entity(owner.Code);
 
             //if (cache.ResolveReferences)
             //{

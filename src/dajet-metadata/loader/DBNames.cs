@@ -28,8 +28,6 @@ namespace DaJet.Metadata
                 return; // Пустой файл
             }
 
-            FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> lookup = MetadataRegistry.SupportedTokensLookup;
-
             ConfigFileReader reader = new(fileData);
 
             int count = 0;
@@ -63,7 +61,7 @@ namespace DaJet.Metadata
                     {
                         length = reader.GetChars(buffer);
 
-                        supported = lookup.TryGetValue(buffer[..length], out name);
+                        supported = Configurator.IsSupportedToken(buffer[..length], out name);
                     }
                     else // [2][n][2] - имя объекта СУБД (как правило префикс)
                     {
@@ -96,6 +94,9 @@ namespace DaJet.Metadata
             if (missed.Count > 0)
             {
                 //NOTE: Сюда в принципе попадать не планируется ...
+                //NOTE: Сюда могут прилетать, например, ReferenceChngR из расширений
+                //NOTE: при парсинге DBNames-Ext-1. То есть такие вспомогательные объекты будут
+                //потеряны из-за того, что основной объект расширения (собственный) ещё не загружен !!!
 
                 foreach (DbName item in missed)
                 {

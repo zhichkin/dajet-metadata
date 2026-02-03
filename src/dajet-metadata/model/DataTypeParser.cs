@@ -205,7 +205,7 @@ namespace DaJet.Metadata
 
                     // Конкретный ссылочный тип
 
-                    if (registry.TryGetReference(reference, out DatabaseObject entry))
+                    if (registry.TryGetReference(reference, out MetadataObject entry))
                     {
                         if ((types & DataTypeFlags.Entity) == DataTypeFlags.Entity) // Ранее минимум одна ссылка уже была найдена
                         {
@@ -214,7 +214,7 @@ namespace DaJet.Metadata
                         else // Пока что единственный найденный ссылочный тип (ищем дальше)
                         {
                             types |= DataTypeFlags.Entity;
-                            typeCode = entry.TypeCode;
+                            typeCode = entry.Code;
                         }
                     }
                     else // Общий ссылочный тип

@@ -3,17 +3,32 @@ using System.Runtime.CompilerServices;
 
 namespace DaJet.Metadata
 {
-    internal sealed class Property : DatabaseObject
+    internal sealed class Property : MetadataObject
     {
-        internal static Property Create(Guid uuid, int code)
+        internal static Property Create(Guid uuid)
         {
-            return new Property(uuid, code, MetadataToken.Fld);
+            return new Property(uuid);
         }
-        internal Property(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal Property(Guid uuid) : base(uuid) { }
+        internal override void AddDbName(int code, string name)
+        {
+            if (name == MetadataToken.Fld)
+            {
+                Code = code;
+            }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Fld, Code);
+        }
+        internal override string GetTableNameИзменения()
+        {
+            throw new NotImplementedException();
+        }
 
         internal static void Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root,
             in EntityDefinition table, in MetadataRegistry registry,
-            bool relations = false, in DatabaseObject owner = null)
+            bool relations = false, in MetadataObject owner = null)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
             int count = reader[root][2].SeekNumber(); // количество элементов коллекции
@@ -41,7 +56,7 @@ namespace DaJet.Metadata
         private static void ParseProperty(Guid type,
             ref ConfigFileReader reader, ReadOnlySpan<uint> root,
             in EntityDefinition table, in MetadataRegistry registry,
-            bool relations = false, in DatabaseObject owner = null)
+            bool relations = false, in MetadataObject owner = null)
         {
             // Свойство объекта:
             // -----------------

@@ -2,21 +2,26 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class Account : ChangeTrackingObject
+    internal sealed class Account : MetadataObject
     {
-        internal static Account Create(Guid uuid, int code)
+        internal static Account Create(Guid uuid)
         {
-            return new Account(uuid, code, MetadataToken.Acc);
+            return new Account(uuid);
         }
-        internal Account(Guid uuid, int code, string name) : base(uuid, code, name) { }
-        
+        internal Account(Guid uuid) : base(uuid) { }
         internal Guid DimensionTypes { get; set; } // Виды субконто (план видов характеристик)
         internal int MaxDimensionCount { get; set; } // Максимальное количество субконто (обычно 3)
 
+        private int _Acc;
+        private int _ChngR;
         private int _ExtDim;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.ExtDim)
+            if (name == MetadataToken.Acc)
+            {
+                _Acc = code;
+            }
+            else if (name == MetadataToken.ExtDim)
             {
                 _ExtDim = code;
             }
@@ -25,15 +30,18 @@ namespace DaJet.Metadata
                 _ChngR = code;
             }
         }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Acc, _Acc);
+        }
         internal string GetTableNameВидыСубконто()
         {
-            return string.Format("_{0}{1}_{2}{3}", DbName, TypeCode, MetadataToken.ExtDim, _ExtDim);
+            return string.Format("_{0}{1}_{2}{3}", MetadataToken.Acc, _Acc, MetadataToken.ExtDim, _ExtDim);
         }
         internal override string GetTableNameИзменения()
         {
             return string.Format("_{0}{1}", MetadataToken.AccChngR, _ChngR);
         }
-
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Account, Name);
@@ -61,7 +69,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][16][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Account, metadata.Name, uuid);
@@ -72,8 +80,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 
@@ -98,10 +106,10 @@ namespace DaJet.Metadata
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
-                Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
+                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
-                Configurator.ConfigurePropertyРодитель(in table, entry.TypeCode); // Всегда иерархический
+                Configurator.ConfigurePropertyРодитель(in table, entry.Code); // Всегда иерархический
 
                 ConfigFileReader reader = new(file);
 
@@ -134,7 +142,7 @@ namespace DaJet.Metadata
 
                 Configurator.ConfigurePropertyВидСчёта(in table);
                 Configurator.ConfigurePropertyЗабалансовый(in table);
-                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
+                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
 
                 uint root = 6; // Коллекция табличных частей
 
@@ -206,8 +214,6 @@ namespace DaJet.Metadata
                 }
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

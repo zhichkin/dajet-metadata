@@ -2,25 +2,35 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class Catalog : ChangeTrackingObject
+    internal sealed class Catalog : MetadataObject
     {
-        internal static Catalog Create(Guid uuid, int code)
+        internal static Catalog Create(Guid uuid)
         {
-            return new Catalog(uuid, code, MetadataToken.Reference);
+            return new Catalog(uuid);
         }
-        internal Catalog(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal Catalog(Guid uuid) : base(uuid) { }
+
+        private int _ChngR;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.ReferenceChngR)
+            if (name == MetadataToken.Reference)
+            {
+                Code = code;
+            }
+            else if (name == MetadataToken.ReferenceChngR)
             {
                 _ChngR = code;
             }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Reference, Code);
         }
         internal override string GetTableNameИзменения()
         {
             return string.Format("_{0}{1}", MetadataToken.ReferenceChngR, _ChngR);
         }
-
+        internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Catalog, Name);
@@ -86,7 +96,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][10][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Catalog, metadata.Name, uuid);
@@ -108,8 +118,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
             }
@@ -136,7 +146,7 @@ namespace DaJet.Metadata
                     //TODO: Заимствованный из основной конфигурации объект расширения
                 }
                 
-                Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
+                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
 
@@ -182,7 +192,7 @@ namespace DaJet.Metadata
 
                 if (isHierarchical)
                 {
-                    Configurator.ConfigurePropertyРодитель(in table, entry.TypeCode);
+                    Configurator.ConfigurePropertyРодитель(in table, entry.Code);
                 }
 
                 if (isHierarchical && hierarchyType == HierarchyType.Groups)
@@ -190,7 +200,7 @@ namespace DaJet.Metadata
                     Configurator.ConfigurePropertyЭтоГруппа(in table);
                 }
 
-                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.CompatibilityVersion);
+                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
 
                 uint root = 6; // Коллекция табличных частей объекта
 

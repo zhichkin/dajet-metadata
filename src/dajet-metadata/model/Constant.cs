@@ -2,18 +2,23 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class Constant : ChangeTrackingObject
+    internal sealed class Constant : MetadataObject
     {
-        internal static Constant Create(Guid uuid, int code)
+        internal static Constant Create(Guid uuid)
         {
-            return new Constant(uuid, code, MetadataToken.Const);
+            return new Constant(uuid);
         }
-        internal Constant(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal Constant(Guid uuid) : base(uuid) { }
 
         private int _Fld;
+        private int _ChngR;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.Fld)
+            if (name == MetadataToken.Const)
+            {
+                Code = code;
+            }
+            else if (name == MetadataToken.Fld)
             {
                 _Fld = code;
             }
@@ -21,6 +26,10 @@ namespace DaJet.Metadata
             {
                 _ChngR = code;
             }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Const, Code);
         }
         internal string GetColumnNameЗначение()
         {
@@ -30,37 +39,36 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.ConstChngR, _ChngR);
         }
-
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Constant, Name);
         }
 
-        internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
-        {
-            if (IsChangeTrackingEnabled)
-            {
-                EntityDefinition changes = new() // Таблица регистрации изменений
-                {
-                    Name = "Изменения",
-                    DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
-                };
+        //internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
+        //{
+        //    if (IsChangeTrackingEnabled)
+        //    {
+        //        EntityDefinition changes = new() // Таблица регистрации изменений
+        //        {
+        //            Name = "Изменения",
+        //            DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+        //        };
 
-                Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
-                Configurator.ConfigurePropertyНомерСообщения(in changes);
-                Configurator.ConfigurePropertyConstID(in changes);
+        //        Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
+        //        Configurator.ConfigurePropertyНомерСообщения(in changes);
+        //        Configurator.ConfigurePropertyConstID(in changes);
 
-                foreach (PropertyDefinition property in owner.Properties)
-                {
-                    if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
-                    {
-                        changes.Properties.Add(property);
-                    }
-                }
+        //        foreach (PropertyDefinition property in owner.Properties)
+        //        {
+        //            if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+        //            {
+        //                changes.Properties.Add(property);
+        //            }
+        //        }
 
-                owner.Entities.Add(changes);
-            }
-        }
+        //        owner.Entities.Add(changes);
+        //    }
+        //}
 
         internal sealed class Parser : ConfigFileParser
         {
@@ -79,7 +87,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][2][2][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Constant, metadata.Name, uuid);
@@ -90,8 +98,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 
@@ -122,8 +130,6 @@ namespace DaJet.Metadata
                 Configurator.ConfigurePropertyЗначение(in table, constantType, in columnName);
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
                 Configurator.ConfigurePropertyRecordKey(in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

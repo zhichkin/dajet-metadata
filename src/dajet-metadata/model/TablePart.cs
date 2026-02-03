@@ -3,30 +3,42 @@ using System.Runtime.CompilerServices;
 
 namespace DaJet.Metadata
 {
-    internal sealed class TablePart : DatabaseObject
+    internal sealed class TablePart : MetadataObject
     {
-        internal static TablePart Create(Guid uuid, int code)
+        internal static TablePart Create(Guid uuid)
         {
-            return new TablePart(uuid, code, MetadataToken.VT);
+            return new TablePart(uuid);
         }
-        internal TablePart(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal TablePart(Guid uuid) : base(uuid) { }
 
         private int _LineNo;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.LineNo)
+            if (name == MetadataToken.VT)
+            {
+                Code = code;
+            }
+            else if (name == MetadataToken.LineNo)
             {
                 _LineNo = code;
             }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.VT, Code);
         }
         internal string GetColumnNameНомерСтроки()
         {
             return string.Format("_{0}{1}", MetadataToken.LineNo, _LineNo);
         }
+        internal override string GetTableNameИзменения()
+        {
+            throw new NotImplementedException();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void Parse(ref ConfigFileReader reader, uint root,
-            in EntityDefinition ownerEntity, in DatabaseObject ownerEntry,
+            in EntityDefinition ownerEntity, in MetadataObject ownerEntry,
             in MetadataRegistry registry, bool relations)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции

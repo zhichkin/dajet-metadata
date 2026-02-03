@@ -1,22 +1,26 @@
 ﻿using DaJet.TypeSystem;
-using System.Data;
 
 namespace DaJet.Metadata
 {
-    internal sealed class AccountingRegister : ChangeTrackingObject
+    internal sealed class AccountingRegister : MetadataObject
     {
-        internal static AccountingRegister Create(Guid uuid, int code)
+        internal static AccountingRegister Create(Guid uuid)
         {
-            return new AccountingRegister(uuid, code, MetadataToken.AccRg);
+            return new AccountingRegister(uuid);
         }
-        internal AccountingRegister(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal AccountingRegister(Guid uuid) : base(uuid) { }
         internal Guid ChartOfAccounts { get; set; } // План счетов
         internal bool UseCorrespondence { get; set; } // Корреспонденция счетов
         internal bool UseSplitter { get; set; } // Разрешить разделение итогов
 
+        private int _ChngR;
         private int _AccRgED;
         internal override void AddDbName(int code, string name)
         {
+            if (name == MetadataToken.AccRg)
+            {
+                Code = code;
+            }
             if (name == MetadataToken.AccRgED)
             {
                 _AccRgED = code;
@@ -26,6 +30,10 @@ namespace DaJet.Metadata
                 _ChngR = code;
             }
         }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.AccRg, Code);
+        }
         internal string GetTableNameЗначенияСубконто()
         {
             return string.Format("_{0}{1}", MetadataToken.AccRgED, _AccRgED);
@@ -34,43 +42,42 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.AccRgChngR, _ChngR);
         }
-
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.AccountingRegister, Name);
         }
 
-        internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
-        {
-            if (IsChangeTrackingEnabled)
-            {
-                EntityDefinition changes = new() // Таблица регистрации изменений
-                {
-                    Name = "Изменения",
-                    DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
-                };
+        //internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
+        //{
+        //    if (IsChangeTrackingEnabled)
+        //    {
+        //        EntityDefinition changes = new() // Таблица регистрации изменений
+        //        {
+        //            Name = "Изменения",
+        //            DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+        //        };
 
-                Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
-                Configurator.ConfigurePropertyНомерСообщения(in changes);
+        //        Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
+        //        Configurator.ConfigurePropertyНомерСообщения(in changes);
 
-                PropertyDefinition recorder = owner.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+        //        PropertyDefinition recorder = owner.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
 
-                if (recorder is not null)
-                {
-                    changes.Properties.Add(recorder);
-                }
+        //        if (recorder is not null)
+        //        {
+        //            changes.Properties.Add(recorder);
+        //        }
 
-                foreach (PropertyDefinition property in owner.Properties)
-                {
-                    if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
-                    {
-                        changes.Properties.Add(property);
-                    }
-                }
+        //        foreach (PropertyDefinition property in owner.Properties)
+        //        {
+        //            if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+        //            {
+        //                changes.Properties.Add(property);
+        //            }
+        //        }
 
-                owner.Entities.Add(changes);
-            }
-        }
+        //        owner.Entities.Add(changes);
+        //    }
+        //}
 
         internal sealed class Parser : ConfigFileParser
         {
@@ -89,7 +96,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][16][2][3].SeekString();
 
-                if (metadata.TypeCode > 0)
+                if (metadata.Code > 0)
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.AccountingRegister, metadata.Name, uuid);
@@ -100,8 +107,8 @@ namespace DaJet.Metadata
                     {
                         parent.MarkAsBorrowed();
                         metadata.MarkAsBorrowed();
-                        metadata.TypeCode = parent.TypeCode;
-                        registry.AddExtension(parent.Uuid, metadata.Uuid);
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                 }
 
@@ -173,8 +180,6 @@ namespace DaJet.Metadata
                 //TODO: _EDHashCt
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

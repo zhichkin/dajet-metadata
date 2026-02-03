@@ -2,25 +2,34 @@
 
 namespace DaJet.Metadata
 {
-    internal sealed class BusinessTask : ChangeTrackingObject
+    internal sealed class BusinessTask : MetadataObject
     {
-        internal static BusinessTask Create(Guid uuid, int code)
+        internal static BusinessTask Create(Guid uuid)
         {
-            return new BusinessTask(uuid, code, MetadataToken.Task);
+            return new BusinessTask(uuid);
         }
-        internal BusinessTask(Guid uuid, int code, string name) : base(uuid, code, name) { }
+        internal BusinessTask(Guid uuid) : base(uuid) { }
+        
+        private int _ChngR;
         internal override void AddDbName(int code, string name)
         {
-            if (name == MetadataToken.TaskChngR)
+            if (name == MetadataToken.Task)
+            {
+                Code = code;
+            }
+            else if (name == MetadataToken.TaskChngR)
             {
                 _ChngR = code;
             }
+        }
+        internal override string GetMainDbName()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Task, Code);
         }
         internal override string GetTableNameИзменения()
         {
             return string.Format("_{0}{1}", MetadataToken.TaskChngR, _ChngR);
         }
-
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.BusinessTask, Name);
@@ -72,7 +81,7 @@ namespace DaJet.Metadata
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
-                Configurator.ConfigurePropertyСсылка(in table, entry.TypeCode);
+                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
                 Configurator.ConfigurePropertyДата(in table);
@@ -131,8 +140,6 @@ namespace DaJet.Metadata
                 }
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

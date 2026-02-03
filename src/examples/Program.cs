@@ -54,7 +54,7 @@ namespace DaJet
             //watch.Start();
 
             //int yearOffset = provider.GetYearOffset();
-            //InfoBase infoBase = provider.GetInfoBase();
+            //Configuration infoBase = provider.GetConfiguration();
 
             //provider.Initialize();
 
@@ -88,7 +88,7 @@ namespace DaJet
             //}
 
             //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
-            //InfoBase infoBase = provider.GetInfoBase();
+            //Configuration infoBase = provider.GetConfiguration();
             //string fileName = infoBase.Uuid.ToString().ToLowerInvariant();
             //provider.Dump(ConfigTables.Config, fileName, $"C:\\temp\\1c-dump\\config_unf.txt");
 

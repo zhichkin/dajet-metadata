@@ -6,7 +6,7 @@ namespace DaJet.Metadata
     // Включение режима совместимости с версией 8.3.9 и ниже не совместимо с выключенным разделением расширений у общего реквизита
     // Включение режима совместимости с версией 8.2.13 и ниже несовместимо с наличием в конфигурации общих реквизитов
     // Использование определяемых типов в режиме совместимости 8.3.2 и ниже недопустимо
-    public sealed class InfoBase
+    public sealed class Configuration
     {
         #region "Свойства конфигурации"
         public Guid Uuid { get; set; }
@@ -62,7 +62,7 @@ namespace DaJet.Metadata
         /// </summary>
         public UICompatibilityMode UICompatibilityMode { get; set; }
         /// <summary>
-        /// Префикс имен собственных объектов расширения конфигурации
+        /// Префикс имён собственных объектов расширения конфигурации
         /// </summary>
         public string NamePrefix { get; set; }
         /// <summary>
@@ -77,9 +77,8 @@ namespace DaJet.Metadata
 
         #endregion
 
-        #region "Парсер корневого файла конфигурации"
-
-        private static Dictionary<Guid, string[]> CreateMetadataRegistry()
+        private readonly Dictionary<Guid, Guid[]> _metadata = CreateMetadataRegistry();
+        private static Dictionary<Guid, Guid[]> CreateMetadataRegistry()
         {
             return new(14)
             {
@@ -99,69 +98,20 @@ namespace DaJet.Metadata
                 { MetadataTypes.BusinessTask,         null }  // Задача
             };
         }
-        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData)
+        public Dictionary<Guid, Guid[]> Metadata { get { return _metadata; } }
+        
+        #region "Парсер корневого файла конфигурации"
+
+        internal static Configuration Parse(Guid uuid, ReadOnlySpan<byte> fileData, in MetadataRegistry registry)
         {
-            InfoBase metadata = new()
+            Configuration configuration = new()
             {
                 Uuid = uuid
             };
 
             ConfigFileReader reader = new(fileData);
 
-            // Идентификатор объекта метаданных - значение поля FileName в таблице Config
-            //if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
-
-            // Свойства конфигурации
-
-            ParseInfoBaseProperties(ref reader, in metadata);
-
-            return metadata;
-        }
-        internal static int Parse(ReadOnlySpan<byte> fileData, out Dictionary<Guid, string[]> registry)
-        {
-            ConfigFileReader reader = new(fileData);
-
-            registry = CreateMetadataRegistry();
-
-            // Количество компонент платформы:
-            // [4] Компонента платформы "Общие объекты"
-            // [5] Компонента платформы "Оперативный учёт"
-            // [6] Компонента платформы "Бухгалтерский учёт"
-            // [7] Компонента платформы "Расчёт"
-            // [8] Компонента платформы "Бизнес-процессы"
-            // [9] ?
-            // [10] ?
-
-            uint components = (uint)reader[3].SeekNumber(); // = 7 компонент платформы
-
-            // Режим совместимости
-
-            int version = reader[4][2][2][27].SeekNumber();
-            if (version == 0) { version = 80216; }
-            else if (version == 1) { version = 80100; }
-            else if (version == 2) { version = 80213; }
-
-            // Реестр объектов конфигурации
-
-            components += 4; // Добавим смещение для удобства
-
-            for (uint node = 4; node < components; node++)
-            {
-                ParsePlatformComponent(ref reader, node, in registry);
-            }
-
-            return version;
-        }
-        internal static InfoBase Parse(Guid uuid, ReadOnlySpan<byte> fileData, out Dictionary<Guid, string[]> registry)
-        {
-            InfoBase metadata = new()
-            {
-                Uuid = uuid
-            };
-
-            ConfigFileReader reader = new(fileData);
-
-            // Идентификатор объекта метаданных - значение поля FileName в таблице Config
+            // Идентификатор объекта метаданных - значение поля FileName в таблице Config или ConfigCAS
             //if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
 
             uint components = 0;
@@ -176,68 +126,66 @@ namespace DaJet.Metadata
 
             // Свойства конфигурации
 
-            ParseInfoBaseProperties(ref reader, in metadata);
+            ParseConfigurationProperties(ref reader, in configuration);
 
             // Реестр объектов конфигурации
-
-            registry = CreateMetadataRegistry();
 
             components += 4; // Добавим смещение от первого узла компоненты
 
             for (uint node = 4; node < components; node++)
             {
-                ParsePlatformComponent(ref reader, node, in registry);
+                ParsePlatformComponent(ref reader, node, configuration.Metadata);
             }
 
-            return metadata;
+            return configuration;
         }
-        private static void ParseInfoBaseProperties(ref ConfigFileReader reader, in InfoBase metadata)
+        private static void ParseConfigurationProperties(ref ConfigFileReader reader, in Configuration configuration)
         {
             // Наименование конфигурации
-            if (reader[4][2][2][2][2][3].Seek()) { metadata.Name = reader.ValueAsString; }
+            if (reader[4][2][2][2][2][3].Seek()) { configuration.Name = reader.ValueAsString; }
 
             // Синоним
-            if (reader[4][2][2][2][2][4][3].Seek()) { metadata.Alias = reader.ValueAsString; }
+            if (reader[4][2][2][2][2][4][3].Seek()) { configuration.Alias = reader.ValueAsString; }
 
             // Комментарий
-            if (reader[4][2][2][2][2][5].Seek()) { metadata.Comment = reader.ValueAsString; }
+            if (reader[4][2][2][2][2][5].Seek()) { configuration.Comment = reader.ValueAsString; }
 
             // Подробная информация
-            if (reader[4][2][2][5][3].Seek()) { metadata.DetailedDescription = reader.ValueAsString; }
+            if (reader[4][2][2][5][3].Seek()) { configuration.DetailedDescription = reader.ValueAsString; }
 
             // Краткая информация
-            if (reader[4][2][2][6][3].Seek()) { metadata.Description = reader.ValueAsString; }
+            if (reader[4][2][2][6][3].Seek()) { configuration.Description = reader.ValueAsString; }
 
             // Поставщик конфигурации
-            if (reader[4][2][2][15].Seek()) { metadata.Provider = reader.ValueAsString; }
+            if (reader[4][2][2][15].Seek()) { configuration.Provider = reader.ValueAsString; }
 
             // Версия конфигурации
-            if (reader[4][2][2][16].Seek()) { metadata.AppConfigVersion = reader.ValueAsString; }
+            if (reader[4][2][2][16].Seek()) { configuration.AppConfigVersion = reader.ValueAsString; }
 
             // Режим управления блокировкой данных в транзакции по умолчанию
-            if (reader[4][2][2][18].Seek()) { metadata.DataLockingMode = (DataLockingMode)reader.ValueAsNumber; }
+            if (reader[4][2][2][18].Seek()) { configuration.DataLockingMode = (DataLockingMode)reader.ValueAsNumber; }
 
             // Режим автонумерации объектов
-            if (reader[4][2][2][20].Seek()) { metadata.AutoNumberingMode = (AutoNumberingMode)reader.ValueAsNumber; }
+            if (reader[4][2][2][20].Seek()) { configuration.AutoNumberingMode = (AutoNumberingMode)reader.ValueAsNumber; }
 
             // Режим совместимости
             if (reader[4][2][2][27].Seek())
             {
                 int version = reader.ValueAsNumber;
-                if (version == 0) { metadata.CompatibilityVersion = 80216; }
-                else if (version == 1) { metadata.CompatibilityVersion = 80100; }
-                else if (version == 2) { metadata.CompatibilityVersion = 80213; }
-                else { metadata.CompatibilityVersion = version; }
+                if (version == 0) { configuration.CompatibilityVersion = 80216; }
+                else if (version == 1) { configuration.CompatibilityVersion = 80100; }
+                else if (version == 2) { configuration.CompatibilityVersion = 80213; }
+                else { configuration.CompatibilityVersion = version; }
             }
 
             //_converter[3][1][1][36] += ModalWindowMode; // Режим использования модальности
-            if (reader[4][2][2][37].Seek()) { metadata.ModalWindowMode = (ModalWindowMode)reader.ValueAsNumber; }
+            if (reader[4][2][2][37].Seek()) { configuration.ModalWindowMode = (ModalWindowMode)reader.ValueAsNumber; }
 
             //_converter[3][1][1][38] += UICompatibilityMode; // Режим совместимости интерфейса
-            if (reader[4][2][2][39].Seek()) { metadata.UICompatibilityMode = (UICompatibilityMode)reader.ValueAsNumber; }
+            if (reader[4][2][2][39].Seek()) { configuration.UICompatibilityMode = (UICompatibilityMode)reader.ValueAsNumber; }
 
             // Режим использования синхронных вызовов расширений платформы и внешних компонент
-            if (reader[4][2][2][42].Seek()) { metadata.SyncCallsMode = (SyncCallsMode)reader.ValueAsNumber; }
+            if (reader[4][2][2][42].Seek()) { configuration.SyncCallsMode = (SyncCallsMode)reader.ValueAsNumber; }
 
             // Свойства расширения конфигурации
             //if (_cache != null && _cache.Extension != null)
@@ -247,7 +195,7 @@ namespace DaJet.Metadata
             //    _converter[3][1][1][49] += MapMetadataByUuid;
             //}
         }
-        private static void ParsePlatformComponent(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
+        private static void ParsePlatformComponent(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> metadata)
         {
             Guid uuid;
 
@@ -266,22 +214,22 @@ namespace DaJet.Metadata
 
             if (uuid == Components.Common) // [4][1] Идентификатор компоненты "Общие объекты"
             {
-                ParseComponentMetadataObjects(ref reader, component, in registry);
+                ParseComponentMetadataObjects(ref reader, component, in metadata);
             }
             else if (uuid == Components.Operations) // [5][1] Идентификатор компоненты "Оперативный учёт"
             {
-                ParseOperationsMetadataObjects(ref reader, component, in registry);
+                ParseOperationsMetadataObjects(ref reader, component, in metadata);
             }
             else if (uuid == Components.Accounting) // [6][1] Идентификатор компоненты "Бухгалтерский учёт"
             {
-                ParseComponentMetadataObjects(ref reader, component, in registry);
+                ParseComponentMetadataObjects(ref reader, component, in metadata);
             }
             else if (uuid == Components.BusinessProcess) // [7][1] Идентификатор компоненты "Бизнес-процессы"
             {
-                ParseComponentMetadataObjects(ref reader, component, in registry);
+                ParseComponentMetadataObjects(ref reader, component, in metadata);
             }
         }
-        private static void ParseComponentMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
+        private static void ParseComponentMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> metadata)
         {
             // [6][2][3] 2  Количество типов объектов метаданных компоненты "Бухгалтерский учёт"
             // [6][2][4] {
@@ -311,7 +259,7 @@ namespace DaJet.Metadata
 
                 Guid uuid = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!registry.TryGetValue(uuid, out string[] objects))
+                if (!metadata.TryGetValue(uuid, out Guid[] objects))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
@@ -324,26 +272,26 @@ namespace DaJet.Metadata
                 {
                     if (number_of_objects == 0)
                     {
-                        objects = Array.Empty<string>();
+                        objects = Array.Empty<Guid>();
                     }
                     else
                     {
-                        objects = new string[number_of_objects];
+                        objects = new Guid[number_of_objects];
                     }
-                    
-                    registry[uuid] = objects;
+
+                    metadata[uuid] = objects;
                 }
 
                 for (int item = 0; item < objects.Length; item++) // [component][2][type][item]
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
                     {
-                        objects[item] = reader.ValueAsString; // Идентификатор объекта метаданных
+                        objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
                     }
                 }
             }
         }
-        private static void ParseOperationsMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, string[]> registry)
+        private static void ParseOperationsMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> metadata)
         {
             if (!reader[component][2][2][3].Seek())
             {
@@ -354,38 +302,92 @@ namespace DaJet.Metadata
 
             number_of_types += 4; // С учётом смещения от первого узла типа
 
-            for (uint type = 4; type < number_of_types; type++)
+            for (uint node = 4; node < number_of_types; node++)
             {
-                if (!reader[component][2][2][type][1].Seek()) { continue; }
+                if (!reader[component][2][2][node][1].Seek()) { continue; }
 
-                Guid uuid = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
+                Guid type = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!registry.TryGetValue(uuid, out string[] objects))
+                if (!metadata.TryGetValue(type, out Guid[] objects))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
 
-                if (!reader[component][2][2][type][2].Seek()) { continue; }
+                if (!reader[component][2][2][node][2].Seek()) { continue; }
 
                 int number_of_objects = reader.ValueAsNumber; // Количество объектов данного типа
 
                 if (objects is null)
                 {
-                    objects = new string[number_of_objects];
-                    
-                    registry[uuid] = objects;
+                    objects = new Guid[number_of_objects];
+
+                    metadata[type] = objects;
                 }
 
-                for (int item = 0; item < objects.Length; item++) // [5][2][2][type][item]
+                for (int item = 0; item < objects.Length; item++) // [5][2][2][node][item]
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
                     {
-                        objects[item] = reader.ValueAsString; // Идентификатор объекта метаданных
+                        objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
                     }
                 }
             }
         }
 
         #endregion
+
+        internal static Configuration ParsePropertiesOnly(Guid uuid, ReadOnlySpan<byte> fileData)
+        {
+            Configuration metadata = new()
+            {
+                Uuid = uuid
+            };
+
+            ConfigFileReader reader = new(fileData);
+
+            // Идентификатор объекта метаданных - значение поля FileName в таблице Config
+            //if (reader[2][1].Seek()) { metadata.Uuid = reader.ValueAsUuid; }
+
+            // Свойства конфигурации
+
+            ParseConfigurationProperties(ref reader, in metadata);
+
+            return metadata;
+        }
+        internal static int ParseMetadataRegistryOnly(ReadOnlySpan<byte> fileData, out Dictionary<Guid, Guid[]> metadata)
+        {
+            ConfigFileReader reader = new(fileData);
+
+            metadata = CreateMetadataRegistry();
+
+            // Количество компонент платформы:
+            // [4] Компонента платформы "Общие объекты"
+            // [5] Компонента платформы "Оперативный учёт"
+            // [6] Компонента платформы "Бухгалтерский учёт"
+            // [7] Компонента платформы "Расчёт"
+            // [8] Компонента платформы "Бизнес-процессы"
+            // [9] ?
+            // [10] ?
+
+            uint components = (uint)reader[3].SeekNumber(); // = 7 компонент платформы
+
+            // Режим совместимости
+
+            int version = reader[4][2][2][27].SeekNumber();
+            if (version == 0) { version = 80216; }
+            else if (version == 1) { version = 80100; }
+            else if (version == 2) { version = 80213; }
+
+            // Реестр объектов конфигурации
+
+            components += 4; // Добавим смещение для удобства
+
+            for (uint node = 4; node < components; node++)
+            {
+                ParsePlatformComponent(ref reader, node, in metadata);
+            }
+
+            return version;
+        }
     }
 }
