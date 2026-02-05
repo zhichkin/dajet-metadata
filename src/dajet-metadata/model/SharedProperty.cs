@@ -33,6 +33,10 @@ namespace DaJet.Metadata
     #endregion
     internal sealed class SharedProperty : MetadataObject
     {
+        internal static SharedProperty Create(Guid uuid)
+        {
+            return new SharedProperty(uuid);
+        }
         internal SharedProperty(Guid uuid) : base(uuid) { }
         internal DataType Type { get; set; }
         internal PropertyDefinition Definition { get; set; }

@@ -100,6 +100,8 @@ namespace DaJet.Metadata
         {
             List<KeyValuePair<Guid, Func<Guid, MetadataObject>>> list =
             [
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.DefinedType, DefinedType.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.SharedProperty, SharedProperty.Create),
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Account, Account.Create),
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Enumeration, Enumeration.Create),
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Characteristic, Characteristic.Create),

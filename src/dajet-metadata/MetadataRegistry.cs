@@ -54,7 +54,74 @@ namespace DaJet.Metadata
             return _files.TryGetValue(identifier, out fileName);
         }
 
+        #region "Инциализация реестра по данным DBNames"
+        internal bool TryRegisterDbName(Guid uuid, int code, in string token)
+        {
+            // Токен главного объекта метаданных должен следовать первым в файле DBNames.
+            // Это штатное поведение платформы 1С. Нарушение порядка следования - ошибка.
+
+            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrNullRef(_registry, uuid);
+
+            if (Unsafe.IsNullRef(ref entry)) // Ключ основного объекта не найден в реестре метаданных
+            {
+                if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
+                {
+                    MetadataObject new_entry = factory(uuid); // Создаём основной объект метаданных
+                    new_entry.AddDbName(code, token); // Устанавливаем код объекта
+                    _registry.Add(uuid, new_entry); //NOTE: Должны быть VT или Fld
+                    return true; // Объект реестра метаданных обработан успешно
+                }
+                else
+                {
+                    // 1. Нарушен порядок основной-подчинённый, например, объект LineNo следует раньше VT.
+                    // 2. Ошибка платформы 1С: в файле DBNames присутствует основной объект, которого нет.
+                    return false; // Объект метаданных добавляется в список постобработки
+                }
+            }
+
+            if (entry is null) // Ключ объекта найден, но его значение равно null (критическая ошибка библиотеки)
+            {
+                throw new InvalidOperationException($"Ошибка загрузки файла DBNames: [{token}] {{{code}:{uuid}}}");
+            }
+
+            entry.AddDbName(code, token); // Устанавливаем код объекта (основного или подчинённого)
+
+            if (Configurator.IsReferenceTypeToken(token))
+            {
+                _ = _type_codes.TryAdd(code, uuid); // Таблица разрешения кодов ссылочных объектов
+            }
+
+            return true; // Объект реестра метаданных обработан успешно
+        }
+        internal void RegisterMissedDbName(Guid uuid, int code, string token)
+        {
+            //NOTE: Сюда в принципе попадать не планируется ...
+
+            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrNullRef(_registry, uuid);
+
+            if (Unsafe.IsNullRef(ref entry)) // Ключ объекта не найден в реестре метаданных
+            {
+                // Ошибка платформы 1С: подчинённый объект есть, а его основного нет.
+                // Выявлено однажды в конфигурации УНФ - InfoRgOpt ¯\_(ツ)_/¯
+                // Соответствующая служебная таблица в СУБД присутствовала, а основная нет.
+                return;
+            }
+
+            if (entry is null) // Ключ объекта найден, но его значение равно null (критическая ошибка библиотеки)
+            {
+                // В файле DBNames-Ext-1 может располагаться подчинённый объект, например, ReferenceChngR,
+                // а его основной объект Reference может при этом находиться в одном из файлов DBNames-Ext-x.
+                throw new InvalidOperationException($"Ошибка загрузки файла DBNames: [{token}] {{{code}:{uuid}}}");
+            }
+
+            // Исправление нештатного поведения платформы 1С: порядок токенов основной-подчинённый нарушен
+
+            entry.AddDbName(code, token); // Подчинённый объект метаданных добавляется в свой основной объект
+        }
+        #endregion
+
         #region "Методы инциализации реестра метаданных"
+        [Obsolete]
         internal bool TryAddDbName(Guid uuid, int code, in string token)
         {
             ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
@@ -108,6 +175,7 @@ namespace DaJet.Metadata
 
             return true; // Объект реестра метаданных добавлен успешно
         }
+        [Obsolete]
         internal void AddMissedDbName(Guid uuid, int code, string token)
         {
             //NOTE: Сюда в принципе попадать не планируется ...
@@ -134,6 +202,7 @@ namespace DaJet.Metadata
 
             entry.AddDbName(code, token); // Служебный объект метаданных добавляется в свой главный объект
         }
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddReference(Guid uuid, Guid reference)
         {

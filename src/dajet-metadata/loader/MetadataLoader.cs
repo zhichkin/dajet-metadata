@@ -1,6 +1,7 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
 using System.Text;
+using static DaJet.Metadata.DBNames;
 
 namespace DaJet.Metadata
 {
@@ -44,6 +45,7 @@ namespace DaJet.Metadata
 
         internal abstract int GetYearOffset();
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
+        internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
         internal abstract List<ExtensionInfo> GetExtensions();
@@ -214,27 +216,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            //if (metadata.TryGetValue(MetadataTypes.SharedProperty, out string[] fileNames))
-            //{
-            //    foreach (string fileName in fileNames)
-            //    {
-            //        Guid uuid = new(fileName);
-
-            //        registry.AddEntry(uuid, new SharedProperty(uuid));
-            //    }
-            //}
-
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            //if (metadata.TryGetValue(MetadataTypes.DefinedType, out fileNames))
-            //{
-            //    foreach (string fileName in fileNames)
-            //    {
-            //        Guid uuid = new(fileName);
-
-            //        registry.AddEntry(uuid, new DefinedType(uuid));
-            //    }
-            //}
+            //TODO: load extensions metadata !!!
 
             // Инициализация объектов реестра метаданных,
             // загрузка кодов ссылочных типов и имён СУБД
@@ -244,7 +226,18 @@ namespace DaJet.Metadata
             // Инициализация объектов реестра метаданных зависит
             // от предварительной загрузки кодов ссылочных типов
 
-            //InitializeMetadataRegistry(in registry, in metadata, ConfigTables.Config);
+            Dictionary<Guid, string[]> fileNames = new();
+            foreach (var item in configuration.Metadata)
+            {
+                string[] files = new string[item.Value.Length];
+                for (int i = 0; i < files.Length; i++)
+                {
+                    files[i] = item.Value[i].ToString().ToLowerInvariant();
+                }
+                fileNames.Add(item.Key, files);
+            }
+
+            InitializeMetadataRegistry(in registry, in fileNames, ConfigTables.Config);
 
             //ApplyExtensions(in registry);
 
@@ -259,14 +252,29 @@ namespace DaJet.Metadata
         }
         private void InitializeDBNames(in MetadataRegistry registry)
         {
+            List<DbName> missed = new();
+
             using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames"))
             {
-                DBNames.Parse(file.AsReadOnlySpan(), in registry);
+                DBNames.Parse(file.AsReadOnlySpan(), in registry, in missed);
             }
 
-            using (ConfigFileBuffer file = Load(ConfigTables.Params, "DBNames-Ext-1"))
+            foreach (ConfigFileBuffer file in Stream(ConfigTables.Params, "DBNames-Ext-%"))
             {
-                DBNames.Parse(file.AsReadOnlySpan(), in registry);
+                DBNames.Parse(file.AsReadOnlySpan(), in registry, in missed);
+            }
+
+            if (missed.Count > 0)
+            {
+                //NOTE: Сюда в принципе попадать не планируется ...
+                //NOTE: Сюда могут прилетать, например, ReferenceChngR из расширений
+                //NOTE: при парсинге DBNames-Ext-1. То есть такие вспомогательные объекты будут
+                //потеряны из-за того, что основной объект расширения (собственный) ещё не загружен !!!
+
+                foreach (DbName item in missed)
+                {
+                    registry.RegisterMissedDbName(item.Uuid, item.Code, item.Name);
+                }
             }
         }
         private void InitializeMetadataRegistry(in MetadataRegistry registry, in Dictionary<Guid, string[]> metadata, in string tableName)
@@ -648,7 +656,8 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(ConfigTables.Params, in fileName))
             {
-                DBNames.Parse(file.AsReadOnlySpan(), in registry);
+                //NOTE: Всё уже добавлено до нас =)
+                //DBNames.Parse(file.AsReadOnlySpan(), in registry);
             }
 
             // Сопоставляем идентифкаторы объектов метаданных файлам в базе данных

@@ -12,14 +12,13 @@ namespace DaJet.Metadata
         internal Guid DimensionTypes { get; set; } // Виды субконто (план видов характеристик)
         internal int MaxDimensionCount { get; set; } // Максимальное количество субконто (обычно 3)
 
-        private int _Acc;
         private int _ChngR;
         private int _ExtDim;
         internal override void AddDbName(int code, string name)
         {
             if (name == MetadataToken.Acc)
             {
-                _Acc = code;
+                Code = code;
             }
             else if (name == MetadataToken.ExtDim)
             {
@@ -32,11 +31,11 @@ namespace DaJet.Metadata
         }
         internal override string GetMainDbName()
         {
-            return string.Format("_{0}{1}", MetadataToken.Acc, _Acc);
+            return string.Format("_{0}{1}", MetadataToken.Acc, Code);
         }
         internal string GetTableNameВидыСубконто()
         {
-            return string.Format("_{0}{1}_{2}{3}", MetadataToken.Acc, _Acc, MetadataToken.ExtDim, _ExtDim);
+            return string.Format("_{0}{1}_{2}{3}", MetadataToken.Acc, Code, MetadataToken.ExtDim, _ExtDim);
         }
         internal override string GetTableNameИзменения()
         {

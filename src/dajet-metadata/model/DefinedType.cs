@@ -4,6 +4,10 @@ namespace DaJet.Metadata
 {
     internal sealed class DefinedType : MetadataObject
     {
+        internal static DefinedType Create(Guid uuid)
+        {
+            return new DefinedType(uuid);
+        }
         internal DefinedType(Guid uuid) : base(uuid) { }
         internal DataType Type { get; set; }
         public override string ToString()

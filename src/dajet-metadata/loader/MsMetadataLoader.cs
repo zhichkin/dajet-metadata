@@ -8,6 +8,7 @@ namespace DaJet.Metadata
     internal sealed class MsMetadataLoader : MetadataLoader
     {
         private const string MS_PARAMS_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Params WHERE FileName = @FileName;";
+        private const string MS_PARAMS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Params WHERE FileName LIKE @FileName;";
         private const string MS_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM Config WHERE FileName = @FileName;";
         private const string MS_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, Config.FileName AS FileName, BinaryData FROM Config INNER JOIN #ConfigFileNames AS T ON Config.FileName = T.FileName;";
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";
@@ -90,7 +91,47 @@ namespace DaJet.Metadata
 
             return buffer;
         }
-        
+        internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern)
+        {
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+
+                    if (tableName == ConfigTables.Params)
+                    {
+                        command.CommandText = MS_PARAMS_STREAM_SCRIPT;
+                    }
+                    //else if (tableName == ConfigTables.ConfigCAS)
+                    //{
+                    //    command.CommandText = MS_CONFIG_CAS_SCRIPT;
+                    //}
+                    //else // ConfigTables.Config
+                    //{
+                    //    command.CommandText = MS_CONFIG_SELECT_SCRIPT;
+                    //}
+
+                    command.Parameters.AddWithValue("FileName", fileNamePattern);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+                        reader.Close();
+                    }
+                }
+            }
+        }
+
         private static DataTable CreateFileNamesTable(in string[] fileNames)
         {
             DataTable table = new();

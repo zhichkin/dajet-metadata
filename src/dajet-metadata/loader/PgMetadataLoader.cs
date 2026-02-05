@@ -10,6 +10,7 @@ namespace DaJet.Metadata
     internal sealed class PgMetadataLoader : MetadataLoader
     {
         private const string PG_PARAMS_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM params WHERE filename = $1::mvarchar";
+        private const string PG_PARAMS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM params WHERE filename LIKE $1::mvarchar";
         private const string PG_CONFIG_SELECT_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename IN (";
         private const string PG_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename = $1::mvarchar";
@@ -95,6 +96,50 @@ namespace DaJet.Metadata
             }
 
             return buffer;
+        }
+        internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern)
+        {
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+
+                    if (tableName == ConfigTables.Params)
+                    {
+                        command.CommandText = PG_PARAMS_STREAM_SCRIPT;
+                    }
+                    //else if (tableName == ConfigTables.ConfigCAS)
+                    //{
+                    //    command.CommandText = MS_CONFIG_CAS_SCRIPT;
+                    //}
+                    //else // ConfigTables.Config
+                    //{
+                    //    command.CommandText = MS_CONFIG_SELECT_SCRIPT;
+                    //}
+
+                    command.Parameters.Add(new NpgsqlParameter<string>()
+                    {
+                        TypedValue = fileNamePattern,
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Varchar
+                    });
+
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+                        reader.Close();
+                    }
+                }
+            }
         }
 
         private static string GenerateStreamCommand(in string tableName, in string[] fileNames)

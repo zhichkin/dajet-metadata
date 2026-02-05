@@ -11,7 +11,7 @@ namespace DaJet.Metadata
     ///</summary>
     internal static class DBNames
     {
-        private sealed class DbName
+        internal sealed class DbName
         {
             internal int Code;
             internal Guid Uuid;
@@ -21,7 +21,7 @@ namespace DaJet.Metadata
                 Uuid = uuid; Code = code; Name = name;
             }
         }
-        internal static void Parse(ReadOnlySpan<byte> fileData, in MetadataRegistry registry)
+        internal static void Parse(ReadOnlySpan<byte> fileData, in MetadataRegistry registry, in List<DbName> missed)
         {
             if (fileData.Length == 0)
             {
@@ -41,8 +41,6 @@ namespace DaJet.Metadata
             bool supported = false;
             int length;
             Span<char> buffer = stackalloc char[32];
-
-            List<DbName> missed = [];
 
             while (reader.Read() && count > 0)
             {
@@ -79,7 +77,7 @@ namespace DaJet.Metadata
 
                     if (supported && uuid != Guid.Empty && name is not null && code > 0)
                     {
-                        if (!registry.TryAddDbName(uuid, code, in name))
+                        if (!registry.TryRegisterDbName(uuid, code, in name))
                         {
                             missed.Add(new DbName(uuid, code, name));
                         }
@@ -88,19 +86,6 @@ namespace DaJet.Metadata
                 else if (reader.Token == ConfigFileToken.EndObject)
                 {
                     count--;
-                }
-            }
-
-            if (missed.Count > 0)
-            {
-                //NOTE: Сюда в принципе попадать не планируется ...
-                //NOTE: Сюда могут прилетать, например, ReferenceChngR из расширений
-                //NOTE: при парсинге DBNames-Ext-1. То есть такие вспомогательные объекты будут
-                //потеряны из-за того, что основной объект расширения (собственный) ещё не загружен !!!
-
-                foreach (DbName item in missed)
-                {
-                    registry.AddMissedDbName(item.Uuid, item.Code, item.Name);
                 }
             }
         }
