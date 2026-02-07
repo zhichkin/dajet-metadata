@@ -81,15 +81,15 @@ namespace DaJet.Metadata
             // Идентификатор объекта метаданных (свойства)
             Guid uuid = reader[root][1][2][2][2][2][3].SeekUuid();
 
+            property.Name = reader[root][1][2][2][2][3].SeekString();
+
             if (!registry.TryGetEntry(uuid, out Property entry))
             {
                 //TODO: Зафиксировать ошибку. Скорее всего это заимствованное свойство.
                 //TODO: Свойство не найдено в реестре объектов метаданных, а это значит,
-                //TODO: что у него нет поля/полей в соответствующей таблице базы данных
+                //TODO: что у него нет поля/полей в соответствующей таблице базы данных.
                 return;
             }
-
-            property.Name = reader[root][1][2][2][2][3].SeekString();
 
             //_converter[0][1][1][1][3][2] += PropertyAlias;
 

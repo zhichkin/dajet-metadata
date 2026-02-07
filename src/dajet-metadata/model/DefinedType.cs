@@ -50,8 +50,7 @@ namespace DaJet.Metadata
                     if (registry.TryGetEntry(MetadataNames.DefinedType, metadata.Name, out DefinedType parent))
                     {
                         // Заимствованный объект расширения
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
                     else // Cобственный объект расширения

@@ -123,8 +123,7 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(MetadataNames.AccumulationRegister, metadata.Name, out AccumulationRegister parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }

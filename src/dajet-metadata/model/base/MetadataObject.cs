@@ -3,14 +3,20 @@
     internal abstract class MetadataObject
     {
         protected MetadataObject(Guid uuid) { Uuid = uuid; }
+        ///<summary>Идентификатор конфигурации (основной или расширения)</summary>
+        internal byte Cfid { get; set; }
         ///<summary>Идентификатор объекта метаданных</summary>
         internal Guid Uuid { get; private set; }
         ///<summary>Код объекта метаданных</summary>
         internal int Code { get; set; }
-        ///<summary>Идентификатор конфигурации (основной или расширения)</summary>
-        internal byte Cfid { get; set; }
         ///<summary>Имя объекта метаданных</summary>
         internal string Name { get; set; } = string.Empty;
+        ///<summary>Это объект основной конфигурации</summary>
+        internal bool IsMain { get { return Cfid == 0; } }
+        ///<summary>Это объект расширения (собственный или заимствованный)</summary>
+        internal bool IsExtension { get { return Cfid > 0; } }
+        ///<summary>Это заимствованный объект расширения</summary>
+        internal bool IsBorrowed { get; set; }
         internal virtual void AddDbName(int code, string name)
         {
             throw new NotImplementedException(); // DefinedType, Enumeration, Property
@@ -22,16 +28,6 @@
         {
             return string.Format("{0}.{1}", GetType().Name, Name);
         }
-
-        private ExtensionType _extension;
-
-        // Собственный объект расширения
-        internal void MarkAsExtension() { _extension |= ExtensionType.Extension; }
-        internal bool IsExtension { get { return (_extension & ExtensionType.Extension) == ExtensionType.Extension; } }
-
-        // Заимствованный расширением объект основной конфигурации
-        internal void MarkAsBorrowed() { _extension |= ExtensionType.Borrowed; }
-        internal bool IsBorrowed { get { return (_extension & ExtensionType.Borrowed) == ExtensionType.Borrowed; } }
 
         ///<summary>Тип объекта метаданных, например, "Справочник"
         ///<br>Смотри также: <see cref="MetadataTypes"/></br>

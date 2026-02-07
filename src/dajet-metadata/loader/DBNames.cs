@@ -1,7 +1,16 @@
-﻿using System.Collections.Frozen;
-
-namespace DaJet.Metadata
+﻿namespace DaJet.Metadata
 {
+    internal sealed class DbName
+    {
+        internal int Code;
+        internal Guid Uuid;
+        internal string Name;
+        internal DbName(Guid uuid, int code, string name)
+        {
+            Uuid = uuid; Code = code; Name = name;
+        }
+    }
+
     ///<summary>
     ///Идентификатор объекта СУБД:
     ///<br>Uuid - Идентификатор объекта метаданных (binary(16) - UUID)</br>
@@ -11,16 +20,6 @@ namespace DaJet.Metadata
     ///</summary>
     internal static class DBNames
     {
-        internal sealed class DbName
-        {
-            internal int Code;
-            internal Guid Uuid;
-            internal string Name;
-            internal DbName(Guid uuid, int code, string name)
-            {
-                Uuid = uuid; Code = code; Name = name;
-            }
-        }
         internal static void Parse(ReadOnlySpan<byte> fileData, in MetadataRegistry registry, in List<DbName> missed)
         {
             if (fileData.Length == 0)

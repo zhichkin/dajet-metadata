@@ -96,7 +96,7 @@ namespace DaJet.Metadata
                 // Имя объекта метаданных конфигурации
                 metadata.Name = reader[2][10][2][3].SeekString();
 
-                if (metadata.Code > 0)
+                if (metadata.Code > 0) // Заимствованные объекты не имеют собственных кодов в файле DBNames
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Catalog, metadata.Name, uuid);
@@ -116,8 +116,7 @@ namespace DaJet.Metadata
 
                     if (registry.TryGetEntry(MetadataNames.Catalog, metadata.Name, out Catalog parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
@@ -137,15 +136,6 @@ namespace DaJet.Metadata
 
                 ConfigFileReader reader = new(file);
 
-                if (!entry.IsExtension || !entry.IsBorrowed)
-                {
-                    //TODO: ??? Объект основной конфигурации или собственный объект расширения
-                }
-                else
-                {
-                    //TODO: Заимствованный из основной конфигурации объект расширения
-                }
-                
                 Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
@@ -219,8 +209,6 @@ namespace DaJet.Metadata
                 }
 
                 Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
-                //entry.ConfigureChangeTrackingTable(in table);
 
                 return table;
             }

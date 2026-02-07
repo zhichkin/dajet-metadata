@@ -70,8 +70,7 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(MetadataNames.BusinessProcess, metadata.Name, out BusinessProcess parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }

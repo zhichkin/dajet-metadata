@@ -1,7 +1,7 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
 using System.Text;
-using static DaJet.Metadata.DBNames;
+//using static DaJet.Metadata.DBNames;
 
 namespace DaJet.Metadata
 {
@@ -51,7 +51,7 @@ namespace DaJet.Metadata
         internal abstract List<ExtensionInfo> GetExtensions();
         internal abstract T ExecuteScalar<T>(in string script, int timeout);
 
-        internal Guid GetRoot()
+        internal Guid GetRootFile()
         {
             Guid root = Guid.Empty;
 
@@ -103,59 +103,39 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (entry.IsBorrowed && !entry.IsExtension) // Проверяем заимствование объекта основной конфигурации
+            if (entry.IsMain && registry.TryGetBorrowedObjects(entry.Uuid, out List<Guid> borrowed))
             {
-                if (registry.TryGetBorrowedObjects(entry.Uuid, out List<Guid> borrowed))
+                tableName = ConfigTables.ConfigCAS;
+
+                foreach (Guid uuid in borrowed)
                 {
-                    foreach (Guid uuid in borrowed)
+                    fileName = uuid.ToString().ToLowerInvariant();
+
+                    if (!registry.TryGetFileName(in fileName, out fileName))
                     {
-                        fileName = uuid.ToString().ToLowerInvariant();
-
-                        tableName = ConfigTables.ConfigCAS;
-
-                        if (!registry.TryGetFileName(in fileName, out fileName))
-                        {
-                            throw new InvalidOperationException();
-                        }
-
-                        EntityDefinition extension;
-
-                        using (ConfigFileBuffer file = Load(in tableName, in fileName))
-                        {
-                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
-                        }
-
-                        bool HasExtensions = extension.Properties.Count > 0 || extension.Entities.Count > 0;
-
-                        if (extension.Properties.Count > 0)
-                        {
-                            entity.Properties.AddRange(extension.Properties);
-                        }
-
-                        if (extension.Entities.Count > 0)
-                        {
-                            entity.Entities.AddRange(extension.Entities);
-                        }
-
-                        if (HasExtensions)
-                        {
-                            entity.DbName += "x1";
-
-                            foreach (EntityDefinition table in entity.Entities)
-                            {
-                                table.DbName += "x1";
-                            }
-                        }
-                        else
-                        {
-                            //TODO: Проверить вхождение объекта в состав плана обмена расширения
-                        }
+                        throw new InvalidOperationException();
                     }
+
+                    EntityDefinition extension;
+
+                    using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                    {
+                        extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                    }
+
+                    ApplyExtensionObject(in entity, in extension);
+
+                    if (registry.TryGetEntry(uuid, out MetadataObject mdo))
+                    {
+                        // Нужно, чтобы найти Cfid и через него применить общие реквизиты или планы обмена
+                    }
+
+                    //TODO: Проверить вхождение объекта в состав плана обмена расширения
+
+                    //TODO: Если объект основной конфигурации имеет реквизит, значением которого является ЛюбаяСсылка,
+                    //TODO: и имеются любые расширения, то используются x1-таблицы, даже если такой объект не заимствуется
                 }
             }
-
-            //TODO: Если объект основной конфигурации имеет реквизит, значением которого является ЛюбаяСсылка,
-            //TODO: и имеются любые расширения, то используются x1-таблицы, даже если такой объект не заимствуется
 
             return entity;
         }
@@ -188,22 +168,36 @@ namespace DaJet.Metadata
 
             return definition;
         }
-        
+
+        private sealed class ConfigFileBatchWork
+        {
+            internal Guid EntryType;
+            internal string TableName;
+            internal string[] FileNames;
+            internal MetadataRegistry Registry;
+        }
         internal MetadataRegistry GetMetadataRegistry()
         {
-            Guid root = GetRoot();
+            MetadataRegistry registry = new();
+
+            // Загружаем главный список объектов метаданных из файла root
+
+            Guid root = GetRootFile();
 
             string rootFile = root.ToString().ToLowerInvariant();
 
             Configuration configuration;
-            MetadataRegistry registry = new();
 
             using (ConfigFileBuffer file = Load(ConfigTables.Config, rootFile))
             {
                 configuration = Configuration.Parse(root, file.AsReadOnlySpan(), in registry);
             }
-
+            
             registry.Version = configuration.CompatibilityVersion;
+            
+            registry.Configurations.Add(configuration);
+
+            // Заполняем общий реестр метаданных основными объектами метаданных
 
             foreach (var item in configuration.Metadata)
             {
@@ -216,10 +210,8 @@ namespace DaJet.Metadata
                 }
             }
 
-            //TODO: load extensions metadata !!!
-
-            // Инициализация объектов реестра метаданных,
-            // загрузка кодов ссылочных типов и имён СУБД
+            // Инициализация объектов реестра метаданных:
+            // загрузка кодов объектов базы данных (таблицы и поля)
 
             InitializeDBNames(in registry);
 
@@ -237,18 +229,14 @@ namespace DaJet.Metadata
                 fileNames.Add(item.Key, files);
             }
 
-            InitializeMetadataRegistry(in registry, in fileNames, ConfigTables.Config);
+            InitializeMetadataRegistry(ConfigTables.Config, in fileNames, in registry);
 
-            //ApplyExtensions(in registry);
-
+            if (configuration.CompatibilityVersion >= 80312)
+            {
+                InitializeExtensions(in registry);
+            }
+            
             return registry;
-        }
-        private sealed class ConfigFileBatchWork
-        {
-            internal Guid Type;
-            internal string TableName;
-            internal string[] FileNames;
-            internal MetadataRegistry Registry;
         }
         private void InitializeDBNames(in MetadataRegistry registry)
         {
@@ -259,6 +247,22 @@ namespace DaJet.Metadata
                 DBNames.Parse(file.AsReadOnlySpan(), in registry, in missed);
             }
 
+            if (missed.Count > 0)
+            {
+                //NOTE: Сюда в принципе попадать не планируется ...
+                //NOTE: Исправление нештатного поведения платформы 1С:
+                //NOTE: порядок следования основной-подчинённый нарушен.
+
+                foreach (DbName dbn in missed)
+                {
+                    registry.RegisterMissedDbName(dbn.Uuid, dbn.Code, dbn.Name);
+                }
+            }
+        }
+        private void InitializeDBNamesExt(in MetadataRegistry registry)
+        {
+            List<DbName> missed = new();
+
             foreach (ConfigFileBuffer file in Stream(ConfigTables.Params, "DBNames-Ext-%"))
             {
                 DBNames.Parse(file.AsReadOnlySpan(), in registry, in missed);
@@ -267,17 +271,16 @@ namespace DaJet.Metadata
             if (missed.Count > 0)
             {
                 //NOTE: Сюда в принципе попадать не планируется ...
-                //NOTE: Сюда могут прилетать, например, ReferenceChngR из расширений
-                //NOTE: при парсинге DBNames-Ext-1. То есть такие вспомогательные объекты будут
-                //потеряны из-за того, что основной объект расширения (собственный) ещё не загружен !!!
+                //NOTE: Исправление нештатного поведения платформы 1С:
+                //NOTE: порядок следования основной-подчинённый нарушен.
 
-                foreach (DbName item in missed)
+                foreach (DbName dbn in missed)
                 {
-                    registry.RegisterMissedDbName(item.Uuid, item.Code, item.Name);
+                    registry.RegisterMissedDbName(dbn.Uuid, dbn.Code, dbn.Name);
                 }
             }
         }
-        private void InitializeMetadataRegistry(in MetadataRegistry registry, in Dictionary<Guid, string[]> metadata, in string tableName)
+        private void InitializeMetadataRegistry(in string tableName, in Dictionary<Guid, string[]> metadata, in MetadataRegistry registry)
         {
             Task[] tasks = new Task[metadata.Keys.Count - 2]; // Всего 14 объектов метаданных
 
@@ -294,7 +297,7 @@ namespace DaJet.Metadata
                     InitializeMetadataRegistryEntries,
                     new ConfigFileBatchWork()
                     {
-                        Type = item.Key,
+                        EntryType = item.Key,
                         Registry = registry,
                         TableName = tableName,
                         FileNames = item.Value
@@ -355,7 +358,7 @@ namespace DaJet.Metadata
             {
                 InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
                 {
-                    Type = MetadataTypes.DefinedType,
+                    EntryType = MetadataTypes.DefinedType,
                     Registry = registry,
                     TableName = tableName,
                     FileNames = fileNames
@@ -369,7 +372,7 @@ namespace DaJet.Metadata
             {
                 InitializeMetadataRegistryEntries(new ConfigFileBatchWork()
                 {
-                    Type = MetadataTypes.SharedProperty,
+                    EntryType = MetadataTypes.SharedProperty,
                     Registry = registry,
                     TableName = tableName,
                     FileNames = fileNames
@@ -385,9 +388,9 @@ namespace DaJet.Metadata
 
             MetadataRegistry registry = work.Registry;
 
-            if (!ConfigFileParser.TryGetParser(work.Type, out ConfigFileParser parser))
+            if (!ConfigFileParser.TryGetParser(work.EntryType, out ConfigFileParser parser))
             {
-                return;
+                return; //TODO: что-то пошло не так
             }
 
             try
@@ -518,17 +521,55 @@ namespace DaJet.Metadata
                 extension.IsActive = (zippedInfo[offset + size] == 0x82);
             }
         }
-        private void ApplyExtensions(in MetadataRegistry registry)
+        private void InitializeExtensions(in MetadataRegistry registry)
         {
             List<ExtensionInfo> extensions = GetExtensions();
 
             foreach (ExtensionInfo extension in extensions)
             {
-                if (!extension.IsActive) { continue; }
-
                 ParseRootFile(in extension, in registry);
 
-                ApplyExtension(in extension, in registry);
+                byte cfid = (byte)registry.Configurations.Count;
+
+                Configuration configuration = LoadExtensionMetadata(in extension, cfid, in registry);
+
+                registry.Configurations.Add(configuration);
+            }
+
+            // Инициализация объектов реестра метаданных,
+            // загрузка кодов ссылочных типов и имён СУБД
+
+            InitializeDBNamesExt(in registry);
+
+            // Подготавливаем список файлов таблицы ConfigCAS для инициализации объектов метаданных
+
+            for (int c = 1; c < registry.Configurations.Count; c++)
+            {
+                Configuration configuration = registry.Configurations[c];
+
+                Dictionary<Guid, string[]> fileNames = new();
+                
+                foreach (var item in configuration.Metadata)
+                {
+                    string[] files = new string[item.Value.Length];
+
+                    for (int i = 0; i < files.Length; i++)
+                    {
+                        string identifier = item.Value[i].ToString().ToLowerInvariant();
+
+                        if (registry.TryGetFileName(identifier, out string fileName))
+                        {
+                            files[i] = fileName;
+                        }
+                    }
+
+                    fileNames.Add(item.Key, files);
+                }
+
+                // Инициализация объектов реестра метаданных зависит
+                // от предварительной загрузки кодов ссылочных типов
+
+                InitializeMetadataRegistry(ConfigTables.ConfigCAS, in fileNames, in registry);
             }
         }
         private void ParseRootFile(in ExtensionInfo extension, in MetadataRegistry registry)
@@ -601,90 +642,88 @@ namespace DaJet.Metadata
                             string fileName = Convert.ToHexString(hex).ToLowerInvariant();
 
                             registry.AddFileName(in key, in fileName);
-
-                            //_ = extension.FileMap.TryAdd(key, fileName);
-
-                            //if (key == root) // Корневой файл описания объектов расширения
-                            //{
-                            //    extension.FileName = fileName; // Реестр метаданных
-                            //}
                         }
                     }
                 }
             }
         }
-        private void ApplyExtension(in ExtensionInfo extension, in MetadataRegistry registry)
+        private Configuration LoadExtensionMetadata(in ExtensionInfo extension, byte cfid, in MetadataRegistry registry)
         {
-            if (!registry.TryGetFileName(extension.FileName, out string mainFile))
+            if (!registry.TryGetFileName(extension.FileName, out string rootFile))
             {
                 throw new InvalidOperationException();
             }
 
             Configuration configuration;
 
-            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, mainFile))
+            using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, rootFile))
             {
-                Guid uuid = new(mainFile);
-
-                configuration = Configuration.Parse(uuid, file.AsReadOnlySpan(), in registry);
+                configuration = Configuration.Parse(extension.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
-            Guid[] items; // Заимствованные и собственные объекты метаданных расширения
+            // Заполняем общий реестр метаданных объектами метаданных расширения
 
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            if (configuration.Metadata.TryGetValue(MetadataTypes.DefinedType, out items))
-            {
-                foreach (Guid item in items)
-                {
-                    registry.AddExtensionEntry(MetadataTypes.DefinedType, item.ToString().ToLowerInvariant());
-                }
-            }
-
-            // Подготавливаем реестр метаданных для многопоточной обработки
-            if (configuration.Metadata.TryGetValue(MetadataTypes.SharedProperty, out items))
-            {
-                foreach (Guid item in items)
-                {
-                    registry.AddExtensionEntry(MetadataTypes.SharedProperty, item.ToString().ToLowerInvariant());
-                }
-            }
-
-            // Инициализация объектов реестра метаданных,
-            // загрузка кодов ссылочных типов и имён СУБД
-            string fileUuid = extension.Identity.ToString().ToLowerInvariant();
-            string fileName = string.Format("DBNames-Ext-{0}", fileUuid);
-
-            using (ConfigFileBuffer file = Load(ConfigTables.Params, in fileName))
-            {
-                //NOTE: Всё уже добавлено до нас =)
-                //DBNames.Parse(file.AsReadOnlySpan(), in registry);
-            }
-
-            // Сопоставляем идентифкаторы объектов метаданных файлам в базе данных
             foreach (var item in configuration.Metadata)
             {
-                Guid[] identifiers = item.Value;
-
-                for (int i = 0; i < identifiers.Length; i++)
+                if (Configurator.TryGetMetadataObjectFactory(item.Key, out Func<Guid, MetadataObject> factory))
                 {
-                    Guid identifier = identifiers[i];
+                    foreach (Guid uuid in item.Value)
+                    {
+                        MetadataObject entry = factory(uuid);
 
-                    // Добавляем заимствованные и собственные объекты расширения
-                    // в общий реестр метаданных для последующей их инициализации
-                    registry.AddExtensionEntry(item.Key, identifier.ToString().ToLowerInvariant());
+                        entry.Cfid = cfid;
 
-                    // Выполняем замену идентификаторов объектов метаданных
-                    // на соответствующие имена файлов из таблицы ConfigCAS
-                    //if (registry.TryGetFileName(identifier, out fileName))
-                    //{
-                    //    identifiers[i] = fileName;
-                    //}
+                        registry.AddEntry(uuid, entry);
+                    }
                 }
             }
 
-            // Инициализация объектов реестра метаданных зависит
-            // от предварительной загрузки кодов ссылочных типов
-            //InitializeMetadataRegistry(in registry, in metadata, ConfigTables.ConfigCAS);
+            return configuration;
+        }
+        private static void ApplyExtensionObject(in EntityDefinition entity, in EntityDefinition extension)
+        {
+            bool extend = false;
+
+            foreach (PropertyDefinition property in extension.Properties)
+            {
+                bool found = false;
+
+                for (int i = 0; i < entity.Properties.Count; i++)
+                {
+                    if (entity.Properties[i].Name == property.Name)
+                    {
+                        found = true; break;
+                    }
+                }
+
+                if (!found)
+                {
+                    extend = true;
+                    entity.Properties.Add(property);
+                }
+            }
+
+            foreach (EntityDefinition table in extension.Entities)
+            {
+                // find table part by name - if not found add the entire table
+
+                // if table is found - check the properties
+
+                foreach (PropertyDefinition property in table.Properties)
+                {
+
+                }
+            }
+
+            if (extend)
+            {
+                entity.DbName += "x1";
+
+                foreach (EntityDefinition table in entity.Entities)
+                {
+                    table.DbName += "x1";
+                }
+            }
         }
     }
 }

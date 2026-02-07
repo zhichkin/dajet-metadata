@@ -88,8 +88,7 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(MetadataNames.Characteristic, metadata.Name, out Characteristic parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }

@@ -198,8 +198,8 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
+            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);

@@ -60,8 +60,7 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(MetadataNames.Publication, metadata.Name, out Publication parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }

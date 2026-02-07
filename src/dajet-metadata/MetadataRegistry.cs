@@ -21,6 +21,8 @@ namespace DaJet.Metadata
         private readonly Dictionary<Guid, Guid> _characteristics = new();
         private readonly Dictionary<Guid, List<Guid>> _task_processes = new();
         private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
+        private readonly Dictionary<string, string> _files = new();
+        private readonly Dictionary<Guid, List<Guid>> _borrowed = new();
         private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
         {
             [MetadataNames.SharedProperty] = new Dictionary<string, Guid>(),
@@ -38,10 +40,7 @@ namespace DaJet.Metadata
             [MetadataNames.BusinessProcess] = new Dictionary<string, Guid>(),
             [MetadataNames.BusinessTask] = new Dictionary<string, Guid>()
         };
-        private readonly Dictionary<Guid, List<Guid>> _borrowed = new();
-        private readonly List<ExtensionInfo> _extensions = new();
-        private readonly List<Configuration> _configurations = new();
-        private readonly Dictionary<string, string> _files = new();
+        internal List<Configuration> Configurations { get; } = new();
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddFileName(in string identifier, in string fileName)
@@ -64,17 +63,26 @@ namespace DaJet.Metadata
 
             if (Unsafe.IsNullRef(ref entry)) // Ключ основного объекта не найден в реестре метаданных
             {
-                if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
+                if (token == MetadataToken.VT)
                 {
-                    MetadataObject new_entry = factory(uuid); // Создаём основной объект метаданных
-                    new_entry.AddDbName(code, token); // Устанавливаем код объекта
-                    _registry.Add(uuid, new_entry); //NOTE: Должны быть VT или Fld
+                    TablePart tablePart = new(uuid); // Создаём основной объект метаданных
+                    tablePart.AddDbName(code, token); // Устанавливаем код объекта
+                    _registry.Add(uuid, tablePart); // Добавляем объект в реестр метаданных
+                    return true; // Объект реестра метаданных обработан успешно
+                }
+                else if (token == MetadataToken.Fld)
+                {
+                    Property property = new(uuid); // Создаём основной объект метаданных
+                    property.AddDbName(code, token); // Устанавливаем код объекта
+                    _registry.Add(uuid, property); // Добавляем объект в реестр метаданных
                     return true; // Объект реестра метаданных обработан успешно
                 }
                 else
                 {
+                    // 0. Неизвестный или неподдерживаемый объект конфигурации.
                     // 1. Нарушен порядок основной-подчинённый, например, объект LineNo следует раньше VT.
-                    // 2. Ошибка платформы 1С: в файле DBNames присутствует основной объект, которого нет.
+                    // 2. Ошибка платформы 1С: в файле DBNames присутствует основной объект,
+                    //    который отсутствует в главном списке объектов конфигурации (файл root).
                     return false; // Объект метаданных добавляется в список постобработки
                 }
             }
@@ -121,87 +129,6 @@ namespace DaJet.Metadata
         #endregion
 
         #region "Методы инциализации реестра метаданных"
-        [Obsolete]
-        internal bool TryAddDbName(Guid uuid, int code, in string token)
-        {
-            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
-
-            if (!exists) // Главные объекты метаданных
-            {
-                // Токен главного объекта метаданных должен следовать первым в файле DBNames.
-                // Это штатное поведение платформы 1С. Нарушение порядка следования - ошибка.
-
-                if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
-                {
-                    entry = factory(uuid); // Создаём главный объект метаданных
-                    entry.AddDbName(code, token);
-                    //TODO: ? entry.Code = code;
-
-                    if (Configurator.IsReferenceTypeToken(token))
-                    {
-                        _ = _type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
-                    }
-                }
-                else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
-                {
-                    return false; // Служебный объект метаданных добавляется в список постобработки
-                }
-            }
-            else // Служебные объекты метаданных
-            {
-                if (entry is not null) // Главный объект уже добавлен: штатное поведение платформы 1С
-                {
-                    entry.AddDbName(code, token); // Служебный объект метаданных добавляется в свой главный объект
-                }
-                else // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
-                {
-                    if (Configurator.TryGetMetadataObjectFactory(token, out Func<Guid, MetadataObject> factory))
-                    {
-                        entry = factory(uuid); // Создаём главный объект метаданных
-                        entry.AddDbName(code, token);
-                        //TODO: ? entry.Code = code;
-
-                        if (Configurator.IsReferenceTypeToken(token))
-                        {
-                            _ = _type_codes.TryAdd(code, uuid); // Таблица разрешения ссылок
-                        }
-                    }
-                    else
-                    {
-                        return false; // Служебный объект метаданных добавляется в список постобработки
-                    }
-                }
-            }
-
-            return true; // Объект реестра метаданных добавлен успешно
-        }
-        [Obsolete]
-        internal void AddMissedDbName(Guid uuid, int code, string token)
-        {
-            //NOTE: Сюда в принципе попадать не планируется ...
-
-            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrNullRef(_registry, uuid);
-
-            if (Unsafe.IsNullRef(ref entry))
-            {
-                return; // Ключ объекта не найден в реестре метаданных
-            }
-
-            if (entry is null) // Ключ объекта найден, но его значение равно null
-            {
-                // Ошибка платформы 1С: служебный объект есть, а главного - нет
-                // Выявлено однажды в конфигурации УНФ - InfoRgOpt ¯\_(ツ)_/¯
-                // Соответствующая служебная таблица в СУБД присутствовала, а главная - нет
-
-                _ = _registry.Remove(uuid);
-
-                return;
-            }
-
-            // Исправление возможной ошибки платформы 1С: порядок токенов главный-служебный нарушен
-
-            entry.AddDbName(code, token); // Служебный объект метаданных добавляется в свой главный объект
-        }
         
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddReference(Guid uuid, Guid reference)
@@ -245,55 +172,55 @@ namespace DaJet.Metadata
         {
             return _borrowed.TryGetValue(parent, out borrowed);
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddExtensionEntry(Guid type, in string identifier)
-        {
-            // Добавление объектов расширения в общий реестр метаданных
-            // Класс MetadataLoader, метод ApplyExtension
+        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
+        //internal void AddExtensionEntry(Guid type, in string identifier)
+        //{
+        //    // Добавление объектов расширения в общий реестр метаданных
+        //    // Класс MetadataLoader, метод ApplyExtension
 
-            Guid uuid = new(identifier);
+        //    Guid uuid = new(identifier);
 
-            if (type == MetadataTypes.DefinedType)
-            {
-                DefinedType defined = new(uuid);
-                defined.MarkAsExtension();
-                _registry.TryAdd(uuid, defined);
-                return;
-            }
-            else if (type == MetadataTypes.SharedProperty)
-            {
-                SharedProperty property = new(uuid);
-                property.MarkAsExtension();
-                _registry.TryAdd(uuid, property);
-                return;
-            }
+        //    if (type == MetadataTypes.DefinedType)
+        //    {
+        //        DefinedType defined = new(uuid);
+        //        defined.MarkAsExtension();
+        //        _registry.TryAdd(uuid, defined);
+        //        return;
+        //    }
+        //    else if (type == MetadataTypes.SharedProperty)
+        //    {
+        //        SharedProperty property = new(uuid);
+        //        property.MarkAsExtension();
+        //        _registry.TryAdd(uuid, property);
+        //        return;
+        //    }
 
-            // Добавляем объект в общий реестр метаданных, если он ещё не существует
-            ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
+        //    // Добавляем объект в общий реестр метаданных, если он ещё не существует
+        //    ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
 
-            if (!exists) // Заимствованные объекты расширения
-            {
-                if (Configurator.TryGetMetadataObjectFactory(type, out Func<Guid, MetadataObject> factory))
-                {
-                    entry = factory(uuid); // Создаём объект метаданных расширения
-                    //TODO: entry.Cfid = ?
-                }
-                else // Неподдерживаемый тип метаданных
-                {
-                    throw new InvalidOperationException();
-                }
-            }
-            else 
-            {
-                // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
-            }
+        //    if (!exists) // Заимствованные объекты расширения
+        //    {
+        //        if (Configurator.TryGetMetadataObjectFactory(type, out Func<Guid, MetadataObject> factory))
+        //        {
+        //            entry = factory(uuid); // Создаём объект метаданных расширения
+        //            //TODO: entry.Cfid = ?
+        //        }
+        //        else // Неподдерживаемый тип метаданных
+        //        {
+        //            throw new InvalidOperationException();
+        //        }
+        //    }
+        //    else 
+        //    {
+        //        // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
+        //    }
 
-            //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
-            //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
-            //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
+        //    //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
+        //    //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
+        //    //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
 
-            entry.MarkAsExtension();
-        }
+        //    entry.MarkAsExtension();
+        //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddDefinedType(Guid uuid, Guid reference)
         {

@@ -62,6 +62,8 @@ namespace DaJet.Metadata
                 {
                     Guid uuid = reader[root][N][1][2][6][2][2][3].SeekUuid();
 
+                    table.Name = reader[root][N][1][2][6][2][3].SeekString();
+
                     if (registry.TryGetEntry(uuid, out TablePart entry))
                     {
                         table.DbName = string.Format("{0}{1}", ownerEntry.GetMainDbName(), entry.GetMainDbName());
@@ -71,17 +73,18 @@ namespace DaJet.Metadata
                         //TODO: Зафиксировать ошибку. Скорее всего это заимствованная табличная часть.
                         //TODO: Табличная часть не найдена в реестре объектов метаданных,
                         //TODO: а это значит, что у неё нет соответствующей таблицы в базе данных
-                        continue;
+                        //continue;
                     }
-
-                    table.Name = reader[root][N][1][2][6][2][3].SeekString();
 
                     //if (_cache != null && _cache.Extension != null) // [5][2] 0.1.5.1.8 = 0 если заимствование отстутствует
                     //{
                     //    _converter[0][1][5][1][9] += Parent; // uuid расширяемого объекта метаданных
                     //}
 
-                    Configurator.ConfigureTablePart(in table, in entry, in ownerEntry);
+                    if (entry is not null)
+                    {
+                        Configurator.ConfigureTablePart(in table, in entry, in ownerEntry);
+                    }
 
                     vector[1] = N; // Коллекция свойств текущей табличной части
 

@@ -99,6 +99,8 @@ namespace DaJet.Metadata
             };
         }
         public Dictionary<Guid, Guid[]> Metadata { get { return _metadata; } }
+
+        public override string ToString() { return Name; }
         
         #region "Парсер корневого файла конфигурации"
 

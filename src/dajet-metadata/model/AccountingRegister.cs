@@ -105,8 +105,7 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(MetadataNames.AccountingRegister, metadata.Name, out AccountingRegister parent))
                     {
-                        parent.MarkAsBorrowed();
-                        metadata.MarkAsBorrowed();
+                        metadata.IsBorrowed = true;
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
