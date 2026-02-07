@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace DaJet.Metadata
+﻿namespace DaJet.Metadata
 {
     /// <summary>
     /// Варианты возможных областей действия расширения конфигурации (доступно, начиная с версиии 8.3.12)
@@ -94,11 +92,5 @@ namespace DaJet.Metadata
         /// <br>у которых свойство "РаспределеннаяИнформационнаяБаза" установлено в значение "Истина".</br>
         /// </summary>
         public bool IsDistributed { get; set; } // Доступно, начиная с версии 8.3.12
-        ///<summary>
-        ///<b>Сопоставление имён файлов метаданных расширения:</b>
-        ///<br><b>Ключ:</b> стандартное имя файла, образованное от UUID'а объекта метаданных.</br>
-        ///<br><b>Значение:</b> реальное имя файла в таблице ConfigCAS (вероятно хэш данных).</br>
-        ///</summary>
-        [JsonIgnore] public Dictionary<string, string> FileMap { get; } = new();
     }
 }

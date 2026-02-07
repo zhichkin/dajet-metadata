@@ -67,12 +67,6 @@ namespace DaJet.Metadata
             // [root][offset] 0.1.1.1.15.1 = f5c65050-3bbb-11d5-b988-0050bae0a95d (константа)
             // [root][offset] 0.1.1.1.15.2 = {объект описания типов данных - Pattern} [0][1][1][2] += PropertyType
 
-            //if (_cache != null && _cache.Extension != null) // 0.1.1.1.8 = 0 если заимствование отстутствует
-            //{
-            //    _converter[0][1][1][1][11] += Parent; // uuid расширяемого объекта метаданных
-            //    _converter[0][1][1][1][15][2] += ExtensionPropertyType;
-            //}
-
             PropertyDefinition property = new()
             {
                 Purpose = PropertyTypes.GetPropertyPurpose(type)
@@ -85,10 +79,13 @@ namespace DaJet.Metadata
 
             if (!registry.TryGetEntry(uuid, out Property entry))
             {
-                //TODO: Зафиксировать ошибку. Скорее всего это заимствованное свойство.
-                //TODO: Свойство не найдено в реестре объектов метаданных, а это значит,
-                //TODO: что у него нет поля/полей в соответствующей таблице базы данных.
-                return;
+                return; // Заимствованное расширением свойство
+
+                //if (_cache != null && _cache.Extension != null) // 0.1.1.1.8 = 0 если заимствование отстутствует
+                //{
+                //    _converter[0][1][1][1][11] += Parent; // uuid расширяемого объекта метаданных
+                //    _converter[0][1][1][1][15][2] += ExtensionPropertyType;
+                //}
             }
 
             //_converter[0][1][1][1][3][2] += PropertyAlias;

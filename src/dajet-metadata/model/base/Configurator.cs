@@ -127,95 +127,68 @@ namespace DaJet.Metadata
         #region "Общие реквизиты"
         internal static void ConfigureSharedProperties(in MetadataRegistry registry, in MetadataObject entry, in EntityDefinition target)
         {
-            if (entry is Enumeration)
-            {
-                return;
-            }
-
-            //if (metadata is not ApplicationObject target)
-            //{
-            //    return; ???
-            //}
-
             // Актуально для версии 8.3.27 и ниже:
             // 1. Общие реквизиты могут быть добавлены только в основной конфигурации.
             // 2. Расширения могут ТОЛЬКО заимствовать общие реквизиты из основной конфигурации.
             // 3. Использование общих реквизитов для собственных объектов расширений должно быть указано ЯВНО, так как
             //    собственные объекты расширения не имеют настройки "Авто", ТОЛЬКО "Использовать" или "Не использовать".
+            // 4. Для настройки заимствованных общих реквизитов для собственных объектов расширений
+            //    используется непосредственно объект основной конфигурации, для заимствованного
+            //    объекта анализируются только настройки включения использования этого реквизита
 
-            //OneDbMetadataProvider provider = cache;
+            Configuration configuration;
 
-            //if (provider.Extension is null) // Основная конфигурация
-            //{
-            //    if (provider.TryGetExtendedInfo(target.Uuid, out MetadataItemEx extent))
-            //    {
-            //        if (extent.IsExtensionOwnObject) // Cобственный объект расширения
-            //        {
-            //            // Необходимо использовать провайдера метаданных соответствующего расширения
-            //            if (provider.Extensions.TryGetValue(extent.Extension, out OneDbMetadataProvider extension))
-            //            {
-            //                provider = extension;
-            //            }
-            //            else
-            //            {
-            //                return; // Расширение основной конфигурации не загружено
-            //            }
-            //        }
-            //    }
-            //}
-            //else // Раширение конфигурации
-            //{
-            //    // Конфигурируемый ApplicationObject должен быть из этого же расширения.
-            //}
+            if (entry.IsMain)
+            {
+                configuration = registry.Configurations[0];
+            }
+            else
+            {
+                configuration = registry.Configurations[entry.Cfid];
+            }
 
-            bool IsMainConfig = true;
-            //bool IsMainConfig = (provider.Extension is null); // Это основная конфигурация ?
+            List<SharedProperty> properties = new();
 
-            foreach (SharedProperty property in registry.GetMetadataObjects<SharedProperty>())
+            if (configuration.Metadata.TryGetValue(MetadataTypes.SharedProperty, out Guid[] items))
+            {
+                foreach (Guid item in items)
+                {
+                    if (registry.TryGetEntry(item, out SharedProperty property))
+                    {
+                        properties.Add(property);
+                    }
+                }
+            }
+
+            foreach (SharedProperty property in properties)
             {
                 if (property.UsageSettings.TryGetValue(entry.Uuid, out SharedPropertyUsage usage))
                 {
                     if (usage == SharedPropertyUsage.Use)
                     {
-                        if (IsMainConfig) // Основная конфигурация
+                        if (entry.IsMain) // Основная конфигурация
                         {
                             target.Properties.Add(property.Definition);
-
                             ConfigureSharedPropertyForTableParts(in property, in entry, in target);
                         }
-                        //else // Расширение конфигурации
-                        //{
-                        //    OneDbMetadataProvider main = provider.Extension.Host;
-
-                        //    MetadataObject parent = null;
-
-                        //    if (property.Parent != Guid.Empty) // Найти общий реквизит основной конфигурации по uuid
-                        //    {
-                        //        parent = main.GetMetadataObject(MetadataTypes.SharedProperty, property.Parent);
-                        //    }
-
-                        //    if (parent is null) // Найти общий реквизит основной конфигурации по имени
-                        //    {
-                        //        string MetadataTypes = MetadataTypes.ResolveNameRu(MetadataTypes.SharedProperty);
-                        //        parent = main.GetMetadataObject($"{MetadataTypes}.{property.Name}");
-                        //    }
-
-                        //    if (parent is SharedProperty shared)
-                        //    {
-                        //        target.Properties.Add(shared);
-                        //        ConfigureSharedPropertiesForTableParts(target, shared);
-                        //    }
-                        //}
+                        else // Расширение конфигурации
+                        {
+                            // Получаем общий реквизит, заимствованный из основной конфигурации
+                            if (registry.TryGetEntry(MetadataNames.SharedProperty, property.Name, out SharedProperty shared))
+                            {
+                                target.Properties.Add(shared.Definition);
+                                ConfigureSharedPropertyForTableParts(in shared, in entry, in target);
+                            }
+                        }
                     }
                 }
                 else // SharedPropertyUsage.Auto
                 {
-                    if (IsMainConfig) // Основная конфигурация
+                    if (entry.IsMain) // Основная конфигурация
                     {
                         if (property.AutomaticUsage == AutomaticUsage.Use)
                         {
                             target.Properties.Add(property.Definition);
-
                             ConfigureSharedPropertyForTableParts(in property, in entry, in target);
                         }
                     }
@@ -243,18 +216,9 @@ namespace DaJet.Metadata
                 return;
             }
 
-            foreach (EntityDefinition child in owner.Entities)
+            foreach (EntityDefinition table in owner.Entities)
             {
-                //PropertyDefinition definition = new()
-                //{
-                //    Name = property.Name,
-                //    Type = property.Type,
-                //    Purpose = PropertyPurpose.Property
-                //};
-
-                //ConfigureDatabaseColumns(in property, in definition);
-
-                child.Properties.Add(property.Definition);
+                table.Properties.Add(property.Definition);
             }
         }
         #endregion

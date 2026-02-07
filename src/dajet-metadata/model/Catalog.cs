@@ -103,6 +103,13 @@ namespace DaJet.Metadata
                 }
                 else // Заимствованный объект расширения
                 {
+                    if (registry.TryGetEntry(MetadataNames.Catalog, metadata.Name, out Catalog parent))
+                    {
+                        metadata.IsBorrowed = true;
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
+                    }
+
                     //if (registry.CompatibilityVersion >= 80314)
                     //{
                     //    // Заимствованный объект
@@ -113,13 +120,6 @@ namespace DaJet.Metadata
                     //        throw new InvalidOperationException();
                     //    }
                     //}
-
-                    if (registry.TryGetEntry(MetadataNames.Catalog, metadata.Name, out Catalog parent))
-                    {
-                        metadata.IsBorrowed = true;
-                        metadata.Code = parent.Code;
-                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
-                    }
                 }
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)

@@ -103,7 +103,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (entry.IsMain && registry.TryGetBorrowedObjects(entry.Uuid, out List<Guid> borrowed))
+            if (entry.IsMain && registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
             {
                 tableName = ConfigTables.ConfigCAS;
 

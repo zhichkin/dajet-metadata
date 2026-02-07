@@ -129,7 +129,16 @@ namespace DaJet.Metadata
         #endregion
 
         #region "Методы инциализации реестра метаданных"
-        
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddEntry(Guid uuid, in MetadataObject entry)
+        {
+            // Безусловное добавление объектов в реестр метаданных, кроме VT и Fld
+            // Выполняется загрузчиком основной конфигурации до заполнения реестра метаданных
+            // Класс MetadataLoader, метод GetMetadataRegistry
+
+            _ = _registry.TryAdd(uuid, entry);
+        }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddReference(Guid uuid, Guid reference)
         {
@@ -142,15 +151,6 @@ namespace DaJet.Metadata
             {
                 _ = names.TryAdd(name, uuid);
             }
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void AddEntry(Guid uuid, in MetadataObject entry)
-        {
-            // Безусловное добавление объектов "ОбщийРеквизит" и "ОпределяемыйТип"
-            // Выполняется загрузчиком основной конфигурации до заполнения реестра метаданных
-            // Класс MetadataLoader, метод GetMetadataRegistry
-
-            _ = _registry.TryAdd(uuid, entry);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddBorrowed(Guid parent, Guid extension)
@@ -167,60 +167,6 @@ namespace DaJet.Metadata
                 _borrowed.Add(parent, new List<Guid>() { extension });
             }
         }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal bool TryGetBorrowedObjects(Guid parent, out List<Guid> borrowed)
-        {
-            return _borrowed.TryGetValue(parent, out borrowed);
-        }
-        //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        //internal void AddExtensionEntry(Guid type, in string identifier)
-        //{
-        //    // Добавление объектов расширения в общий реестр метаданных
-        //    // Класс MetadataLoader, метод ApplyExtension
-
-        //    Guid uuid = new(identifier);
-
-        //    if (type == MetadataTypes.DefinedType)
-        //    {
-        //        DefinedType defined = new(uuid);
-        //        defined.MarkAsExtension();
-        //        _registry.TryAdd(uuid, defined);
-        //        return;
-        //    }
-        //    else if (type == MetadataTypes.SharedProperty)
-        //    {
-        //        SharedProperty property = new(uuid);
-        //        property.MarkAsExtension();
-        //        _registry.TryAdd(uuid, property);
-        //        return;
-        //    }
-
-        //    // Добавляем объект в общий реестр метаданных, если он ещё не существует
-        //    ref MetadataObject entry = ref CollectionsMarshal.GetValueRefOrAddDefault(_registry, uuid, out bool exists);
-
-        //    if (!exists) // Заимствованные объекты расширения
-        //    {
-        //        if (Configurator.TryGetMetadataObjectFactory(type, out Func<Guid, MetadataObject> factory))
-        //        {
-        //            entry = factory(uuid); // Создаём объект метаданных расширения
-        //            //TODO: entry.Cfid = ?
-        //        }
-        //        else // Неподдерживаемый тип метаданных
-        //        {
-        //            throw new InvalidOperationException();
-        //        }
-        //    }
-        //    else 
-        //    {
-        //        // Собственный объект расширения добавлен при загрузке файлов DBNames-Ext
-        //    }
-
-        //    //NOTE: Устанавливаем флаг, что объект добавлен в реестр из расширения
-        //    //NOTE: Флаг заимствования устанавливается парсером в методе Initialize
-        //    //NOTE: Например: класс DaJet.Metadata.Catalog.Parser
-
-        //    entry.MarkAsExtension();
-        //}
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddDefinedType(Guid uuid, Guid reference)
         {
@@ -261,6 +207,11 @@ namespace DaJet.Metadata
         }
         #endregion
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal bool TryGetBorrowed(Guid parent, out List<Guid> borrowed)
+        {
+            return _borrowed.TryGetValue(parent, out borrowed);
+        }
         internal bool TryGetReference(Guid reference, [MaybeNullWhen(false)] out MetadataObject entry)
         {
             if (!_references.TryGetValue(reference, out Guid uuid))
@@ -299,8 +250,6 @@ namespace DaJet.Metadata
         {
             return _register_recorders.TryGetValue(register, out recorders);
         }
-
-        
 
         internal int GetGenericTypeCode(Guid generic)
         {
@@ -415,6 +364,9 @@ namespace DaJet.Metadata
                 }
             }
         }
+        
+
+        
         internal IEnumerable<T> GetMetadataObjects<T>() where T : MetadataObject
         {
             string name = MetadataLookup.GetMetadataName(typeof(T));

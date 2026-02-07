@@ -198,8 +198,8 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
             //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
@@ -287,13 +287,6 @@ namespace DaJet
                 Console.WriteLine($"- Updated: {extension.Updated:dd-MM-yyyy HH:mm:ss}");
                 Console.WriteLine($"- Root file: {extension.RootFile}");
                 Console.WriteLine($"- File name: {extension.FileName}");
-                Console.WriteLine($"- File map:");
-                
-                foreach (var map in extension.FileMap)
-                {
-                    Console.WriteLine($"  [{map.Key}] {map.Value}");
-                }
-
                 Console.WriteLine("------------------------------");
             }
         }
