@@ -78,7 +78,7 @@ namespace DaJet.Metadata
             string tableName = ConfigTables.Config;
             string fileName = entry.Uuid.ToString().ToLowerInvariant();
 
-            if (entry.IsExtension && !entry.IsBorrowed) // Собственный объект расширения
+            if (entry.IsExtension) // Собственный объект расширения
             {
                 tableName = ConfigTables.ConfigCAS;
 
@@ -92,7 +92,7 @@ namespace DaJet.Metadata
             {
                 entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
 
-                if (entry.IsExtension && !entry.IsBorrowed) // Собственный объект расширения
+                if (entry.IsExtension) // Собственный объект расширения
                 {
                     entity.DbName += "x1";
 
@@ -123,12 +123,7 @@ namespace DaJet.Metadata
                         extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
                     }
 
-                    ApplyExtensionObject(in entity, in extension);
-
-                    if (registry.TryGetEntry(uuid, out MetadataObject mdo))
-                    {
-                        // Нужно, чтобы найти Cfid и через него применить общие реквизиты или планы обмена
-                    }
+                    Configurator.ApplyBorrowedObject(in entity, in extension);
 
                     //TODO: Проверить вхождение объекта в состав плана обмена расширения
 
@@ -136,6 +131,8 @@ namespace DaJet.Metadata
                     //TODO: и имеются любые расширения, то используются x1-таблицы, даже если такой объект не заимствуется
                 }
             }
+
+            Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
 
             return entity;
         }
@@ -679,51 +676,6 @@ namespace DaJet.Metadata
             }
 
             return configuration;
-        }
-        private static void ApplyExtensionObject(in EntityDefinition entity, in EntityDefinition extension)
-        {
-            bool extend = false;
-
-            foreach (PropertyDefinition property in extension.Properties)
-            {
-                bool found = false;
-
-                for (int i = 0; i < entity.Properties.Count; i++)
-                {
-                    if (entity.Properties[i].Name == property.Name)
-                    {
-                        found = true; break;
-                    }
-                }
-
-                if (!found)
-                {
-                    extend = true;
-                    entity.Properties.Add(property);
-                }
-            }
-
-            foreach (EntityDefinition table in extension.Entities)
-            {
-                // find table part by name - if not found add the entire table
-
-                // if table is found - check the properties
-
-                foreach (PropertyDefinition property in table.Properties)
-                {
-
-                }
-            }
-
-            if (extend)
-            {
-                entity.DbName += "x1";
-
-                foreach (EntityDefinition table in entity.Entities)
-                {
-                    table.DbName += "x1";
-                }
-            }
         }
     }
 }

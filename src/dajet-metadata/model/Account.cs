@@ -211,8 +211,6 @@ namespace DaJet.Metadata
                     table.Entities.Add(dimensionTypes);
                 }
 
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
                 return table;
             }
         }

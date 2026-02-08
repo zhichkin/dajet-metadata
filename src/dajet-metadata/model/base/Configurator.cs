@@ -132,22 +132,16 @@ namespace DaJet.Metadata
             // 2. Расширения могут ТОЛЬКО заимствовать общие реквизиты из основной конфигурации.
             // 3. Использование общих реквизитов для собственных объектов расширений должно быть указано ЯВНО, так как
             //    собственные объекты расширения не имеют настройки "Авто", ТОЛЬКО "Использовать" или "Не использовать".
-            // 4. Для настройки заимствованных общих реквизитов для собственных объектов расширений
-            //    используется непосредственно объект основной конфигурации, для заимствованного
-            //    объекта анализируются только настройки включения использования этого реквизита
+            // 4. Необходимость добавления общего реквизита для собственных объектов расширений определяется 
+            //    настройками заимствованного общего реквизита из той же самой конфигурации,
+            //    однако сами настройки берутся из общего ренквизита основной конфигурации.
 
-            Configuration configuration;
-
-            if (entry.IsMain)
+            if (entry.IsBorrowed)
             {
-                configuration = registry.Configurations[0];
-            }
-            else
-            {
-                configuration = registry.Configurations[entry.Cfid];
+                return; //NOTE: Сюда попадать не должны: проверка на всякий случай.
             }
 
-            List<SharedProperty> properties = new();
+            Configuration configuration = registry.Configurations[entry.Cfid];
 
             if (configuration.Metadata.TryGetValue(MetadataTypes.SharedProperty, out Guid[] items))
             {
@@ -155,46 +149,41 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(item, out SharedProperty property))
                     {
-                        properties.Add(property);
-                    }
-                }
-            }
-
-            foreach (SharedProperty property in properties)
-            {
-                if (property.UsageSettings.TryGetValue(entry.Uuid, out SharedPropertyUsage usage))
-                {
-                    if (usage == SharedPropertyUsage.Use)
-                    {
-                        if (entry.IsMain) // Основная конфигурация
+                        if (property.UsageSettings.TryGetValue(entry.Uuid, out SharedPropertyUsage usage))
                         {
-                            target.Properties.Add(property.Definition);
-                            ConfigureSharedPropertyForTableParts(in property, in entry, in target);
-                        }
-                        else // Расширение конфигурации
-                        {
-                            // Получаем общий реквизит, заимствованный из основной конфигурации
-                            if (registry.TryGetEntry(MetadataNames.SharedProperty, property.Name, out SharedProperty shared))
+                            if (usage == SharedPropertyUsage.Use)
                             {
-                                target.Properties.Add(shared.Definition);
-                                ConfigureSharedPropertyForTableParts(in shared, in entry, in target);
+                                if (entry.IsMain) // Основная конфигурация
+                                {
+                                    target.Properties.Add(property.Definition);
+                                    ConfigureSharedPropertyForTableParts(in property, in entry, in target);
+                                }
+                                else // Расширение конфигурации
+                                {
+                                    // Получаем общий реквизит основной конфигурации
+                                    if (registry.TryGetEntry(MetadataNames.SharedProperty, property.Name, out property))
+                                    {
+                                        target.Properties.Add(property.Definition);
+                                        ConfigureSharedPropertyForTableParts(in property, in entry, in target);
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-                else // SharedPropertyUsage.Auto
-                {
-                    if (entry.IsMain) // Основная конфигурация
-                    {
-                        if (property.AutomaticUsage == AutomaticUsage.Use)
+                        else // SharedPropertyUsage.Auto
                         {
-                            target.Properties.Add(property.Definition);
-                            ConfigureSharedPropertyForTableParts(in property, in entry, in target);
+                            if (entry.IsMain) // Основная конфигурация
+                            {
+                                if (property.AutomaticUsage == AutomaticUsage.Use)
+                                {
+                                    target.Properties.Add(property.Definition);
+                                    ConfigureSharedPropertyForTableParts(in property, in entry, in target);
+                                }
+                            }
+                            else // Расширение конфигурации
+                            {
+                                // Ничего не делаем: смотри пункт 3 примечаний выше.
+                            }
                         }
-                    }
-                    else // Расширение конфигурации
-                    {
-                        // Ничего не делаем: смотри пункт 3 примечаний выше.
                     }
                 }
             }
@@ -2118,6 +2107,93 @@ namespace DaJet.Metadata
                     Type = DataType.Binary(16, false) // pg = bytea
                 });
             }
+        }
+        #endregion
+
+        #region "Заимствованные объекты расширений"
+        internal static void ApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
+        {
+            bool extend = false;
+
+            foreach (PropertyDefinition property in borrowed.Properties)
+            {
+                if (!PropertyExists(main.Properties, property.Name))
+                {
+                    main.Properties.Add(property); extend = true;
+                }
+            }
+            
+            foreach (EntityDefinition test in borrowed.Entities)
+            {
+                if (TryGetTableByName(main.Entities, test.Name, out EntityDefinition table))
+                {
+                    foreach (PropertyDefinition property in test.Properties)
+                    {
+                        if (!PropertyExists(table.Properties, property.Name))
+                        {
+                            table.Properties.Add(property); extend = true;
+                        }
+                    }
+                }
+                else
+                {
+                    main.Entities.Add(test); extend = true;
+                }
+            }
+
+            if (extend)
+            {
+                main.DbName += "x1";
+
+                foreach (EntityDefinition table in main.Entities)
+                {
+                    table.DbName += "x1";
+                }
+            }
+        }
+        private static bool PropertyExists(in List<PropertyDefinition> list, in string name)
+        {
+            if (list.Count == 0)
+            {
+                return false;
+            }
+
+            PropertyDefinition property;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                property = list[i];
+
+                if (property.Name == name)
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        private static bool TryGetTableByName(in List<EntityDefinition> list, in string name, out EntityDefinition table)
+        {
+            table = null;
+
+            if (list.Count == 0)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                table = list[i];
+
+                if (table.Name == name)
+                {
+                    return true;
+                }
+            }
+
+            table = null;
+
+            return false;
         }
         #endregion
     }

@@ -127,7 +127,7 @@ namespace DaJet.Metadata
                 DataType constantType = DataTypeParser.Parse(ref reader, root, in registry, out _);
 
                 Configurator.ConfigurePropertyЗначение(in table, constantType, in columnName);
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
+
                 Configurator.ConfigurePropertyRecordKey(in table);
 
                 return table;

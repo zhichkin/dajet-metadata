@@ -185,8 +185,6 @@ namespace DaJet.Metadata
                     Property.Parse(ref reader, root, in table, in registry, relations);
                 }
 
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
                 return table;
             }
         }

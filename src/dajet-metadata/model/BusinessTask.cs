@@ -50,11 +50,26 @@ namespace DaJet.Metadata
                 }
 
                 // Имя объекта метаданных конфигурации
-                if (reader[2][2][3].Seek())
+                metadata.Name = reader[2][2][3].SeekString();
+
+                if (metadata.Code > 0)
                 {
-                    string name = reader.ValueAsString;
-                    metadata.Name = name;
-                    registry.AddMetadataName(MetadataNames.BusinessTask, in name, uuid);
+                    // Объекты основной конфигурации и собственные объекты расширения
+                    registry.AddMetadataName(MetadataNames.BusinessTask, metadata.Name, uuid);
+                }
+                else // Заимствованный объект расширения
+                {
+                    if (registry.TryGetEntry(MetadataNames.BusinessTask, metadata.Name, out BusinessTask parent))
+                    {
+                        metadata.IsBorrowed = true;
+                        metadata.Code = parent.Code;
+                        registry.AddBorrowed(parent.Uuid, metadata.Uuid);
+                    }
+
+                    //if (options.IsExtension)
+                    //{
+                    //    _converter[1][1][9] += Parent;
+                    //}
                 }
 
                 // Идентификатор ссылочного типа данных, например, "ЗадачаСсылка.Задача"
@@ -63,11 +78,6 @@ namespace DaJet.Metadata
                     Guid reference = reader.ValueAsUuid;
                     registry.AddReference(uuid, reference);
                 }
-
-                //if (options.IsExtension)
-                //{
-                //    _converter[1][1][9] += Parent;
-                //}
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
             {
@@ -138,8 +148,6 @@ namespace DaJet.Metadata
                 {
                     TablePart.Parse(ref reader, offset, in table, entry, in registry, relations);
                 }
-
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
                 return table;
             }

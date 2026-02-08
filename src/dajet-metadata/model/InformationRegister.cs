@@ -233,8 +233,6 @@ namespace DaJet.Metadata
                     Property.Parse(ref reader, root, in table, in registry, relations);
                 }
 
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
                 if (registry.Version < 80303 && entry.Periodicity == RegisterPeriodicity.None)
                 {
                     int count = 0;

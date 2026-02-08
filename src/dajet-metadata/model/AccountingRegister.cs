@@ -178,8 +178,6 @@ namespace DaJet.Metadata
                 //TODO: _EDHashDt
                 //TODO: _EDHashCt
 
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
-
                 return table;
             }
         }

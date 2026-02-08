@@ -74,6 +74,11 @@ namespace DaJet.Metadata
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
+
+                    //if (options.IsExtension)
+                    //{
+                    //    _converter[1][1][9] += Parent;
+                    //}
                 }
 
                 // Идентификатор ссылочного типа данных, например, "БизнесПроцессСсылка.Согласование"
@@ -89,11 +94,6 @@ namespace DaJet.Metadata
                     Guid task = reader.ValueAsUuid;
                     registry.AddBusinessProcessToTask(task, uuid);
                 }
-
-                //if (options.IsExtension)
-                //{
-                //    _converter[1][1][9] += Parent;
-                //}
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
             {
@@ -159,8 +159,6 @@ namespace DaJet.Metadata
                 {
                     TablePart.Parse(ref reader, offset, in table, entry, in registry, relations);
                 }
-
-                Configurator.ConfigureSharedProperties(in registry, entry, in table);
 
                 return table;
             }
