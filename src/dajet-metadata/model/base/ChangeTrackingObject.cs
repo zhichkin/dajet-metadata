@@ -17,6 +17,15 @@ namespace DaJet.Metadata
                     DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
                 };
 
+                //NOTE: Собственные объекты расширений всегда получают постфикс x1
+                //NOTE: при наличии DbName токена _ChngR > 0.
+
+                //NOTE: Основные объекты конфигурации получают постфикс x1
+                //NOTE: по наличию заимствованного объекта и настройкам расширения.
+
+                //NOTE: Если заимствованный объект входит в состав любого плана обмена своего расширения,
+                //NOTE: то к имени его таблицы регистрации изменений DbName добавляется постфикс x1.
+
                 Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
                 Configurator.ConfigurePropertyНомерСообщения(in changes);
                 Configurator.ConfigurePropertyСсылка(in changes, Code);

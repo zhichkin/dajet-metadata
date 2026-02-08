@@ -300,115 +300,6 @@ namespace DaJet.Metadata
         }
         #endregion
 
-        #region "План обмена"
-        //NOTE: Состав плана обмена хранится в файле {metadata-object-uuid}.1
-        internal static void ConfigurePropertyНомерОтправленного(in EntityDefinition table)
-        {
-            PropertyDefinition property = new()
-            {
-                Name = "НомерОтправленного",
-                Purpose = PropertyPurpose.System
-            };
-            property.Type = DataType.Decimal(10, 0);
-
-            property.Columns = new List<ColumnDefinition>(1)
-            {
-                new ColumnDefinition()
-                {
-                    Name = "_SentNo",
-                    Type = property.Type
-                }
-            };
-
-            table.Properties.Add(property);
-        }
-        internal static void ConfigurePropertyНомерПринятого(in EntityDefinition table)
-        {
-            PropertyDefinition property = new()
-            {
-                Name = "НомерПринятого",
-                Purpose = PropertyPurpose.System
-            };
-            property.Type = DataType.Decimal(10, 0);
-
-            property.Columns = new List<ColumnDefinition>(1)
-            {
-                new ColumnDefinition()
-                {
-                    Name = "_ReceivedNo",
-                    Type = property.Type
-                }
-            };
-
-            table.Properties.Add(property);
-        }
-
-        #region "Состав плана обмена"
-        //public static void ConfigureArticles(in OneDbMetadataProvider cache, in Publication publication)
-        //{
-        //    string tableName = cache.GetConfigTableName(publication.Uuid);
-
-        //    string fileName = publication.Uuid.ToString() + ".1"; // файл описания состава плана обмена
-
-        //    if (cache.TryGetExtendedInfo(publication.Uuid, out MetadataItemEx item))
-        //    {
-        //        if (item.IsExtensionOwnObject)
-        //        {
-        //            if (cache.Extensions.TryGetValue(item.Extension, out OneDbMetadataProvider extension))
-        //            {
-        //                fileName = extension.Extension.FileMap[fileName];
-        //            }
-        //            else
-        //            {
-        //                return; // This should not happen - extension is not found in the cache!
-        //            }
-        //        }
-        //    }
-
-        //    publication.Articles = GetPublicationArticles(cache.DatabaseProvider, cache.ConnectionString, tableName, fileName);
-        //}
-        //internal static Dictionary<Guid, AutoPublication> GetPublicationArticles(DatabaseProvider provider, string connectionString, string tableName, string fileName)
-        //{
-        //    Dictionary<Guid, AutoPublication> articles = new();
-
-        //    ConfigObject configObject;
-
-        //    using (ConfigFileReader reader = new(provider, connectionString, tableName, fileName))
-        //    {
-        //        configObject = new ConfigFileParser().Parse(reader);
-        //    }
-
-        //    if (configObject == null || configObject.Count == 0)
-        //    {
-        //        return articles; // Publication has no articles file in Config/ConfigCAS table
-        //    }
-
-        //    int count = configObject.GetInt32(new int[] { 1 }); // количество объектов в составе плана обмена
-
-        //    if (count == 0)
-        //    {
-        //        return articles; // Publication has no articles defined
-        //    }
-
-        //    articles.TrimExcess(count);
-
-        //    int offset = 2;
-
-        //    for (int i = 1; i <= count; i++)
-        //    {
-        //        Guid uuid = configObject.GetUuid(new int[] { i * offset });
-
-        //        AutoPublication setting = (AutoPublication)configObject.GetInt32(new int[] { (i * offset) + 1 });
-
-        //        articles.Add(uuid, setting);
-        //    }
-
-        //    return articles;
-        //}
-        #endregion
-
-        #endregion
-
         #region "Справочник"
 
         // Последовательность сериализации системных свойств в формат 1С JDTO
@@ -1903,6 +1794,49 @@ namespace DaJet.Metadata
         }
         #endregion
 
+        #region "План обмена"
+        //NOTE: Состав плана обмена хранится в файле {metadata-object-uuid}.1
+        internal static void ConfigurePropertyНомерОтправленного(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "НомерОтправленного",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(10, 0);
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_SentNo",
+                    Type = property.Type
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        internal static void ConfigurePropertyНомерПринятого(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "НомерПринятого",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(10, 0);
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_ReceivedNo",
+                    Type = property.Type
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+
         #region "Таблица регистрации изменений"
         internal static void ConfigurePropertyУзелПланаОбмена(in EntityDefinition table)
         {
@@ -1956,6 +1890,72 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
+        #endregion
+
+        #region "Состав плана обмена"
+        //public static void ConfigureArticles(in OneDbMetadataProvider cache, in Publication publication)
+        //{
+        //    string tableName = cache.GetConfigTableName(publication.Uuid);
+
+        //    string fileName = publication.Uuid.ToString() + ".1"; // файл описания состава плана обмена
+
+        //    if (cache.TryGetExtendedInfo(publication.Uuid, out MetadataItemEx item))
+        //    {
+        //        if (item.IsExtensionOwnObject)
+        //        {
+        //            if (cache.Extensions.TryGetValue(item.Extension, out OneDbMetadataProvider extension))
+        //            {
+        //                fileName = extension.Extension.FileMap[fileName];
+        //            }
+        //            else
+        //            {
+        //                return; // This should not happen - extension is not found in the cache!
+        //            }
+        //        }
+        //    }
+
+        //    publication.Articles = GetPublicationArticles(cache.DatabaseProvider, cache.ConnectionString, tableName, fileName);
+        //}
+        //internal static Dictionary<Guid, AutoPublication> GetPublicationArticles(DatabaseProvider provider, string connectionString, string tableName, string fileName)
+        //{
+        //    Dictionary<Guid, AutoPublication> articles = new();
+
+        //    ConfigObject configObject;
+
+        //    using (ConfigFileReader reader = new(provider, connectionString, tableName, fileName))
+        //    {
+        //        configObject = new ConfigFileParser().Parse(reader);
+        //    }
+
+        //    if (configObject == null || configObject.Count == 0)
+        //    {
+        //        return articles; // Publication has no articles file in Config/ConfigCAS table
+        //    }
+
+        //    int count = configObject.GetInt32(new int[] { 1 }); // количество объектов в составе плана обмена
+
+        //    if (count == 0)
+        //    {
+        //        return articles; // Publication has no articles defined
+        //    }
+
+        //    articles.TrimExcess(count);
+
+        //    int offset = 2;
+
+        //    for (int i = 1; i <= count; i++)
+        //    {
+        //        Guid uuid = configObject.GetUuid(new int[] { i * offset });
+
+        //        AutoPublication setting = (AutoPublication)configObject.GetInt32(new int[] { (i * offset) + 1 });
+
+        //        articles.Add(uuid, setting);
+        //    }
+
+        //    return articles;
+        //}
+        #endregion
+
         #endregion
 
         #region "Колонки таблиц базы данных"

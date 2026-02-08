@@ -21,8 +21,8 @@
         {
             throw new NotImplementedException(); // DefinedType, Enumeration, Property
         }
-        internal abstract string GetMainDbName(); // return string.Format("_{0}{1}", DbName, TypeCode);
-        internal abstract string GetTableNameИзменения(); // return string.Format("_{0}{1}", MetadataToken.ReferenceChngR, _ChngR);
+        internal abstract string GetMainDbName();
+        internal abstract string GetTableNameИзменения();
         internal virtual bool IsChangeTrackingEnabled { get { return false; } }
         public override string ToString()
         {
