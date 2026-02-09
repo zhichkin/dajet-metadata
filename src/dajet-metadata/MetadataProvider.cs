@@ -107,8 +107,13 @@ namespace DaJet.Metadata
                 return entity; // Основная таблица объекта метаданных
             }
 
-            // Табличная часть или таблица регистрации изменений объекта метаданных
-
+            if (table == "Изменения") // Таблица регистрации изменений
+            {
+                return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry, in _loader);
+            }
+            
+            // Табличная часть объекта метаданных
+            
             return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
         public EntityDefinition GetExtensionObject(in string fullName)

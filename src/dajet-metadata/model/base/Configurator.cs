@@ -1,6 +1,9 @@
 ﻿using DaJet.TypeSystem;
+using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
+using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace DaJet.Metadata
 {
@@ -1892,72 +1895,124 @@ namespace DaJet.Metadata
         }
         #endregion
 
-        #region "Состав плана обмена"
-        //public static void ConfigureArticles(in OneDbMetadataProvider cache, in Publication publication)
-        //{
-        //    string tableName = cache.GetConfigTableName(publication.Uuid);
+        private static Dictionary<Guid, AutoPublication> ParsePublicationArticles(ReadOnlySpan<byte> file)
+        {
+            Dictionary<Guid, AutoPublication> articles = new();
 
-        //    string fileName = publication.Uuid.ToString() + ".1"; // файл описания состава плана обмена
+            if (file == ReadOnlySpan<byte>.Empty)
+            {
+                return articles; //NOTE: Таблица состава плана обмена отсутствует
+            }
 
-        //    if (cache.TryGetExtendedInfo(publication.Uuid, out MetadataItemEx item))
-        //    {
-        //        if (item.IsExtensionOwnObject)
-        //        {
-        //            if (cache.Extensions.TryGetValue(item.Extension, out OneDbMetadataProvider extension))
-        //            {
-        //                fileName = extension.Extension.FileMap[fileName];
-        //            }
-        //            else
-        //            {
-        //                return; // This should not happen - extension is not found in the cache!
-        //            }
-        //        }
-        //    }
+            ConfigFileReader reader = new(file);
 
-        //    publication.Articles = GetPublicationArticles(cache.DatabaseProvider, cache.ConnectionString, tableName, fileName);
-        //}
-        //internal static Dictionary<Guid, AutoPublication> GetPublicationArticles(DatabaseProvider provider, string connectionString, string tableName, string fileName)
-        //{
-        //    Dictionary<Guid, AutoPublication> articles = new();
+            int count = reader[2].SeekNumber();
 
-        //    ConfigObject configObject;
+            if (count == 0)
+            {
+                return articles; //NOTE: Состав плана обмена пуст
+            }
 
-        //    using (ConfigFileReader reader = new(provider, connectionString, tableName, fileName))
-        //    {
-        //        configObject = new ConfigFileParser().Parse(reader);
-        //    }
+            articles.EnsureCapacity(count);
 
-        //    if (configObject == null || configObject.Count == 0)
-        //    {
-        //        return articles; // Publication has no articles file in Config/ConfigCAS table
-        //    }
+            uint offset = 2;
 
-        //    int count = configObject.GetInt32(new int[] { 1 }); // количество объектов в составе плана обмена
+            for (uint i = 1; i <= count; i++)
+            {
+                Guid uuid = reader[i * offset + 1].SeekUuid();
 
-        //    if (count == 0)
-        //    {
-        //        return articles; // Publication has no articles defined
-        //    }
+                AutoPublication setting = (AutoPublication)reader[i * offset + 2].SeekNumber();
 
-        //    articles.TrimExcess(count);
+                articles.Add(uuid, setting);
+            }
 
-        //    int offset = 2;
+            articles.TrimExcess();
 
-        //    for (int i = 1; i <= count; i++)
-        //    {
-        //        Guid uuid = configObject.GetUuid(new int[] { i * offset });
+            return articles;
+        }
 
-        //        AutoPublication setting = (AutoPublication)configObject.GetInt32(new int[] { (i * offset) + 1 });
+        internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry, in MetadataLoader loader)
+        {
+            if (entry is Catalog || entry is Document)
+            {
+                return ConfigureChangeTrackingTableForReferenceObject(in entry, in entity, in registry, in loader);
+            }
 
-        //        articles.Add(uuid, setting);
-        //    }
+            return null;
+        }
+        private static EntityDefinition ConfigureChangeTrackingTableForReferenceObject(in MetadataObject entry, in EntityDefinition owner, in MetadataRegistry registry, in MetadataLoader loader)
+        {
+            if (!entry.IsChangeTrackingEnabled)
+            {
+                return null; // Данный объект не включён в состав какого-либо плана обмена
+            }
 
-        //    return articles;
-        //}
+            EntityDefinition changes = new() // Таблица регистрации изменений
+            {
+                Name = "Изменения",
+                DbName = entry.GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+            };
+
+            ConfigurePropertyУзелПланаОбмена(in changes);
+            ConfigurePropertyНомерСообщения(in changes);
+            ConfigurePropertyСсылка(in changes, entry.Code);
+
+            foreach (PropertyDefinition property in owner.Properties)
+            {
+                if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    changes.Properties.Add(property);
+                }
+            }
+
+            if (entry.IsExtension) // Собственный объект расширения
+            {
+                changes.DbName += "x1"; return changes;
+            }
+
+            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
+            {
+                return changes; // Объект основной конфигурации без заимствований
+            }
+
+            foreach (Guid uuid in borrowed)
+            {
+                if (registry.TryGetEntry(uuid, out MetadataObject mdo))
+                {
+                    Configuration configuration = registry.Configurations[mdo.Cfid];
+
+                    if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
+                    {
+                        foreach (Guid publication in publications)
+                        {
+                            string fileName = string.Format("{0}.1", publication.ToString().ToLowerInvariant());
+                            
+                            if (!registry.TryGetFileName(in fileName, out fileName))
+                            {
+                                throw new InvalidOperationException("File not found!");
+                            }
+
+                            Dictionary<Guid, AutoPublication> articles;
+
+                            using (ConfigFileBuffer file = loader.Load(ConfigTables.ConfigCAS, in fileName))
+                            {
+                                articles = ParsePublicationArticles(file.AsReadOnlySpan());
+                            }
+
+                            if (articles.TryGetValue(uuid, out AutoPublication setting))
+                            {
+                                changes.DbName += "x1"; return changes;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return changes;
+        }
+
         #endregion
-
-        #endregion
-
+        
         #region "Колонки таблиц базы данных"
         internal static void ConfigureDatabaseColumns(in Property metadata, in PropertyDefinition property)
         {
@@ -2113,6 +2168,8 @@ namespace DaJet.Metadata
         #region "Заимствованные объекты расширений"
         internal static void ApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
         {
+            ///THINK: <see cref="EntityDefinition.GetPropertyByColumnName"/>
+
             bool extend = false;
 
             foreach (PropertyDefinition property in borrowed.Properties)

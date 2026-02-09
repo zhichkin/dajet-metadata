@@ -64,17 +64,15 @@ namespace DaJet.Metadata
                         metadata.Code = parent.Code;
                         registry.AddBorrowed(parent.Uuid, metadata.Uuid);
                     }
-                }
 
-                //if (IsExtension) // 1.12.8 = 0 если заимствование отстутствует
-                //{
-                //    _converter[1][12][9] += Parent; // uuid расширяемого объекта метаданных
-                //}
+                    //if (IsExtension) // 1.12.8 = 0 если заимствование отстутствует
+                    //{
+                    //    _converter[1][12][9] += Parent; // uuid расширяемого объекта метаданных
+                    //}
+                }
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
             {
-                //TODO: состав плана обмена
-
                 if (!registry.TryGetEntry(uuid, out Publication entry))
                 {
                     return null; // Идентификатор объекта не найден или не соответствует его типу

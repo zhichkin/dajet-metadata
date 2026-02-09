@@ -44,6 +44,18 @@ namespace DaJet.Metadata.Services
                     {
                         CompareMetadataObjectToDatabase(in tablePart, in logger);
                     }
+
+                    if (name == MetadataNames.Catalog)
+                    {
+                        string fullName = string.Format("{0}.{1}.{2}", MetadataNames.Catalog, entity.Name, "Изменения");
+
+                        EntityDefinition changes = _provider.GetMetadataObject(fullName);
+
+                        if (changes is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in changes, in logger);
+                        }
+                    }
                 }
             }
 

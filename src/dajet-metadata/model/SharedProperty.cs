@@ -64,38 +64,6 @@ namespace DaJet.Metadata
             return string.Format("{0}.{1}", MetadataNames.SharedProperty, Name);
         }
 
-        private static void ParseUsageSettings(ref ConfigFileReader reader, in SharedProperty metadata)
-        {
-            int count = reader.ValueAsNumber; // количество настроек использования общего реквизита
-
-            Guid uuid; // file name объекта метаданных, для которого используется настройка
-            int usage; // значение настройки использования общего реквизита объектом метаданных
-
-            while (count > 0)
-            {
-                _ = reader.Read(); // [2][3][3] uuid настраиваемого объекта метаданных
-
-                uuid = reader.ValueAsUuid; // file name объекта метаданных
-
-                if (uuid == Guid.Empty) { throw new FormatException(); }
-
-                _ = reader.Read(); // [2][3][4] {  Начало объекта настройки
-                _ = reader.Read(); // [2][3][4][1] 2
-                _ = reader.Read(); // [2][3][4][2] 1
-
-                usage = reader.ValueAsNumber; // настройка использования общего реквизита
-
-                if (usage == -1) { throw new FormatException(); }
-
-                _ = reader.Read(); // [2][3][4][3] 00000000-0000-0000-0000-000000000000
-                _ = reader.Read(); // [2][3][4] }  Конец объекта настройки
-
-                metadata.UsageSettings.Add(uuid, (SharedPropertyUsage)usage);
-
-                count--; // Конец чтения настройки для объекта метаданных
-            }
-        }
-
         internal sealed class Parser : ConfigFileParser
         {
             internal override void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry)
@@ -170,6 +138,37 @@ namespace DaJet.Metadata
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
             {
                 throw new NotImplementedException();
+            }
+            private static void ParseUsageSettings(ref ConfigFileReader reader, in SharedProperty metadata)
+            {
+                int count = reader.ValueAsNumber; // количество настроек использования общего реквизита
+
+                Guid uuid; // file name объекта метаданных, для которого используется настройка
+                int usage; // значение настройки использования общего реквизита объектом метаданных
+
+                while (count > 0)
+                {
+                    _ = reader.Read(); // [2][3][3] uuid настраиваемого объекта метаданных
+
+                    uuid = reader.ValueAsUuid; // file name объекта метаданных
+
+                    if (uuid == Guid.Empty) { throw new FormatException(); }
+
+                    _ = reader.Read(); // [2][3][4] {  Начало объекта настройки
+                    _ = reader.Read(); // [2][3][4][1] 2
+                    _ = reader.Read(); // [2][3][4][2] 1
+
+                    usage = reader.ValueAsNumber; // настройка использования общего реквизита
+
+                    if (usage == -1) { throw new FormatException(); }
+
+                    _ = reader.Read(); // [2][3][4][3] 00000000-0000-0000-0000-000000000000
+                    _ = reader.Read(); // [2][3][4] }  Конец объекта настройки
+
+                    metadata.UsageSettings.Add(uuid, (SharedPropertyUsage)usage);
+
+                    count--; // Конец чтения настройки для объекта метаданных
+                }
             }
         }
     }

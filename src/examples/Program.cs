@@ -33,6 +33,8 @@ namespace DaJet
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
+            //ShowChangeTrackingTable();
+
             CompareMetadataToDatabase();
 
             //GetEnumerationNames();
@@ -269,6 +271,22 @@ namespace DaJet
             Console.WriteLine(value.ToString());
             Console.WriteLine();
             Console.WriteLine($"Executed in {elapsed.TotalMilliseconds} ms");
+        }
+
+        private static void ShowChangeTrackingTable()
+        {
+            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_METADATA);
+
+            provider.Initialize();
+
+            // Справочник.Номенклатура.Изменения
+            // Справочник.Заимствованный.Изменения
+            // Справочник.Расш1_Справочник1.Изменения
+
+            string metadataFullName = "Справочник.Расш1_Справочник1.Изменения";
+
+            EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
         }
 
         private static void ShowExtensions()

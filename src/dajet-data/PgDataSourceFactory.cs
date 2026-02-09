@@ -49,7 +49,7 @@ namespace DaJet.Data.PostgreSql
         {
             NpgsqlConnectionStringBuilder builder = new(connectionString);
 
-            string key = string.Format("pgsql:{0}:{1}:{2}",
+            string key = string.Format("{0}:{1}/{2}",
                 builder.Host,
                 builder.Port == 0 ? 5432 : builder.Port,
                 builder.Database).ToLowerInvariant();
