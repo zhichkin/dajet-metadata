@@ -180,8 +180,6 @@ namespace DaJet.Metadata
                 // Если описание типов ссылается на определяемый тип или характеристику,
                 // то используется именно определённый этими объектами тип данных.
 
-                //Configurator.ConfigureDataTypeReferences(in registry, ref type, in references);
-
                 for (int i = 0; i < references.Count; i++)
                 {
                     Guid reference = references[i];
@@ -278,6 +276,9 @@ namespace DaJet.Metadata
         // Внимание!
         // Значения общих ссылочных типов могут комбинироваться друг с другом
         // и конкретными ссылочными типами, в том числе это касается типа ЛюбаяСсылка.
+
+        // ВАЖНО !!! Определяемый тип или тип значения характеристики не могут иметь значения таких типов,
+        // ВАЖНО !!! как ЛюбаяСсылка, СправочникСсылка и тому подобных - только конкретные ссылочные типы.
 
         // NOTE: Lazy-load of DefinedType: recursion is avoided because of the rule #2.
         // NOTE: Lazy-load of Characteristic: recursion is avoided because of the rule #2.
