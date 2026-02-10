@@ -29,6 +29,42 @@ namespace DaJet.Metadata
             return string.Format("{0}.{1}", MetadataNames.Publication, Name);
         }
 
+        internal static Dictionary<Guid, AutoPublication> ParsePublicationArticles(ReadOnlySpan<byte> file)
+        {
+            Dictionary<Guid, AutoPublication> articles = new();
+
+            if (file == ReadOnlySpan<byte>.Empty)
+            {
+                return articles; //NOTE: Таблица состава плана обмена отсутствует
+            }
+
+            ConfigFileReader reader = new(file);
+
+            int count = reader[2].SeekNumber();
+
+            if (count == 0)
+            {
+                return articles; //NOTE: Состав плана обмена пуст
+            }
+
+            articles.EnsureCapacity(count);
+
+            uint offset = 2;
+
+            for (uint i = 1; i <= count; i++)
+            {
+                Guid uuid = reader[i * offset + 1].SeekUuid();
+
+                AutoPublication setting = (AutoPublication)reader[i * offset + 2].SeekNumber();
+
+                articles.Add(uuid, setting);
+            }
+
+            articles.TrimExcess();
+
+            return articles;
+        }
+
         internal sealed class Parser : ConfigFileParser
         {
             internal override void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry)

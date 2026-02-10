@@ -31,6 +31,8 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.ChrcChngR, _ChngR);
         }
+        internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
+        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Characteristic, Name);

@@ -125,8 +125,6 @@ namespace DaJet.Metadata
 
                     Configurator.ApplyBorrowedObject(in entity, in extension);
 
-                    //TODO: Проверить вхождение объекта в состав плана обмена расширения
-
                     //TODO: Если объект основной конфигурации имеет реквизит, значением которого является ЛюбаяСсылка,
                     //TODO: и имеются любые расширения, то используются x1-таблицы, даже если такой объект не заимствуется
                 }
@@ -568,6 +566,18 @@ namespace DaJet.Metadata
 
                 InitializeMetadataRegistry(ConfigTables.ConfigCAS, in fileNames, in registry);
             }
+
+            // Инициализация отслеживания изменений для заимствованных объектов расширений
+
+            for (int i = 1; i < registry.Configurations.Count; i++)
+            {
+                Configuration configuration = registry.Configurations[i];
+
+                if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
+                {
+                    InitializeExtensionChangeTracking(in publications, in registry);
+                }
+            }
         }
         private void ParseRootFile(in ExtensionInfo extension, in MetadataRegistry registry)
         {
@@ -676,6 +686,52 @@ namespace DaJet.Metadata
             }
 
             return configuration;
+        }
+        private void InitializeExtensionChangeTracking(in Guid[] publications, in MetadataRegistry registry)
+        {
+            if (publications is null || publications.Length == 0)
+            {
+                return;
+            }
+
+            List<string> fileList = new(publications.Length);
+
+            for (int i = 0; i < publications.Length; i++)
+            {
+                Guid publication = publications[i];
+
+                string fileName = string.Format("{0}.1", publication.ToString().ToLowerInvariant());
+
+                if (registry.TryGetFileName(in fileName, out fileName))
+                {
+                    fileList.Add(fileName);
+                }
+            }
+
+            if (fileList.Count == 0)
+            {
+                return; // Заимствованные планы обмена без расширения состава не имеют соответствующих файлов
+            }
+
+            string[] fileNames = fileList.ToArray();
+
+            Dictionary<Guid, AutoPublication> articles;
+
+            foreach (ConfigFileBuffer file in Stream(ConfigTables.ConfigCAS, fileNames))
+            {
+                articles = Publication.ParsePublicationArticles(file.AsReadOnlySpan());
+
+                foreach (Guid article in articles.Keys)
+                {
+                    if (registry.TryGetEntry(article, out MetadataObject entry))
+                    {
+                        if (entry.IsBorrowed)
+                        {
+                            entry.SetBorrowedChangeTrackingFlag();
+                        }
+                    }
+                }
+            }
         }
     }
 }

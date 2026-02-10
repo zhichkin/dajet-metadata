@@ -106,17 +106,8 @@ namespace DaJet
             return;
         }
 
-        private static void GetMetadataObject(in string metadataFullName)
+        private static void ShowEhtityDefinition(in EntityDefinition metadata)
         {
-            long start = Stopwatch.GetTimestamp();
-
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_ERP);
-            //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
-
-            provider.Initialize();
-
-            EntityDefinition metadata = provider.GetMetadataObjectWithRelations(in metadataFullName);
-
             Console.WriteLine($"Name: {metadata.Name}");
             Console.WriteLine($"DbName: {metadata.DbName}");
 
@@ -126,11 +117,11 @@ namespace DaJet
                 Console.WriteLine($"Name: {property.Name} [{property.Purpose}]");
                 Console.WriteLine($"Type: {property.Type}");
 
-                if (property.Type.IsEntity)
-                {
-                    List<string> types = provider.ResolveReferences(property.References);
-                    Console.WriteLine($"References: {string.Join(',', types)}");
-                }
+                //if (property.Type.IsEntity)
+                //{
+                //    List<string> types = provider.ResolveReferences(property.References);
+                //    Console.WriteLine($"References: {string.Join(',', types)}");
+                //}
 
                 foreach (ColumnDefinition column in property.Columns)
                 {
@@ -151,11 +142,11 @@ namespace DaJet
                     Console.WriteLine($"Name: {property.Name} [{property.Purpose}]");
                     Console.WriteLine($"Type: {property.Type}");
 
-                    if (property.Type.IsEntity)
-                    {
-                        List<string> types = provider.ResolveReferences(property.References);
-                        Console.WriteLine($"References: {string.Join(',', types)}");
-                    }
+                    //if (property.Type.IsEntity)
+                    //{
+                    //    List<string> types = provider.ResolveReferences(property.References);
+                    //    Console.WriteLine($"References: {string.Join(',', types)}");
+                    //}
 
                     foreach (ColumnDefinition column in property.Columns)
                     {
@@ -163,6 +154,19 @@ namespace DaJet
                     }
                 }
             }
+        }
+        private static void GetMetadataObject(in string metadataFullName)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
+
+            provider.Initialize();
+
+            EntityDefinition metadata = provider.GetMetadataObjectWithRelations(in metadataFullName);
+
+            ShowEhtityDefinition(in metadata);
 
             long end = Stopwatch.GetTimestamp();
 
@@ -284,9 +288,11 @@ namespace DaJet
             // Справочник.Заимствованный.Изменения
             // Справочник.Расш1_Справочник1.Изменения
 
-            string metadataFullName = "Справочник.Расш1_Справочник1.Изменения";
+            string metadataFullName = "Справочник.Заимствованный.Изменения";
 
             EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
+
+            ShowEhtityDefinition(in metadata);
         }
 
         private static void ShowExtensions()

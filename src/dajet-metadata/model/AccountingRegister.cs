@@ -42,42 +42,12 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.AccRgChngR, _ChngR);
         }
+        internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
+        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.AccountingRegister, Name);
         }
-
-        //internal override void ConfigureChangeTrackingTable(in EntityDefinition owner)
-        //{
-        //    if (IsChangeTrackingEnabled)
-        //    {
-        //        EntityDefinition changes = new() // Таблица регистрации изменений
-        //        {
-        //            Name = "Изменения",
-        //            DbName = GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
-        //        };
-
-        //        Configurator.ConfigurePropertyУзелПланаОбмена(in changes);
-        //        Configurator.ConfigurePropertyНомерСообщения(in changes);
-
-        //        PropertyDefinition recorder = owner.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
-
-        //        if (recorder is not null)
-        //        {
-        //            changes.Properties.Add(recorder);
-        //        }
-
-        //        foreach (PropertyDefinition property in owner.Properties)
-        //        {
-        //            if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
-        //            {
-        //                changes.Properties.Add(property);
-        //            }
-        //        }
-
-        //        owner.Entities.Add(changes);
-        //    }
-        //}
 
         internal sealed class Parser : ConfigFileParser
         {

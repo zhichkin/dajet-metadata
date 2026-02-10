@@ -38,23 +38,26 @@ namespace DaJet.Metadata.Services
             {
                 foreach (EntityDefinition entity in _provider.GetMetadataObjects(name))
                 {
+                    // Основная талица объекта метаданных
+                    
                     CompareMetadataObjectToDatabase(in entity, in logger);
+
+                    // Табличные части объекта метаданных
 
                     foreach (EntityDefinition tablePart in entity.Entities)
                     {
                         CompareMetadataObjectToDatabase(in tablePart, in logger);
                     }
 
-                    if (name == MetadataNames.Catalog)
+                    // Таблица регистрации изменений объекта метаданных
+
+                    string fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Изменения");
+
+                    EntityDefinition changes = _provider.GetMetadataObject(fullName);
+
+                    if (changes is not null)
                     {
-                        string fullName = string.Format("{0}.{1}.{2}", MetadataNames.Catalog, entity.Name, "Изменения");
-
-                        EntityDefinition changes = _provider.GetMetadataObject(fullName);
-
-                        if (changes is not null)
-                        {
-                            CompareMetadataObjectToDatabase(in changes, in logger);
-                        }
+                        CompareMetadataObjectToDatabase(in changes, in logger);
                     }
                 }
             }

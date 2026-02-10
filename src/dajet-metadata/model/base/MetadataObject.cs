@@ -19,11 +19,12 @@
         internal bool IsBorrowed { get; set; }
         internal virtual void AddDbName(int code, string name)
         {
-            throw new NotImplementedException(); // DefinedType, Enumeration, Property
+            throw new NotImplementedException(); // DefinedType
         }
         internal abstract string GetMainDbName();
         internal abstract string GetTableNameИзменения();
         internal virtual bool IsChangeTrackingEnabled { get { return false; } }
+        internal virtual void SetBorrowedChangeTrackingFlag() { } // 10 объектов из 14 поддерживаемых
         public override string ToString()
         {
             return string.Format("{0}.{1}", GetType().Name, Name);

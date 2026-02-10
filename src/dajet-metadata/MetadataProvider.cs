@@ -109,7 +109,7 @@ namespace DaJet.Metadata
 
             if (table == "Изменения") // Таблица регистрации изменений
             {
-                return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry, in _loader);
+                return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry);
             }
             
             // Табличная часть объекта метаданных

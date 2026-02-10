@@ -1,9 +1,6 @@
 ﻿using DaJet.TypeSystem;
-using Microsoft.Extensions.Logging;
-using Microsoft.Win32;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
-using static System.Runtime.CompilerServices.RuntimeHelpers;
 
 namespace DaJet.Metadata
 {
@@ -1895,53 +1892,13 @@ namespace DaJet.Metadata
         }
         #endregion
 
-        private static Dictionary<Guid, AutoPublication> ParsePublicationArticles(ReadOnlySpan<byte> file)
+        internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
-            Dictionary<Guid, AutoPublication> articles = new();
-
-            if (file == ReadOnlySpan<byte>.Empty)
+            if (entry.IsBorrowed)
             {
-                return articles; //NOTE: Таблица состава плана обмена отсутствует
+                throw new InvalidOperationException(); // Только для основных и собственных объектов
             }
 
-            ConfigFileReader reader = new(file);
-
-            int count = reader[2].SeekNumber();
-
-            if (count == 0)
-            {
-                return articles; //NOTE: Состав плана обмена пуст
-            }
-
-            articles.EnsureCapacity(count);
-
-            uint offset = 2;
-
-            for (uint i = 1; i <= count; i++)
-            {
-                Guid uuid = reader[i * offset + 1].SeekUuid();
-
-                AutoPublication setting = (AutoPublication)reader[i * offset + 2].SeekNumber();
-
-                articles.Add(uuid, setting);
-            }
-
-            articles.TrimExcess();
-
-            return articles;
-        }
-
-        internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry, in MetadataLoader loader)
-        {
-            if (entry is Catalog || entry is Document)
-            {
-                return ConfigureChangeTrackingTableForReferenceObject(in entry, in entity, in registry, in loader);
-            }
-
-            return null;
-        }
-        private static EntityDefinition ConfigureChangeTrackingTableForReferenceObject(in MetadataObject entry, in EntityDefinition owner, in MetadataRegistry registry, in MetadataLoader loader)
-        {
             if (!entry.IsChangeTrackingEnabled)
             {
                 return null; // Данный объект не включён в состав какого-либо плана обмена
@@ -1949,15 +1906,77 @@ namespace DaJet.Metadata
 
             EntityDefinition changes = new() // Таблица регистрации изменений
             {
-                Name = "Изменения",
-                DbName = entry.GetTableNameИзменения() //TODO: (extended ? "x1" : string.Empty)
+                Name = string.Format("{0}.{1}", entry.ToString(), "Изменения"),
+                DbName = entry.GetTableNameИзменения()
             };
 
             ConfigurePropertyУзелПланаОбмена(in changes);
             ConfigurePropertyНомерСообщения(in changes);
-            ConfigurePropertyСсылка(in changes, entry.Code);
 
-            foreach (PropertyDefinition property in owner.Properties)
+            if (entry is Constant)
+            {
+                ConfigurePropertyConstID(in changes);
+            }
+            else if (entry is AccumulationRegister || entry is AccountingRegister)
+            {
+                PropertyDefinition recorder = entity.Properties
+                    .Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+                if (recorder is not null)
+                {
+                    changes.Properties.Add(recorder);
+                }
+            }
+            else if (entry is InformationRegister register)
+            {
+                if (register.UseRecorder) // Регистр, подчинённый регистратору
+                {
+                    PropertyDefinition recorder = entity.Properties
+                        .Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+                    if (recorder is not null)
+                    {
+                        changes.Properties.Add(recorder);
+                    }
+                }
+                else if (register.Periodicity != RegisterPeriodicity.None) // Периодический регистр сведений
+                {
+                    if (register.UsePeriodForChangeTracking)
+                    {
+                        PropertyDefinition period = entity.Properties
+                            .Where(p => p.Name == "Период").FirstOrDefault();
+
+                        if (period is not null)
+                        {
+                            changes.Properties.Add(period);
+                        }
+                    }
+
+                    foreach (PropertyDefinition property in entity.Properties)
+                    {
+                        if (property.Purpose.IsDimension() && property.Purpose.UseForChangeTracking())
+                        {
+                            changes.Properties.Add(property);
+                        }
+                    }
+                }
+                else // Непериодический и независимый регистр сведений
+                {
+                    foreach (PropertyDefinition property in entity.Properties)
+                    {
+                        if (property.Purpose.IsDimension() && property.Purpose.UseForChangeTracking())
+                        {
+                            changes.Properties.Add(property);
+                        }
+                    }
+                }
+            }
+            else // Account, Catalog, Document, Characteristic, BusinessProcess, BusinessTask
+            {
+                ConfigurePropertyСсылка(in changes, entry.Code);
+            }
+
+            foreach (PropertyDefinition property in entity.Properties)
             {
                 if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
                 {
@@ -1977,42 +1996,20 @@ namespace DaJet.Metadata
 
             foreach (Guid uuid in borrowed)
             {
-                if (registry.TryGetEntry(uuid, out MetadataObject mdo))
+                if (registry.TryGetEntry(uuid, out MetadataObject extension))
                 {
-                    Configuration configuration = registry.Configurations[mdo.Cfid];
-
-                    if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
+                    if (extension.IsChangeTrackingEnabled)
                     {
-                        foreach (Guid publication in publications)
-                        {
-                            string fileName = string.Format("{0}.1", publication.ToString().ToLowerInvariant());
-                            
-                            if (!registry.TryGetFileName(in fileName, out fileName))
-                            {
-                                throw new InvalidOperationException("File not found!");
-                            }
-
-                            Dictionary<Guid, AutoPublication> articles;
-
-                            using (ConfigFileBuffer file = loader.Load(ConfigTables.ConfigCAS, in fileName))
-                            {
-                                articles = ParsePublicationArticles(file.AsReadOnlySpan());
-                            }
-
-                            if (articles.TryGetValue(uuid, out AutoPublication setting))
-                            {
-                                changes.DbName += "x1"; return changes;
-                            }
-                        }
+                        changes.DbName += "x1"; return changes;
                     }
                 }
             }
-            
+
             return changes;
         }
 
         #endregion
-        
+
         #region "Колонки таблиц базы данных"
         internal static void ConfigureDatabaseColumns(in Property metadata, in PropertyDefinition property)
         {
