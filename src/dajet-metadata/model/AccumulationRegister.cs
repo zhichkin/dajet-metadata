@@ -138,21 +138,21 @@ namespace DaJet.Metadata
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 root[0] = 7; // Коллекция реквизитов
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 root[0] = 8; // Коллекция измерений
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 return table;

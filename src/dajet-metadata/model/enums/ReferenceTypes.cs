@@ -1,5 +1,6 @@
 ﻿using DaJet.TypeSystem;
 using System.Collections.Frozen;
+using System.Runtime.CompilerServices;
 
 namespace DaJet.Metadata
 {
@@ -35,6 +36,11 @@ namespace DaJet.Metadata
             BusinessTask,
             BusinessProcess
         };
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal static bool IsGenericReference(Guid reference)
+        {
+            return (reference == AnyReference || AllReferenceTypes.Contains(reference));
+        }
 
         private static readonly FrozenDictionary<Guid, string> GenericReferenceLookup = CreateGenericReferenceLookup();
         private static FrozenDictionary<Guid, string> CreateGenericReferenceLookup()
@@ -60,6 +66,32 @@ namespace DaJet.Metadata
             }
 
             return string.Empty;
+        }
+
+        private static readonly FrozenDictionary<Guid, GenericExtensionFlags> GenericExtensionFlagsLookup = CreateGenericExtensionFlagsLookup();
+        private static FrozenDictionary<Guid, GenericExtensionFlags> CreateGenericExtensionFlagsLookup()
+        {
+            List<KeyValuePair<Guid, GenericExtensionFlags>> list = new()
+            {
+                new KeyValuePair<Guid, GenericExtensionFlags>(Account, GenericExtensionFlags.Account),
+                new KeyValuePair<Guid, GenericExtensionFlags>(Catalog, GenericExtensionFlags.Catalog),
+                new KeyValuePair<Guid, GenericExtensionFlags>(Document, GenericExtensionFlags.Document),
+                new KeyValuePair<Guid, GenericExtensionFlags>(Enumeration, GenericExtensionFlags.Enumeration),
+                new KeyValuePair<Guid, GenericExtensionFlags>(Publication, GenericExtensionFlags.Publication),
+                new KeyValuePair<Guid, GenericExtensionFlags>(Characteristic, GenericExtensionFlags.Characteristic),
+                new KeyValuePair<Guid, GenericExtensionFlags>(BusinessTask, GenericExtensionFlags.BusinessTask),
+                new KeyValuePair<Guid, GenericExtensionFlags>(BusinessProcess, GenericExtensionFlags.BusinessProcess)
+            };
+            return FrozenDictionary.ToFrozenDictionary(list);
+        }
+        internal static GenericExtensionFlags GetGenericExtensionFlag(Guid generic)
+        {
+            if (GenericExtensionFlagsLookup.TryGetValue(generic, out GenericExtensionFlags flag))
+            {
+                return flag;
+            }
+
+            return GenericExtensionFlags.None;
         }
     }
 }

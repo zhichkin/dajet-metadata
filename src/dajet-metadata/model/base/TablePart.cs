@@ -37,9 +37,8 @@ namespace DaJet.Metadata
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void Parse(ref ConfigFileReader reader, uint root,
-            in EntityDefinition ownerEntity, in MetadataObject ownerEntry,
-            in MetadataRegistry registry, bool relations)
+        internal static void Parse(ref ConfigFileReader reader, uint root, in MetadataRegistry registry,
+            in MetadataObject ownerEntry, in EntityDefinition ownerEntity)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
             int count = reader[root][2].SeekNumber(); // количество элементов коллекции
@@ -87,7 +86,7 @@ namespace DaJet.Metadata
 
                     if (reader[vector][ConfigFileToken.StartObject].Seek())
                     {
-                        Property.Parse(ref reader, vector, in table, in registry, relations);
+                        Property.Parse(ref reader, vector, in registry, entry, in table);
                     }
                 }
             }

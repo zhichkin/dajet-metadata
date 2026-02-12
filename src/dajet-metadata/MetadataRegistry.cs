@@ -14,6 +14,7 @@ namespace DaJet.Metadata
         ///</summary>
         internal int Version { get; set; }
 
+        private uint _generic_extension_flags;
         private readonly Dictionary<int, Guid> _type_codes = new();
         private readonly Dictionary<Guid, MetadataObject> _registry = new();
         private readonly ConcurrentDictionary<Guid, Guid> _references = new();
@@ -251,6 +252,15 @@ namespace DaJet.Metadata
             return _register_recorders.TryGetValue(register, out recorders);
         }
 
+        internal int GetTypeCode(Guid uuid)
+        {
+            if (!_registry.TryGetValue(uuid, out MetadataObject entry))
+            {
+                return -1;
+            }
+
+            return entry.Code;
+        }
         internal int GetGenericTypeCode(Guid generic)
         {
             string name = ReferenceType.GetMetadataName(generic);
@@ -293,15 +303,22 @@ namespace DaJet.Metadata
 
             return typeCode;
         }
-
-        internal int GetTypeCode(Guid uuid)
+        
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void SetGenericExtensionFlag(GenericExtensionFlags flag)
         {
-            if (!_registry.TryGetValue(uuid, out MetadataObject entry))
+            _ = Interlocked.Or(ref _generic_extension_flags, (uint)flag);
+        }
+        internal bool HasGenericExtensionFlag(Guid generic)
+        {
+            if (generic == ReferenceType.AnyReference)
             {
-                return -1;
+                return _generic_extension_flags != (uint)GenericExtensionFlags.None;
             }
+            
+            GenericExtensionFlags flag = ReferenceType.GetGenericExtensionFlag(generic);
 
-            return entry.Code;
+            return (_generic_extension_flags & (uint)flag) == (uint)flag;
         }
 
         internal bool TryGetEntry(Guid uuid, [MaybeNullWhen(false)] out MetadataObject entry)

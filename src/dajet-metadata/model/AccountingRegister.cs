@@ -113,21 +113,21 @@ namespace DaJet.Metadata
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations, entry);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 root[0] = 6; // Коллекция ресурсов
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations, entry);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 root[0] = 8; // Коллекция реквизитов
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations, entry);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 //NOTE: для таблицы ЗначенияСубконто (_AccRgED) обратная логика:

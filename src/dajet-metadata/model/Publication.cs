@@ -91,6 +91,11 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Publication, metadata.Name, uuid);
+
+                    if (metadata.IsExtension) // Собственный объект расширения
+                    {
+                        registry.SetGenericExtensionFlag(GenericExtensionFlags.Publication);
+                    }
                 }
                 else // Заимствованный объект расширения
                 {
@@ -137,20 +142,25 @@ namespace DaJet.Metadata
                 Configurator.ConfigurePropertyНомерПринятого(in table);
                 Configurator.ConfigurePropertyПредопределённый(in table, true, registry.Version);
 
+                if (registry.Version >= 80323)
+                {
+                    Configurator.ConfigurePropertyДатаОбмена(in table);
+                }
+                
                 uint root = 4; // Коллекция свойств объекта
 
                 uint[] vector = [root];
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, vector, in table, in registry, relations);
+                    Property.Parse(ref reader, vector, in registry, entry, in table);
                 }
 
                 root = 6; // Коллекция табличных частей объекта
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    TablePart.Parse(ref reader, root, in table, entry, in registry, relations);
+                    TablePart.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 return table;

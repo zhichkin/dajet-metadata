@@ -67,6 +67,11 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.BusinessProcess, metadata.Name, uuid);
+
+                    if (metadata.IsExtension) // Собственный объект расширения
+                    {
+                        registry.SetGenericExtensionFlag(GenericExtensionFlags.BusinessProcess);
+                    }
                 }
                 else // Заимствованный объект расширения
                 {
@@ -152,14 +157,14 @@ namespace DaJet.Metadata
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, root, in table, in registry, relations);
+                    Property.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 uint offset = 8; // Коллекция табличных частей объекта
 
                 if (reader[offset][ConfigFileToken.StartObject].Seek())
                 {
-                    TablePart.Parse(ref reader, offset, in table, entry, in registry, relations);
+                    TablePart.Parse(ref reader, offset, in registry, entry, in table);
                 }
 
                 return table;

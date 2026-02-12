@@ -74,6 +74,11 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Account, metadata.Name, uuid);
+
+                    if (metadata.IsExtension) // Собственный объект расширения
+                    {
+                        registry.SetGenericExtensionFlag(GenericExtensionFlags.Account);
+                    }
                 }
                 else // Заимствованный объект расширения
                 {
@@ -148,28 +153,28 @@ namespace DaJet.Metadata
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
                 {
-                    TablePart.Parse(ref reader, root, in table, entry, in registry, relations);
+                    TablePart.Parse(ref reader, root, in registry, entry, in table);
                 }
 
                 uint[] offset = [8]; // Коллекция реквизитов
 
                 if (reader[offset][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, offset, in table, in registry, relations);
+                    Property.Parse(ref reader, offset, in registry, entry, in table);
                 }
 
                 offset[0] = 9; // Коллекция признаков учёта
 
                 if (reader[offset][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, offset, in table, in registry, relations);
+                    Property.Parse(ref reader, offset, in registry, entry, in table);
                 }
 
                 offset[0] = 10; // Коллекция признаков учёта субконто
 
                 if (reader[offset][ConfigFileToken.StartObject].Seek())
                 {
-                    Property.Parse(ref reader, offset, in table, in registry, relations);
+                    Property.Parse(ref reader, offset, in registry, entry, in table);
                 }
 
                 List<PropertyDefinition> dimensions = new();

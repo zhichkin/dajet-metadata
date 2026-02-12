@@ -56,6 +56,11 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Enumeration, metadata.Name, uuid);
+
+                    if (metadata.IsExtension) // Собственный объект расширения
+                    {
+                        registry.SetGenericExtensionFlag(GenericExtensionFlags.Enumeration);
+                    }
                 }
                 else // Заимствованный объект расширения
                 {

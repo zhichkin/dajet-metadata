@@ -67,34 +67,6 @@ namespace DaJet.Metadata
             return ReferenceTypeTokens.Contains(token);
         }
 
-        private static readonly FrozenDictionary<string, Func<Guid, MetadataObject>> MainEntryTokens = CreateMainEntryTokenLookup();
-        private static FrozenDictionary<string, Func<Guid, MetadataObject>> CreateMainEntryTokenLookup()
-        {
-            List<KeyValuePair<string, Func<Guid, MetadataObject>>> list =
-            [
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.VT, TablePart.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Fld, Property.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Acc, Account.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Enum, Enumeration.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Chrc, Characteristic.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Node, Publication.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.BPr, BusinessProcess.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Task, BusinessTask.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Const, Constant.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Document, Document.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.Reference, Catalog.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccRg, AccountingRegister.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.InfoRg, InformationRegister.Create),
-                new KeyValuePair<string, Func<Guid, MetadataObject>>(MetadataToken.AccumRg, AccumulationRegister.Create)
-            ];
-            return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
-        }
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static bool TryGetMetadataObjectFactory(in string token, out Func<Guid, MetadataObject> factory)
-        {
-            return MainEntryTokens.TryGetValue(token, out factory);
-        }
-
         private static readonly FrozenDictionary<Guid, Func<Guid, MetadataObject>> MainEntryFactories = CreateMainEntryFactoryLookup();
         private static FrozenDictionary<Guid, Func<Guid, MetadataObject>> CreateMainEntryFactoryLookup()
         {
@@ -1836,6 +1808,27 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
+        internal static void ConfigurePropertyДатаОбмена(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "ДатаОбмена",
+                Purpose = PropertyPurpose.System
+            };
+
+            property.Type = DataType.DateTime;
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_LastUpdate",
+                    Type = property.Type
+                }
+            };
+
+            table.Properties.Add(property);
+        }
 
         #region "Таблица регистрации изменений"
         internal static void ConfigurePropertyУзелПланаОбмена(in EntityDefinition table)
@@ -2162,18 +2155,20 @@ namespace DaJet.Metadata
         }
         #endregion
 
+        #region "Логика расширения объектов основной конфигурации"
+
         #region "Заимствованные объекты расширений"
-        internal static void ApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
+        internal static bool TryApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
         {
             ///THINK: <see cref="EntityDefinition.GetPropertyByColumnName"/>
 
-            bool extend = false;
+            bool extended = false;
 
             foreach (PropertyDefinition property in borrowed.Properties)
             {
                 if (!PropertyExists(main.Properties, property.Name))
                 {
-                    main.Properties.Add(property); extend = true;
+                    main.Properties.Add(property); extended = true;
                 }
             }
             
@@ -2185,25 +2180,17 @@ namespace DaJet.Metadata
                     {
                         if (!PropertyExists(table.Properties, property.Name))
                         {
-                            table.Properties.Add(property); extend = true;
+                            table.Properties.Add(property); extended = true;
                         }
                     }
                 }
                 else
                 {
-                    main.Entities.Add(test); extend = true;
+                    main.Entities.Add(test); extended = true;
                 }
             }
 
-            if (extend)
-            {
-                main.DbName += "x1";
-
-                foreach (EntityDefinition table in main.Entities)
-                {
-                    table.DbName += "x1";
-                }
-            }
+            return extended;
         }
         private static bool PropertyExists(in List<PropertyDefinition> list, in string name)
         {
@@ -2249,6 +2236,64 @@ namespace DaJet.Metadata
 
             return false;
         }
+        #endregion
+
+        //NOTE: Если объект основной конфигурации имеет реквизит (в том числе в табличной части),
+        //NOTE: значением которого является ЛюбаяСсылка или подобное, и имеются любые расширения, 
+        //NOTE: где есть СОБСТВЕННЫЕ ссылочные объекты метаданных, то используются x1-таблицы.
+        //NOTE: Это верно для такого объекта даже если он не заимствуется.
+        //NOTE: Логика здесь такая, что в реквизит могут записать значение ссылки из расширения,
+        //NOTE: а значит расширяют таким образом тип данных реквизита основного объекта.
+
+        internal static bool TryApplyGenericDataTypeExtension(in EntityDefinition main, in MetadataRegistry registry)
+        {
+            if (!registry.HasGenericExtensionFlag(ReferenceType.AnyReference))
+            {
+                return false; // Собственных ссылочных объектов расширений нет
+            }
+
+            List<Guid> references;
+
+            foreach (PropertyDefinition property in main.Properties)
+            {
+                references = property.References;
+
+                if (references is not null)
+                {
+                    foreach (Guid reference in references)
+                    {
+                        if (ReferenceType.IsGenericReference(reference) &&
+                            registry.HasGenericExtensionFlag(reference))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            foreach (EntityDefinition table in main.Entities)
+            {
+                foreach (PropertyDefinition property in table.Properties)
+                {
+                    references = property.References;
+
+                    if (references is not null)
+                    {
+                        foreach (Guid reference in references)
+                        {
+                            if (ReferenceType.IsGenericReference(reference) &&
+                                registry.HasGenericExtensionFlag(reference))
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         #endregion
     }
 }

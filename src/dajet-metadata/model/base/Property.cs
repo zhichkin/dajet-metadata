@@ -27,8 +27,7 @@ namespace DaJet.Metadata
         }
 
         internal static void Parse(ref ConfigFileReader reader, ReadOnlySpan<uint> root,
-            in EntityDefinition table, in MetadataRegistry registry,
-            bool relations = false, in MetadataObject owner = null)
+            in MetadataRegistry registry, in MetadataObject owner, in EntityDefinition table)
         {
             Guid type = reader[root][1].SeekUuid(); // идентификатор типа коллекции
             int count = reader[root][2].SeekNumber(); // количество элементов коллекции
@@ -48,15 +47,13 @@ namespace DaJet.Metadata
 
                 if (reader[vector][ConfigFileToken.StartObject].Seek())
                 {
-                    ParseProperty(type, ref reader, vector, in table, in registry, relations, in owner);
+                    ParseProperty(type, ref reader, vector, in registry, in owner, in table);
                 }
             }
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void ParseProperty(Guid type,
-            ref ConfigFileReader reader, ReadOnlySpan<uint> root,
-            in EntityDefinition table, in MetadataRegistry registry,
-            bool relations = false, in MetadataObject owner = null)
+        private static void ParseProperty(Guid type, ref ConfigFileReader reader, ReadOnlySpan<uint> root,
+            in MetadataRegistry registry, in MetadataObject owner, in EntityDefinition table)
         {
             // Свойство объекта:
             // -----------------
@@ -105,10 +102,7 @@ namespace DaJet.Metadata
 
                 property.Type = DataTypeParser.Parse(ref reader, offset, in registry, out List<Guid> references);
 
-                if (relations)
-                {
-                    property.References = references;
-                }
+                property.References = references;
             }
 
             bool IsDebitAndCredit = false;

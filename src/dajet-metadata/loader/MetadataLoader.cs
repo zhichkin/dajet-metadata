@@ -90,8 +90,20 @@ namespace DaJet.Metadata
             using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
                 entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
+            }
 
-                if (entry.IsExtension) // Собственный объект расширения
+            if (entry.IsExtension) // Собственный объект расширения
+            {
+                entity.DbName += "x1";
+
+                foreach (EntityDefinition table in entity.Entities)
+                {
+                    table.DbName += "x1";
+                }
+            }
+            else if (entry.IsMain)
+            {
+                if (Configurator.TryApplyGenericDataTypeExtension(in entity, in registry))
                 {
                     entity.DbName += "x1";
 
@@ -100,37 +112,40 @@ namespace DaJet.Metadata
                         table.DbName += "x1";
                     }
                 }
-            }
-
-            if (entry.IsMain && registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
-            {
-                tableName = ConfigTables.ConfigCAS;
-
-                foreach (Guid uuid in borrowed)
+                else if (registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
                 {
-                    fileName = uuid.ToString().ToLowerInvariant();
+                    bool extended = false;
 
-                    if (!registry.TryGetFileName(in fileName, out fileName))
+                    tableName = ConfigTables.ConfigCAS;
+
+                    foreach (Guid uuid in borrowed)
                     {
-                        throw new InvalidOperationException();
+                        fileName = uuid.ToString().ToLowerInvariant();
+
+                        if (!registry.TryGetFileName(in fileName, out fileName))
+                        {
+                            throw new InvalidOperationException();
+                        }
+
+                        EntityDefinition extension;
+
+                        using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                        {
+                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                        }
+
+                        extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
                     }
 
-                    EntityDefinition extension;
-
-                    using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                    if (extended)
                     {
-                        extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                        entity.DbName += "x1";
+
+                        foreach (EntityDefinition table in entity.Entities)
+                        {
+                            table.DbName += "x1";
+                        }
                     }
-
-                    Configurator.ApplyBorrowedObject(in entity, in extension);
-
-                    //TODO: Если объект основной конфигурации имеет реквизит (в том числе в табличной части),
-                    //TODO: значением которого является ЛюбаяСсылка или подобное, и имеются любые расширения, 
-                    //TODO: где есть СОБСТВЕННЫЕ ссылочные объекты метаданных, то используются x1-таблицы.
-                    //TODO: Это верно для такого объекта даже если он не заимствуется.
-                    //TODO: Логика здесь такая, что в реквизит могут записать значение ссылки из расширения,
-                    //TODO: а значит расширяют таким образом тип данных реквизита основного объекта.
-                    //TODO: Наличие ссылок в расширении влияет на множественность значения реквизита!
                 }
             }
 
@@ -540,7 +555,8 @@ namespace DaJet.Metadata
 
             InitializeDBNamesExt(in registry);
 
-            // Подготавливаем список файлов таблицы ConfigCAS для инициализации объектов метаданных
+            // Подготавливаем список файлов ConfigCAS для каждого расширения
+            // и инициализируем объекты метаданных в общем реестре метаданных
 
             for (int c = 1; c < registry.Configurations.Count; c++)
             {
