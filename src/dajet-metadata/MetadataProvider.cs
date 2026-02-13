@@ -72,7 +72,37 @@ namespace DaJet.Metadata
         {
             return _loader.GetExtensions();
         }
+        public List<Configuration> GetConfigurations()
+        {
+            return _registry.Configurations;
+        }
+        public Configuration GetConfiguration(in string name = null)
+        {
+            if (string.IsNullOrEmpty(name))
+            {
+                return _registry.Configurations[0]; // Основная конфигурация
+            }
 
+            foreach (Configuration configuration in _registry.Configurations)
+            {
+                if (configuration.Name == name)
+                {
+                    return configuration;
+                }
+            }
+
+            return null;
+        }
+        
+        public EntityDefinition GetMetadataObject(int typeCode)
+        {
+            if (!_registry.TryGetEntry(typeCode, out MetadataObject entry))
+            {
+                return null;
+            }
+
+            return GetMetadataObject(entry.ToString());
+        }
         public EntityDefinition GetMetadataObject(in string fullName)
         {
             string type = string.Empty;
@@ -116,16 +146,55 @@ namespace DaJet.Metadata
             
             return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
-        public EntityDefinition GetExtensionObject(in string fullName)
-        {
-            throw new NotImplementedException(); //TODO: Отображение в интерфейсе пользователя
-        }
         public IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
         {
             foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
             {
                 yield return _loader.Load(in typeName, in entry, in _registry);
             }
+        }
+        public List<string> GetMetadataNames(in string configurationName, in string typeName)
+        {
+            Configuration configuration = GetConfiguration(in configurationName);
+
+            if (configuration is null)
+            {
+                return new List<string>();
+            }
+
+            Guid type = MetadataLookup.GetMetadataType(in typeName);
+
+            if (type == Guid.Empty)
+            {
+                return new List<string>();
+            }
+
+            if (!configuration.Metadata.TryGetValue(type, out Guid[] items))
+            {
+                return new List<string>();
+            }
+
+            if (items is null || items.Length == 0)
+            {
+                return new List<string>();
+            }
+
+            List<string> names = new(items.Length);
+
+            foreach (Guid uuid in items)
+            {
+                if (_registry.TryGetEntry(uuid, out MetadataObject entry))
+                {
+                    names.Add(entry.Name);
+                }
+            }
+            
+            return names;
+        }
+
+        public List<string> ResolveReferences(in List<Guid> references)
+        {
+            return _registry.ResolveReferences(in references);
         }
 
         public Guid GetEnumerationValue(in string fullName)
@@ -158,73 +227,7 @@ namespace DaJet.Metadata
 
             return entry.Values;
         }
-        public List<string> GetEnumerationNames()
-        {
-            if (!_registry.TryGetMetadataNames(MetadataNames.Enumeration, out Dictionary<string, Guid> items))
-            {
-                return new List<string>();
-            }
-
-            List<string> names = new(items.Count);
-
-            foreach (string name in items.Keys)
-            {
-                names.Add(name);
-            }
-
-            return names;
-        }
-
-        public List<string> ResolveReferences(in List<Guid> references)
-        {
-            return _registry.ResolveReferences(in references);
-        }
-        public EntityDefinition GetMetadataObjectWithRelations(in string fullName)
-        {
-            string type = string.Empty;
-            string name = string.Empty;
-            string table = string.Empty;
-
-            int dot = fullName.IndexOf('.');
-
-            if (dot > 0)
-            {
-                type = fullName[..dot];
-                name = fullName[(dot + 1)..];
-            }
-
-            dot = name.IndexOf('.');
-
-            if (dot > 0)
-            {
-                table = name[(dot + 1)..];
-                name = name[..dot];
-            }
-
-            if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
-            {
-                return _loader.GetDbTableSchema(fullName); // Обычная таблица базы данных
-            }
-
-            EntityDefinition entity = _loader.LoadWithRelations(in type, entry.Uuid, in _registry);
-
-            if (string.IsNullOrEmpty(table))
-            {
-                return entity; // Основная таблица объекта метаданных
-            }
-
-            // Табличная часть или таблица регистрации изменений объекта метаданных
-
-            return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
-        }
-        public IEnumerable<EntityDefinition> GetMetadataObjectsWithRelations(string typeName)
-        {
-            foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
-            {
-                yield return _loader.LoadWithRelations(in typeName, entry.Uuid, in _registry);
-            }
-        }
-
+        
         public string CompareMetadataToDatabase(List<string> names = null)
         {
              return new MetadataComparer(this, _loader).CompareMetadataToDatabase(names);

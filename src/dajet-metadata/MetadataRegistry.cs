@@ -321,6 +321,16 @@ namespace DaJet.Metadata
             return (_generic_extension_flags & (uint)flag) == (uint)flag;
         }
 
+        internal bool TryGetEntry(int code, [MaybeNullWhen(false)] out MetadataObject entry)
+        {
+            if (!_type_codes.TryGetValue(code, out Guid uuid))
+            {
+                entry = null;
+                return false;
+            }
+
+            return TryGetEntry(uuid, out entry);
+        }
         internal bool TryGetEntry(Guid uuid, [MaybeNullWhen(false)] out MetadataObject entry)
         {
             return _registry.TryGetValue(uuid, out entry);
@@ -362,28 +372,6 @@ namespace DaJet.Metadata
             return value is not null;
         }
 
-        internal bool TryGetMetadataNames(in string type, out Dictionary<string, Guid> items)
-        {
-            return _names.TryGetValue(type, out items);
-        }
-        internal IEnumerable<MetadataObject> GetMetadataObjects(string type)
-        {
-            if (!_names.TryGetValue(type, out Dictionary<string, Guid> items))
-            {
-                yield break;
-            }
-
-            foreach (KeyValuePair<string, Guid> item in items)
-            {
-                if (TryGetEntry(item.Value, out MetadataObject entry))
-                {
-                    yield return entry;
-                }
-            }
-        }
-        
-
-        
         internal IEnumerable<T> GetMetadataObjects<T>() where T : MetadataObject
         {
             string name = MetadataLookup.GetMetadataName(typeof(T));
@@ -405,6 +393,26 @@ namespace DaJet.Metadata
                     yield return entry;
                 }
             }
+        }
+        internal IEnumerable<MetadataObject> GetMetadataObjects(string type)
+        {
+            if (!_names.TryGetValue(type, out Dictionary<string, Guid> items))
+            {
+                yield break;
+            }
+
+            foreach (KeyValuePair<string, Guid> item in items)
+            {
+                if (TryGetEntry(item.Value, out MetadataObject entry))
+                {
+                    yield return entry;
+                }
+            }
+        }
+
+        internal bool TryGetMetadataNames(in string type, out Dictionary<string, Guid> items)
+        {
+            return _names.TryGetValue(type, out items);
         }
 
         internal List<string> ResolveReferences(in List<Guid> references)

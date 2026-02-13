@@ -33,6 +33,11 @@ namespace DaJet
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
+            GetMetadataNames(); return;
+
+            //GetEnumerationNames(); return;
+            //GetEnumerationValues("Перечисление.ЭлементыСтруктурыОтчета"); return;
+
             //ShowChangeTrackingTable();
 
             CompareMetadataToDatabase();
@@ -106,7 +111,7 @@ namespace DaJet
             return;
         }
 
-        private static void ShowEhtityDefinition(in EntityDefinition metadata)
+        private static void ShowEhtityDefinition(in EntityDefinition metadata, in MetadataProvider provider)
         {
             Console.WriteLine($"Name: {metadata.Name}");
             Console.WriteLine($"DbName: {metadata.DbName}");
@@ -117,11 +122,11 @@ namespace DaJet
                 Console.WriteLine($"Name: {property.Name} [{property.Purpose}]");
                 Console.WriteLine($"Type: {property.Type}");
 
-                //if (property.Type.IsEntity)
-                //{
-                //    List<string> types = provider.ResolveReferences(property.References);
-                //    Console.WriteLine($"References: {string.Join(',', types)}");
-                //}
+                if (property.Type.IsEntity)
+                {
+                    List<string> types = provider.ResolveReferences(property.References);
+                    Console.WriteLine($"References: {string.Join(',', types)}");
+                }
 
                 foreach (ColumnDefinition column in property.Columns)
                 {
@@ -142,11 +147,11 @@ namespace DaJet
                     Console.WriteLine($"Name: {property.Name} [{property.Purpose}]");
                     Console.WriteLine($"Type: {property.Type}");
 
-                    //if (property.Type.IsEntity)
-                    //{
-                    //    List<string> types = provider.ResolveReferences(property.References);
-                    //    Console.WriteLine($"References: {string.Join(',', types)}");
-                    //}
+                    if (property.Type.IsEntity)
+                    {
+                        List<string> types = provider.ResolveReferences(property.References);
+                        Console.WriteLine($"References: {string.Join(',', types)}");
+                    }
 
                     foreach (ColumnDefinition column in property.Columns)
                     {
@@ -164,9 +169,10 @@ namespace DaJet
 
             provider.Initialize();
 
-            EntityDefinition metadata = provider.GetMetadataObjectWithRelations(in metadataFullName);
+            //EntityDefinition metadata = provider.GetMetadataObject(63);
+            EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
 
-            ShowEhtityDefinition(in metadata);
+            ShowEhtityDefinition(in metadata, in provider);
 
             long end = Stopwatch.GetTimestamp();
 
@@ -238,11 +244,22 @@ namespace DaJet
             Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
         }
 
+        private static void GetMetadataNames()
+        {
+            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
+
+            List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
+
+            foreach (string name in names)
+            {
+                Console.WriteLine(name);
+            }
+        }
         private static void GetEnumerationNames()
         {
             MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
 
-            List<string> names = provider.GetEnumerationNames();
+            List<string> names = provider.GetMetadataNames(null, MetadataNames.Enumeration);
 
             foreach (string name in names)
             {
@@ -292,7 +309,7 @@ namespace DaJet
 
             EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
 
-            ShowEhtityDefinition(in metadata);
+            ShowEhtityDefinition(in metadata, in provider);
         }
 
         private static void ShowExtensions()

@@ -153,36 +153,7 @@ namespace DaJet.Metadata
 
             return entity;
         }
-        internal EntityDefinition LoadWithRelations(in string type, Guid uuid, in MetadataRegistry registry)
-        {
-            if (!ConfigFileParser.TryGetParser(in type, out ConfigFileParser parser))
-            {
-                return null;
-            }
-
-            EntityDefinition definition;
-
-            string tableName;
-            string identifier = uuid.ToString().ToLowerInvariant();
-
-            if (!registry.TryGetFileName(identifier, out string fileName))
-            {
-                fileName = identifier;
-                tableName = ConfigTables.Config;
-            }
-            else
-            {
-                tableName = ConfigTables.ConfigCAS;
-            }
-
-            using (ConfigFileBuffer file = Load(in tableName, in fileName))
-            {
-                definition = parser.Load(uuid, file.AsReadOnlySpan(), in registry, true);
-            }
-
-            return definition;
-        }
-
+        
         private sealed class ConfigFileBatchWork
         {
             internal Guid EntryType;
