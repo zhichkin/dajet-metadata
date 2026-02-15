@@ -143,20 +143,8 @@ namespace DaJet.Metadata
         }
 
         #region "PRIVATE INTERFACE"
+        private void Reset() { Initialize(true); }
         private void EnsureInitialized() { Initialize(); }
-        private void Reset()
-        {
-            long elapsed = ElapsedSinceLastUpdate;
-
-            // Обновление реестра метаданных:
-            // 1. Реестр ещё ни одного разу не обновлялся.
-            // 2. Реестр обновлялся более 10 секунд назад.
-
-            if (elapsed == 0L || elapsed > 10000L)
-            {
-                Initialize(true);
-            }
-        }
         private void Initialize(bool reset = false)
         {
             if (!reset && IsInitialized) { return; }

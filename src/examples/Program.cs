@@ -29,7 +29,9 @@ namespace DaJet
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
-            TestMetadataCache(); return;
+            //TestResetFromAnotherThread(); return;
+
+            //TestMetadataCache(); return;
 
             //GetMetadataObject("Справочник.Номенклатура"); return;
 
@@ -346,7 +348,14 @@ namespace DaJet
 
             EntityDefinition entity = provider.GetMetadataObject("Справочник.Номенклатура");
 
-            Console.WriteLine(entity.ToString());
+            if (entity is null)
+            {
+                Console.WriteLine("Metadata object not found [Справочник.Номенклатура]");
+            }
+            else
+            {
+                Console.WriteLine(entity.ToString());
+            }
 
             Console.WriteLine($"Elapsed before Reset {provider.ElapsedSinceLastUpdate}");
 
@@ -374,7 +383,7 @@ namespace DaJet
                 {
                     entity = provider.GetMetadataObject("Справочник.Номенклатура");
 
-                    if (entity.Properties.Count == 0)
+                    if (entity is null)
                     {
                         throw new Exception("Таблица не найдена");
                     }
@@ -392,6 +401,64 @@ namespace DaJet
             }
 
             Console.WriteLine(entity.ToString());
+        }
+        private static void TestResetFromAnotherThread()
+        {
+            string cacheKey = "MS_METADATA";
+
+            MetadataProvider.Add(in cacheKey, DataSourceType.SqlServer, MS_METADATA);
+
+            Task[] tasks = new Task[2];
+
+            tasks[0] = Task.Run(ThreadOne);
+            tasks[1] = Task.Run(ThreadTwo);
+
+            Task.WaitAll(tasks);
+
+            MetadataProvider provider = MetadataProvider.Get(in cacheKey);
+
+            Console.WriteLine($"[{Environment.CurrentManagedThreadId}] {provider.ElapsedSinceLastUpdate}");
+        }
+        private static void ThreadOne()
+        {
+            string cacheKey = "MS_METADATA";
+
+            MetadataProvider provider = MetadataProvider.Get(in cacheKey);
+
+            EntityDefinition entity;
+            do
+            {
+                entity = provider.GetMetadataObject("Справочник.Номенклатура");
+
+                if (entity is null)
+                {
+                    Console.WriteLine($"[{Environment.CurrentManagedThreadId}] Metadata object not found");
+
+                    Console.WriteLine($"[{Environment.CurrentManagedThreadId}] {provider.ElapsedSinceLastUpdate}");
+
+                    Task.Delay(TimeSpan.FromSeconds(3)).Wait();
+                }
+            }
+            while (entity is null);
+
+            Console.WriteLine($"[{Environment.CurrentManagedThreadId}] {entity}");
+        }
+        private static void ThreadTwo()
+        {
+            string cacheKey = "MS_METADATA";
+
+            MetadataProvider provider = MetadataProvider.Get(in cacheKey);
+
+            while (provider.ElapsedSinceLastUpdate < 10000L)
+            {
+                Task.Delay(TimeSpan.FromSeconds(1)).Wait();
+
+                Console.WriteLine($"[{Environment.CurrentManagedThreadId}] {provider.ElapsedSinceLastUpdate}");
+            }
+
+            MetadataProvider.Reset(in cacheKey);
+
+            Console.WriteLine($"[{Environment.CurrentManagedThreadId}] Reset");
         }
     }
 }

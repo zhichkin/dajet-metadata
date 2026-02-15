@@ -252,11 +252,7 @@ namespace DaJet.Metadata
         private const string SELECT_TABLE_SCHEMA_SCRIPT = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @tableName;";
         internal override EntityDefinition GetDbTableSchema(in string tableName)
         {
-            EntityDefinition table = new()
-            {
-                Name = tableName,
-                DbName = tableName
-            };
+            EntityDefinition table = null;
 
             using (SqlConnection connection = new(_connectionString))
             {
@@ -272,17 +268,27 @@ namespace DaJet.Metadata
                     
                     using (SqlDataReader reader = command.ExecuteReader())
                     {
-                        while (reader.Read())
+                        if (reader.HasRows)
                         {
-                            PropertyDefinition property = new()
+                            table = new EntityDefinition()
                             {
-                                Name = reader.GetString(0)
+                                Name = tableName,
+                                DbName = tableName
                             };
 
-                            //TODO: configure property DataType
+                            while (reader.Read())
+                            {
+                                PropertyDefinition property = new()
+                                {
+                                    Name = reader.GetString(0)
+                                };
 
-                            table.Properties.Add(property);
+                                //TODO: configure property DataType
+
+                                table.Properties.Add(property);
+                            }
                         }
+                        
                         reader.Close();
                     }
                 }
