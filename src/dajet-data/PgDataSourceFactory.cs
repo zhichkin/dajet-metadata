@@ -1,5 +1,7 @@
 ﻿using Npgsql;
+using System.Collections.Concurrent;
 using System.Data.Common;
+using System.Security.Cryptography;
 using System.Text;
 using System.Web;
 
@@ -8,7 +10,7 @@ namespace DaJet.Data.PostgreSql
     public sealed class PgDataSourceFactory : DataSourceFactory
     {
         private static readonly object _cache_lock = new();
-        private static readonly Dictionary<string, NpgsqlDataSource> _cache = new();
+        private static readonly ConcurrentDictionary<string, NpgsqlDataSource> _cache = new();
         static PgDataSourceFactory()
         {
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
@@ -33,7 +35,7 @@ namespace DaJet.Data.PostgreSql
 
                 source = new NpgsqlDataSourceBuilder(connectionString).Build();
 
-                _cache.Add(cacheKey, source);
+                _ = _cache.TryAdd(cacheKey, source);
             }
             finally
             {
@@ -47,14 +49,11 @@ namespace DaJet.Data.PostgreSql
         }
         private static string CreateCacheKey(in string connectionString)
         {
-            NpgsqlConnectionStringBuilder builder = new(connectionString);
+            string cacheKey = connectionString.ToLowerInvariant();
 
-            string key = string.Format("{0}:{1}/{2}",
-                builder.Host,
-                builder.Port == 0 ? 5432 : builder.Port,
-                builder.Database).ToLowerInvariant();
+            cacheKey = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(cacheKey)));
 
-            return key;
+            return cacheKey;
         }
         private static string BuildConnectionString(in Uri uri)
         {

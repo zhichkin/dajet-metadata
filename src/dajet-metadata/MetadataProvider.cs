@@ -1,22 +1,86 @@
 ﻿using DaJet.Data;
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
+using System.Collections.Concurrent;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DaJet.Metadata
 {
     public sealed class MetadataProvider
     {
+        #region "STATIC CACHE"
+
         private static readonly object _cache_lock = new();
-        private static readonly Dictionary<string, MetadataProvider> _cache = new();
-        public static MetadataProvider GetOrCreate(DataSourceType dataSource, in string connectionString)
+        private static readonly ConcurrentDictionary<string, MetadataProvider> _cache = new();
+        public static MetadataProvider Create(DataSourceType dataSource, in string connectionString)
         {
-            return GetOrCreateProvider(in connectionString, dataSource, in connectionString);
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            MetadataProvider provider = new(dataSource, in connectionString);
+
+            provider.EnsureInitialized();
+
+            return provider;
         }
-        private static MetadataProvider GetOrCreateProvider(in string cacheKey, DataSourceType dataSource, in string connectionString)
+        public static void Add(in string cacheKey, DataSourceType dataSource, in string connectionString)
         {
-            if (_cache.TryGetValue(cacheKey, out MetadataProvider provider))
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            bool locked = false;
+
+            try
             {
-                return provider; // fast path - return existing resource
+                Monitor.Enter(_cache_lock, ref locked);
+
+                MetadataProvider provider = new(dataSource, in connectionString);
+
+                if (!_cache.TryAdd(cacheKey, provider))
+                {
+                    //THINK: provider.Dispose();
+                }
+            }
+            finally
+            {
+                if (locked)
+                {
+                    Monitor.Exit(_cache_lock);
+                }
+            }
+        }
+        public static MetadataProvider Get(in string cacheKey)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+
+            if (!_cache.TryGetValue(cacheKey, out MetadataProvider provider))
+            {
+                return null;
+            }
+
+            provider.EnsureInitialized();
+
+            return provider;
+        }
+        public static MetadataProvider GetOrCreate(DataSourceType dataSource, in string connectionString, out string cacheKey)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            cacheKey = connectionString.ToLowerInvariant();
+            cacheKey = Convert.ToHexString(SHA1.HashData(Encoding.UTF8.GetBytes(cacheKey)));
+
+            return GetOrCreate(in cacheKey, dataSource, in connectionString);
+        }
+        public static MetadataProvider GetOrCreate(in string cacheKey, DataSourceType dataSource, in string connectionString)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            MetadataProvider provider = Get(cacheKey);
+
+            if (provider is not null)
+            {
+                return provider; // fast path - return existing provider
             }
 
             bool locked = false;
@@ -25,18 +89,18 @@ namespace DaJet.Metadata
             {
                 Monitor.Enter(_cache_lock, ref locked);
 
-                if (_cache.TryGetValue(cacheKey, out provider))
+                provider = Get(cacheKey);
+
+                if (provider is not null)
                 {
                     return provider; // double-checking
                 }
 
-                // long path - create new resource
+                // long path - create new initialized provider
 
-                provider = new MetadataProvider(dataSource, in connectionString);
+                provider = Create(dataSource, in connectionString);
 
-                provider.Initialize(); // initialize resource - is not thread safe
-
-                _cache.Add(cacheKey, provider);
+                _ = _cache.TryAdd(cacheKey, provider); // add provider to the cache
             }
             finally
             {
@@ -48,13 +112,108 @@ namespace DaJet.Metadata
 
             return provider;
         }
+        public static void Reset(in string cacheKey)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
 
-        private MetadataRegistry _registry;
+            if (_cache.TryGetValue(cacheKey, out MetadataProvider provider))
+            {
+                provider.Reset();
+            }
+        }
+        public static void Remove(in string cacheKey)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+
+            if (_cache.TryRemove(cacheKey, out MetadataProvider provider))
+            {
+                //TODO: notify provider users ?
+            }
+        }
+
+        #endregion
+
         private readonly MetadataLoader _loader;
-        public MetadataProvider(DataSourceType dataSource, in string connectionString)
+
+        private long _lastUpdate = 0L; // milliseconds
+        private MetadataRegistry _registry;
+        internal MetadataProvider(DataSourceType dataSource, in string connectionString)
         {
             _loader = MetadataLoader.Create(dataSource, in connectionString);
         }
+
+        #region "PRIVATE INTERFACE"
+        private void EnsureInitialized() { Initialize(); }
+        private void Reset()
+        {
+            long elapsed = ElapsedSinceLastUpdate;
+
+            // Обновление реестра метаданных:
+            // 1. Реестр ещё ни одного разу не обновлялся.
+            // 2. Реестр обновлялся более 10 секунд назад.
+
+            if (elapsed == 0L || elapsed > 10000L)
+            {
+                Initialize(true);
+            }
+        }
+        private void Initialize(bool reset = false)
+        {
+            if (!reset && IsInitialized) { return; }
+
+            bool locked = false;
+
+            try
+            {
+                Monitor.Enter(this, ref locked);
+
+                if (!reset && IsInitialized) { return; }
+
+                _registry = _loader.CreateMetadataRegistry();
+
+                RefreshLastUpdateValue();
+            }
+            finally
+            {
+                if (locked)
+                {
+                    Monitor.Exit(this);
+                }
+            }
+        }
+        private bool IsInitialized { get { return _registry is not null; } }
+        private void ThrowIfNotInitialized()
+        {
+            if (_registry is null)
+            {
+                throw new InvalidOperationException("Metadata provider is not initialized");
+            }
+        }
+        private void RefreshLastUpdateValue()
+        {
+            if (IntPtr.Size == 8) // x64
+            {
+                _lastUpdate = Environment.TickCount64;
+            }
+            else // x32
+            {
+                Volatile.Write(ref _lastUpdate, Environment.TickCount64);
+            }
+        }
+        public long ElapsedSinceLastUpdate
+        {
+            get
+            {
+                long lastUpdate = IntPtr.Size == 8 ? _lastUpdate : Volatile.Read(ref _lastUpdate);
+
+                long elapsed = lastUpdate == 0L ? lastUpdate : (Environment.TickCount64 - lastUpdate);
+
+                return elapsed;
+            }
+        }
+        #endregion
+
+        #region "PUBLIC INTERFACE"
         public void Dump(in string tableName, in string fileName, in string outputPath)
         {
             _loader.Dump(in tableName, in fileName, in outputPath);
@@ -64,20 +223,28 @@ namespace DaJet.Metadata
             _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
 
-        public void Initialize()
+        public int GetYearOffset()
         {
-            _registry = _loader.GetMetadataRegistry();
+            ThrowIfNotInitialized();
+
+            return _registry.YearOffset;
         }
         public List<ExtensionInfo> GetExtensions()
         {
+            ThrowIfNotInitialized();
+
             return _loader.GetExtensions();
         }
         public List<Configuration> GetConfigurations()
         {
+            ThrowIfNotInitialized();
+
             return _registry.Configurations;
         }
         public Configuration GetConfiguration(in string name = null)
         {
+            ThrowIfNotInitialized();
+
             if (string.IsNullOrEmpty(name))
             {
                 return _registry.Configurations[0]; // Основная конфигурация
@@ -96,6 +263,8 @@ namespace DaJet.Metadata
         
         public EntityDefinition GetMetadataObject(int typeCode)
         {
+            ThrowIfNotInitialized();
+
             if (!_registry.TryGetEntry(typeCode, out MetadataObject entry))
             {
                 return null;
@@ -105,6 +274,8 @@ namespace DaJet.Metadata
         }
         public EntityDefinition GetMetadataObject(in string fullName)
         {
+            ThrowIfNotInitialized();
+
             string type = string.Empty;
             string name = string.Empty;
             string table = string.Empty;
@@ -148,6 +319,8 @@ namespace DaJet.Metadata
         }
         public IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
         {
+            ThrowIfNotInitialized();
+
             foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
             {
                 yield return _loader.Load(in typeName, in entry, in _registry);
@@ -155,6 +328,8 @@ namespace DaJet.Metadata
         }
         public List<string> GetMetadataNames(in string configurationName, in string typeName)
         {
+            ThrowIfNotInitialized();
+
             Configuration configuration = GetConfiguration(in configurationName);
 
             if (configuration is null)
@@ -194,11 +369,15 @@ namespace DaJet.Metadata
 
         public List<string> ResolveReferences(in List<Guid> references)
         {
+            ThrowIfNotInitialized();
+
             return _registry.ResolveReferences(in references);
         }
 
         public Guid GetEnumerationValue(in string fullName)
         {
+            ThrowIfNotInitialized();
+
             string[] names = fullName.Split('.');
 
             if (!_registry.TryGetEntry(names[0], names[1], out Enumeration entry))
@@ -210,6 +389,8 @@ namespace DaJet.Metadata
         }
         public Dictionary<string, Guid> GetEnumerationValues(in string fullName)
         {
+            ThrowIfNotInitialized();
+
             int dot = fullName.IndexOf('.');
 
             if (dot < 0)
@@ -230,7 +411,11 @@ namespace DaJet.Metadata
         
         public string CompareMetadataToDatabase(List<string> names = null)
         {
-             return new MetadataComparer(this, _loader).CompareMetadataToDatabase(names);
+            ThrowIfNotInitialized();
+            
+            return new MetadataComparer(this, _loader).CompareMetadataToDatabase(names);
         }
+        
+        #endregion
     }
 }

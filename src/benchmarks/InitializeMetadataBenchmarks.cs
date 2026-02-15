@@ -15,11 +15,6 @@ namespace Benchmark
         private static readonly string PG_UNF = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
         private static readonly string PG_ERP = "Host=localhost;Port=5432;Database=erp_uh;Username=postgres;Password=postgres;";
         
-        private static readonly MetadataProvider ms_unf_provider = new(DataSourceType.SqlServer, in MS_UNF);
-        private static readonly MetadataProvider ms_erp_provider = new(DataSourceType.SqlServer, in MS_ERP);
-        private static readonly MetadataProvider pg_unf_provider = new(DataSourceType.PostgreSql, in PG_UNF);
-        private static readonly MetadataProvider pg_erp_provider = new(DataSourceType.PostgreSql, in PG_ERP);
-
         private class Config : ManualConfig
         {
             public Config()
@@ -33,60 +28,24 @@ namespace Benchmark
         }
 
         [Benchmark(Description = "MS UNF")]
-        public bool InitializeSqlServerUnf()
+        public MetadataProvider InitializeSqlServerUnf()
         {
-            try
-            {
-                ms_unf_provider.Initialize();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            return MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
         }
         [Benchmark(Description = "PG UNF")]
-        public bool InitializePostgreSqlUnf()
+        public MetadataProvider InitializePostgreSqlUnf()
         {
-            try
-            {
-                pg_unf_provider.Initialize();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            return MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
         }
         [Benchmark(Description = "MS ERP")]
-        public bool InitializeSqlServerErp()
+        public MetadataProvider InitializeSqlServerErp()
         {
-            try
-            {
-                ms_erp_provider.Initialize();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            return MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
         }
         [Benchmark(Description = "PG ERP")]
-        public bool InitializePostgreSqlErp()
+        public MetadataProvider InitializePostgreSqlErp()
         {
-            try
-            {
-                pg_erp_provider.Initialize();
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            return MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
         }
     }
 }

@@ -29,11 +29,13 @@ namespace DaJet
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
+            TestMetadataCache(); return;
+
             //GetMetadataObject("Справочник.Номенклатура"); return;
 
             //IterateMetadataObjects(MetadataNames.Catalog); return;
 
-            GetMetadataNames(); return;
+            //GetMetadataNames(); return;
 
             //GetEnumerationNames(); return;
             //GetEnumerationValues("Перечисление.ЭлементыСтруктурыОтчета"); return;
@@ -75,7 +77,7 @@ namespace DaJet
         private static void DumpFile()
         {
             string fileName = "2b870ec1-271d-450b-abe0-ae78dd11fa23";
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}.txt");
 
             //string fileName = "DBSchema";
@@ -106,7 +108,7 @@ namespace DaJet
         private static void DumpRawFile()
         {
             string fileName = "2b870ec1-271d-450b-abe0-ae78dd11fa23";
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             provider.DumpRaw("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}_raw.txt");
             return;
         }
@@ -164,10 +166,8 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
-
-            provider.Initialize();
 
             //EntityDefinition metadata = provider.GetMetadataObject(63);
             EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
@@ -184,9 +184,7 @@ namespace DaJet
 
         private static void IterateMetadataObjects(string type)
         {
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_ERP);
-
-            provider.Initialize();
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
 
             int count = 0;
 
@@ -210,12 +208,12 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_METADATA);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
 
             List<string> metadataNames = new()
             {
@@ -246,7 +244,7 @@ namespace DaJet
 
         private static void GetMetadataNames()
         {
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
 
             List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
 
@@ -257,7 +255,7 @@ namespace DaJet
         }
         private static void GetEnumerationNames()
         {
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
 
             List<string> names = provider.GetMetadataNames(null, MetadataNames.Enumeration);
 
@@ -268,7 +266,7 @@ namespace DaJet
         }
         private static void GetEnumerationValues(in string fullName)
         {
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
 
             Dictionary<string, Guid> values = provider.GetEnumerationValues(in fullName);
 
@@ -279,7 +277,7 @@ namespace DaJet
         }
         private static void GetEnumerationSingleValue(in string fullName)
         {
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
 
             long start = Stopwatch.GetTimestamp();
 
@@ -296,10 +294,8 @@ namespace DaJet
 
         private static void ShowChangeTrackingTable()
         {
-            MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
-            //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_METADATA);
-
-            provider.Initialize();
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
 
             // Справочник.Номенклатура.Изменения
             // Справочник.Заимствованный.Изменения
@@ -314,8 +310,8 @@ namespace DaJet
 
         private static void ShowExtensions()
         {
-            //MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
-            MetadataProvider provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, MS_METADATA);
 
             foreach (ExtensionInfo extension in provider.GetExtensions())
             {
@@ -330,6 +326,72 @@ namespace DaJet
                 Console.WriteLine($"- File name: {extension.FileName}");
                 Console.WriteLine("------------------------------");
             }
+        }
+
+        private static void TestMetadataCache()
+        {
+            string cacheKey = "MS_METADATA";
+
+            MetadataProvider.Add(in cacheKey, DataSourceType.SqlServer, MS_METADATA);
+
+            MetadataProvider.Reset(in cacheKey);
+
+            MetadataProvider provider = MetadataProvider.GetOrCreate(in cacheKey, DataSourceType.SqlServer, MS_METADATA);
+
+            //MetadataProvider provider = MetadataProvider.Get(in cacheKey);
+
+            provider = MetadataProvider.Get(in cacheKey);
+
+            Console.WriteLine(provider.ElapsedSinceLastUpdate);
+
+            EntityDefinition entity = provider.GetMetadataObject("Справочник.Номенклатура");
+
+            Console.WriteLine(entity.ToString());
+
+            Console.WriteLine($"Elapsed before Reset {provider.ElapsedSinceLastUpdate}");
+
+            MetadataProvider.Reset(in cacheKey);
+
+            Console.WriteLine($"Elapsed after Reset {provider.ElapsedSinceLastUpdate}");
+
+            Console.WriteLine($"Elapsed before sleep {provider.ElapsedSinceLastUpdate}");
+
+            Thread.Sleep(TimeSpan.FromSeconds(5));
+
+            Console.WriteLine($"Elapsed after sleep {provider.ElapsedSinceLastUpdate}");
+
+            Console.WriteLine($"Elapsed before Reset {provider.ElapsedSinceLastUpdate}");
+
+            MetadataProvider.Reset(in cacheKey);
+
+            Console.WriteLine($"Elapsed after Reset {provider.ElapsedSinceLastUpdate}");
+
+            bool success = false;
+
+            while (!success)
+            {
+                try
+                {
+                    entity = provider.GetMetadataObject("Справочник.Номенклатура");
+
+                    if (entity.Properties.Count == 0)
+                    {
+                        throw new Exception("Таблица не найдена");
+                    }
+
+                    success = true;
+                }
+                catch (Exception error)
+                {
+                    Console.WriteLine($"[ERROR] {error.Message}");
+
+                    Task.Delay(TimeSpan.FromSeconds(3)).Wait();
+
+                    MetadataProvider.Reset(in cacheKey);
+                }
+            }
+
+            Console.WriteLine(entity.ToString());
         }
     }
 }

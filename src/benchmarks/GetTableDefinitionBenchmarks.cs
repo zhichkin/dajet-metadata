@@ -15,19 +15,10 @@ namespace Benchmark
         private static readonly string PG_UNF = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
         private static readonly string PG_ERP = "Host=localhost;Port=5432;Database=erp_uh;Username=postgres;Password=postgres;";
 
-        private static readonly MetadataProvider ms_unf_provider = new(DataSourceType.SqlServer, in MS_UNF);
-        private static readonly MetadataProvider ms_erp_provider = new(DataSourceType.SqlServer, in MS_ERP);
-        private static readonly MetadataProvider pg_unf_provider = new(DataSourceType.PostgreSql, in PG_UNF);
-        private static readonly MetadataProvider pg_erp_provider = new(DataSourceType.PostgreSql, in PG_ERP);
-
-        [GlobalSetup]
-        public void GlobalSetup()
-        {
-            ms_unf_provider.Initialize();
-            pg_unf_provider.Initialize();
-            ms_erp_provider.Initialize();
-            pg_erp_provider.Initialize();
-        }
+        private static readonly MetadataProvider ms_unf_provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+        private static readonly MetadataProvider ms_erp_provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+        private static readonly MetadataProvider pg_unf_provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
+        private static readonly MetadataProvider pg_erp_provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
 
         [Benchmark(Description = "MS UNF")]
         public EntityDefinition SqlServerUnf()

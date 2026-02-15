@@ -10,9 +10,9 @@ namespace DaJet.Data
         private static readonly DataSourceFactory[] _factories = new DataSourceFactory[3];
         static DataSourceFactory()
         {
+            _factories[(int)DataSourceType.Sqlite] = new SqliteDataSourceFactory();
             _factories[(int)DataSourceType.SqlServer] = new MsDataSourceFactory();
             _factories[(int)DataSourceType.PostgreSql] = new PgDataSourceFactory();
-            _factories[(int)DataSourceType.Sqlite] = new SqliteDataSourceFactory();
         }
         public static DataSourceFactory GetFactory(DataSourceType dataSource)
         {

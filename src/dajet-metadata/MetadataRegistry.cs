@@ -13,6 +13,7 @@ namespace DaJet.Metadata
         ///<br>(определяет доступный функционал базы данных)</br>
         ///</summary>
         internal int Version { get; set; }
+        internal int YearOffset { get; set; }
 
         private uint _generic_extension_flags;
         private readonly Dictionary<int, Guid> _type_codes = new();

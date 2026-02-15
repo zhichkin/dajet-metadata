@@ -5,11 +5,11 @@
     /// </summary>
     public enum DataSourceType
     {
+        ///<summary>Sqlite database provider</summary>
+        Sqlite,
         ///<summary>MS SQL Server database provider</summary>
         SqlServer,
         ///<summary>PostgreSQL database provider</summary>
-        PostgreSql,
-        ///<summary>Sqlite database provider</summary>
-        Sqlite
+        PostgreSql
     }
 }

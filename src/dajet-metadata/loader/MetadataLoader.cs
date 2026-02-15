@@ -161,11 +161,13 @@ namespace DaJet.Metadata
             internal string[] FileNames;
             internal MetadataRegistry Registry;
         }
-        internal MetadataRegistry GetMetadataRegistry()
+        internal MetadataRegistry CreateMetadataRegistry()
         {
             MetadataRegistry registry = new();
 
-            // Загружаем главный список объектов метаданных из файла root
+            registry.YearOffset = GetYearOffset();
+
+            // Загружаем реестр объектов метаданных из файла root
 
             Guid root = GetRootFile();
 
@@ -182,7 +184,7 @@ namespace DaJet.Metadata
             
             registry.Configurations.Add(configuration);
 
-            // Заполняем общий реестр метаданных основными объектами метаданных
+            // Заполняем общий реестр метаданных объектами основной конфигурации
 
             foreach (var item in configuration.Metadata)
             {
@@ -659,7 +661,7 @@ namespace DaJet.Metadata
                 configuration = Configuration.Parse(extension.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
-            // Заполняем общий реестр метаданных объектами метаданных расширения
+            // Заполняем общий реестр метаданных объектами расширения
 
             foreach (var item in configuration.Metadata)
             {

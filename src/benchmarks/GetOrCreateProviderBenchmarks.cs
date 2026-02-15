@@ -17,11 +17,6 @@ namespace Benchmark
         private static readonly string PG_UNF = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
         private static readonly string PG_ERP = "Host=localhost;Port=5432;Database=erp_uh;Username=postgres;Password=postgres;";
         
-        private static readonly MetadataProvider ms_unf_provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
-        private static readonly MetadataProvider pg_unf_provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
-        private static readonly MetadataProvider ms_erp_provider = MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
-        private static readonly MetadataProvider pg_erp_provider = MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_ERP);
-
         private class Config : ManualConfig
         {
             public Config()
@@ -37,22 +32,22 @@ namespace Benchmark
         [Benchmark(Description = "MS UNF")]
         public MetadataProvider GetOrCreateSqlServerUnf()
         {
-            return MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_UNF);
+            return MetadataProvider.GetOrCreate("MS_UNF", DataSourceType.SqlServer, in MS_UNF);
         }
         [Benchmark(Description = "PG UNF")]
         public MetadataProvider GetOrCreatePostgreSqlUnf()
         {
-            return MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_UNF);
+            return MetadataProvider.GetOrCreate("PG_UNF", DataSourceType.PostgreSql, in PG_UNF);
         }
         [Benchmark(Description = "MS ERP")]
         public MetadataProvider GetOrCreateSqlServerErp()
         {
-            return MetadataProvider.GetOrCreate(DataSourceType.SqlServer, in MS_ERP);
+            return MetadataProvider.GetOrCreate("MS_ERP", DataSourceType.SqlServer, in MS_ERP);
         }
         [Benchmark(Description = "PG ERP")]
         public MetadataProvider GetOrCreatePostgreSqlErp()
         {
-            return MetadataProvider.GetOrCreate(DataSourceType.PostgreSql, in PG_ERP);
+            return MetadataProvider.GetOrCreate("PG_ERP", DataSourceType.PostgreSql, in PG_ERP);
         }
     }
 }
