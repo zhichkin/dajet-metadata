@@ -6,6 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>DaJet.Data</AssemblyName>
+    <Title>DaJet Data Providers</Title>
+    <Authors>Zhichkin</Authors>
+    <Version>1.0.0</Version>
+    <Copyright>Zhichkin © 2025</Copyright>
+    <Description>DaJet database providers core library</Description>
+    <PackageProjectUrl>https://zhichkin.github.io/</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>

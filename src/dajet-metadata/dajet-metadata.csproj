@@ -13,6 +13,7 @@
     <PackageProjectUrl>https://zhichkin.github.io/</PackageProjectUrl>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Title>DaJet Metadata</Title>
   </PropertyGroup>
 
   <ItemGroup>
