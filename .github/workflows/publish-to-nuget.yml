@@ -1,0 +1,44 @@
+name: Publish to NuGet
+
+on:
+  workflow_dispatch:
+
+env:
+  DOTNET_TARGET: 'net10.0'
+
+jobs:
+  build--pack-and-push:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      id-token: write # enable GitHub OIDC token
+    
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: src
+          sparse-checkout-cone-mode: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+          dotnet-quality: 'ga'
+
+      - name: Build DaJet Metadata
+        working-directory: src/dajet-metadata
+        run: dotnet build --configuration Release
+
+      - name: Pack DaJet Metadata
+        working-directory: src/dajet-metadata
+        run: dotnet pack --configuration Release --no-build --output ./bin/nupkg
+
+      - name: NuGet login (OIDC)
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{secrets.NUGET_USER}}
+    
+      - name: NuGet push
+        run: dotnet nuget push ./bin/nupkg/*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
