@@ -27,17 +27,6 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
-            string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
-
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, MS_UNF);
-
-            Configuration configuration = provider.GetConfiguration();
-
-            Console.WriteLine($"Имя конфигурации     : {configuration.Name}");
-            Console.WriteLine($"Синоним конфигурации : {configuration.Alias}");
-            Console.WriteLine($"Версия платформы     : {configuration.CompatibilityVersion}");
-            Console.WriteLine($"Версия Конфигурации  : {configuration.AppConfigVersion}");
-
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
             //TestResetFromAnotherThread(); return;
