@@ -203,3 +203,51 @@ namespace DaJet.Metadata.Examples
 > Предопределенный
 >  _PredefinedID binary(16)
 ```
+
+### Расшифровка внешних ссылок реквизита справочника
+
+```csharp
+using DaJet.Data;
+using DaJet.Metadata;
+using DaJet.TypeSystem;
+
+namespace DaJet.Metadata.Examples
+{
+    public static class Program
+    {
+        public static void Main(string[] args)
+        {
+            string MS_TEST = "Data Source=server;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            EntityDefinition entity = provider.GetMetadataObject("Справочник.Расш1_Справочник1");
+
+            Console.WriteLine($"{entity.Name} [{entity.DbName}]");
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                Console.WriteLine($"{property.Name}");
+
+                List<string> references = provider.ResolveReferences(property.References);
+
+                foreach (string reference in references)
+                {
+                    Console.WriteLine($"-> {reference}");
+                }
+            }
+        }
+    }
+}
+
+> Расш1_Справочник1 [_Reference712x1]
+> Ссылка
+> ВерсияДанных
+> ПометкаУдаления
+> Код
+> Наименование
+> Предопределенный
+> Реквизит1
+> -> Справочник.Расш1_Справочник2
+> -> Справочник.Заимствованный
+```
