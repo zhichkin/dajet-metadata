@@ -2,6 +2,7 @@
 using DaJet.TypeSystem;
 using Microsoft.Data.SqlClient;
 using System.Data;
+using System.Data.Common;
 
 namespace DaJet.Metadata
 {
@@ -19,6 +20,12 @@ namespace DaJet.Metadata
         {
             _connectionString = connectionString;
         }
+
+        internal override DbConnection CreateConnection()
+        {
+            return new SqlConnection(_connectionString);
+        }
+
         internal override int GetYearOffset()
         {
             using (SqlConnection connection = new(_connectionString))
@@ -296,7 +303,6 @@ namespace DaJet.Metadata
 
             return table;
         }
-
 
         private const string IS_NEW_AGE_EXTENSIONS_SUPPORTED = "SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = '_ExtensionsInfo' AND COLUMN_NAME = '_ExtensionZippedInfo';";
         private const string SELECT_EXTENSIONS_SCRIPT =

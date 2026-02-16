@@ -1,5 +1,6 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
+using System.Data.Common;
 using System.Text;
 
 namespace DaJet.Metadata
@@ -43,6 +44,7 @@ namespace DaJet.Metadata
         }
 
         internal abstract int GetYearOffset();
+        internal abstract DbConnection CreateConnection();
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);

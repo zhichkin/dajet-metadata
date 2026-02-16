@@ -1,8 +1,10 @@
 ﻿using DaJet.Data;
 using DaJet.Data.PostgreSql;
 using DaJet.TypeSystem;
+using Microsoft.Data.SqlClient;
 using Npgsql;
 using System.Data;
+using System.Data.Common;
 using System.Text;
 
 namespace DaJet.Metadata
@@ -21,6 +23,12 @@ namespace DaJet.Metadata
         {
             _source = PgDataSourceFactory.GetDataSource(in connectionString);
         }
+
+        internal override DbConnection CreateConnection()
+        {
+            return _source.CreateConnection();
+        }
+
         internal override int GetYearOffset()
         {
             using (NpgsqlConnection connection = _source.CreateConnection())

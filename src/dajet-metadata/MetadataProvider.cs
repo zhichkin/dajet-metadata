@@ -2,6 +2,7 @@
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
 using System.Collections.Concurrent;
+using System.Data.Common;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -210,6 +211,7 @@ namespace DaJet.Metadata
         {
             _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
+        public DbConnection CreateConnection() { return _loader.CreateConnection(); }
 
         public int GetYearOffset()
         {
