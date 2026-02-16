@@ -68,6 +68,13 @@ namespace DaJet.Metadata.Services
         {
             EntityDefinition table = _loader.GetDbTableSchema(entity.DbName);
 
+            if (table is null)
+            {
+                logger.AppendLine($"Таблица базы данных не найдена: {entity.Name} [{entity.DbName}]");
+
+                return;
+            }
+
             List<string> source = GetEntityColumnNames(in entity); // испытуемый на соответствие эталону
             List<string> target = GetDbTableColumnNames(in table); // эталон (как должно быть в базе данных)
 
