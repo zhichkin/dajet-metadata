@@ -1,4 +1,4 @@
-# DaJet Metadata
+# DaJet Metadata <a href="https://www.nuget.org/packages/DaJet.Metadata"><img width="32" height="32" alt="DaJet Metadata at NuGet" src="https://github.com/user-attachments/assets/579f736b-975b-4657-a813-f26329afbcfb"/></a>
 
 Библиотека для чтения и анализа метаданных из баз данных 1С:Предприятие 8.
 
