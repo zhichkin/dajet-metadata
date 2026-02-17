@@ -26,13 +26,29 @@ jobs:
           dotnet-version: '10.0.x'
           dotnet-quality: 'ga'
 
+      - name: Build DaJet Data
+        working-directory: src/dajet-data
+        run: dotnet build --configuration Release
+
+      - name: Pack DaJet Data
+        working-directory: src/dajet-data
+        run: dotnet pack --configuration Release --no-build --output ../nupkg
+
+      - name: Build DaJet Type System
+        working-directory: src/dajet-type-system
+        run: dotnet build --configuration Release
+
+      - name: Pack DaJet Type System
+        working-directory: src/dajet-type-system
+        run: dotnet pack --configuration Release --no-build --output ../nupkg
+
       - name: Build DaJet Metadata
         working-directory: src/dajet-metadata
         run: dotnet build --configuration Release
 
       - name: Pack DaJet Metadata
         working-directory: src/dajet-metadata
-        run: dotnet pack --configuration Release --no-build --output ./nupkg
+        run: dotnet pack --configuration Release --no-build --output ../nupkg
 
       - name: NuGet login (OIDC)
         uses: NuGet/login@v1
@@ -41,5 +57,5 @@ jobs:
           user: ${{secrets.NUGET_USER}}
     
       - name: NuGet push
-        working-directory: src/dajet-metadata
+        working-directory: src
         run: dotnet nuget push ./nupkg/*.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
