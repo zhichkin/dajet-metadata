@@ -73,6 +73,42 @@ namespace DaJet.Metadata
                 }
             }
         }
+        public static bool TryUpdate(in string cacheKey, DataSourceType dataSource, in string connectionString)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            bool locked = false;
+
+            try
+            {
+                Monitor.Enter(_cache_lock, ref locked);
+
+                if (!_cache.TryGetValue(cacheKey, out MetadataProvider provider))
+                {
+                    return false; // Провайдер не существует - обновление не состоялось
+                }
+
+                if (provider.DataSource == dataSource &&
+                    provider.ConnectionString.CompareTo(connectionString, StringComparison.OrdinalIgnoreCase) == 0)
+                {
+                    return true; // Идемпотентность - считаем, что обновление прошло успешно
+                }
+
+                Remove(in cacheKey); //NOTE: Внутреннее поле _loader класса MetadataProvider является readonly !!!
+
+                provider = new MetadataProvider(dataSource, in connectionString);
+
+                return _cache.TryAdd(cacheKey, provider); // Если добавились, то обновление прошло успешно
+            }
+            finally
+            {
+                if (locked)
+                {
+                    Monitor.Exit(_cache_lock);
+                }
+            }
+        }
         public static MetadataProvider Get(in string cacheKey)
         {
             ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
@@ -151,12 +187,12 @@ namespace DaJet.Metadata
             
             if (_cache.TryRemove(cacheKey, out _))
             {
-                //TODO: notify provider users ?
+                //THINK: notify provider users ?
             }
         }
-        public static List<ProviderInfo> ToList()
+        public static List<MetadataProviderStatus> ToList()
         {
-            List<ProviderInfo> list = new();
+            List<MetadataProviderStatus> list = new();
 
             MetadataProvider provider;
 
@@ -179,7 +215,7 @@ namespace DaJet.Metadata
                     lastUpdated = seconds > int.MaxValue ? int.MaxValue : (int)seconds;
                 }
 
-                list.Add(new ProviderInfo()
+                list.Add(new MetadataProviderStatus()
                 {
                     Name = entry.Key,
                     DataSource = provider.DataSource,

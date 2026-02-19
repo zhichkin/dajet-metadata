@@ -6,7 +6,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>disable</Nullable>
     <AssemblyName>DaJet.Metadata</AssemblyName>
-    <Version>5.0.2</Version>
+    <Version>5.0.3</Version>
     <Authors>Zhichkin</Authors>
     <Description>Library to read 1C:Enterprise 8 metadata from Microsoft SQL Server or PostgreSQL databases.</Description>
     <Copyright>Zhichkin © 2020</Copyright>
@@ -14,6 +14,7 @@
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Title>DaJet Metadata</Title>
+    <PackageReadmeFile>readme.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -21,4 +22,8 @@
     <ProjectReference Include="..\dajet-type-system\dajet-type-system.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="readme.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+  
 </Project>

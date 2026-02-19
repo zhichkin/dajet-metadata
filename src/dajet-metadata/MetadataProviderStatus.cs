@@ -2,7 +2,7 @@
 
 namespace DaJet.Metadata
 {
-    public sealed class ProviderInfo
+    public sealed class MetadataProviderStatus
     {
         public string Name { get; set; }
         public DataSourceType DataSource { get; set; }
