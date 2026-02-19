@@ -50,6 +50,29 @@ namespace DaJet.Metadata
                 }
             }
         }
+        public static bool TryAdd(in string cacheKey, DataSourceType dataSource, in string connectionString)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(connectionString, nameof(connectionString));
+
+            bool locked = false;
+
+            try
+            {
+                Monitor.Enter(_cache_lock, ref locked);
+
+                MetadataProvider provider = new(dataSource, in connectionString);
+
+                return _cache.TryAdd(cacheKey, provider);
+            }
+            finally
+            {
+                if (locked)
+                {
+                    Monitor.Exit(_cache_lock);
+                }
+            }
+        }
         public static MetadataProvider Get(in string cacheKey)
         {
             ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
@@ -125,22 +148,64 @@ namespace DaJet.Metadata
         public static void Remove(in string cacheKey)
         {
             ArgumentNullException.ThrowIfNullOrWhiteSpace(cacheKey, nameof(cacheKey));
-
-            if (_cache.TryRemove(cacheKey, out MetadataProvider provider))
+            
+            if (_cache.TryRemove(cacheKey, out _))
             {
                 //TODO: notify provider users ?
             }
+        }
+        public static List<ProviderInfo> ToList()
+        {
+            List<ProviderInfo> list = new();
+
+            MetadataProvider provider;
+
+            foreach (var entry in _cache)
+            {
+                provider = entry.Value;
+
+                int lastUpdated;
+
+                long elapsed = provider.ElapsedSinceLastUpdate;
+
+                if (elapsed == 0L)
+                {
+                    lastUpdated = 0;
+                }
+                else
+                {
+                    double seconds = TimeSpan.FromMilliseconds(elapsed).TotalSeconds;
+
+                    lastUpdated = seconds > int.MaxValue ? int.MaxValue : (int)seconds;
+                }
+
+                list.Add(new ProviderInfo()
+                {
+                    Name = entry.Key,
+                    DataSource = provider.DataSource,
+                    ConnectionString = provider.ConnectionString,
+                    LastUpdated = lastUpdated,
+                    IsInitialized = provider.IsInitialized
+                });
+            }
+
+            return list;
         }
 
         #endregion
 
         private readonly MetadataLoader _loader;
+        private readonly DataSourceType _dataSource;
+        private readonly string _connectionString;
 
         private long _lastUpdate = 0L; // milliseconds
         private MetadataRegistry _registry;
         internal MetadataProvider(DataSourceType dataSource, in string connectionString)
         {
-            _loader = MetadataLoader.Create(dataSource, in connectionString);
+            _dataSource = dataSource;
+            _connectionString = connectionString;
+
+            _loader = MetadataLoader.Create(_dataSource, in _connectionString);
         }
 
         #region "PRIVATE INTERFACE"
@@ -211,7 +276,12 @@ namespace DaJet.Metadata
         {
             _loader.DumpRaw(in tableName, in fileName, in outputPath);
         }
-        public DbConnection CreateConnection() { return _loader.CreateConnection(); }
+        public DbConnection CreateConnection()
+        {
+            return DataSourceFactory.GetFactory(_dataSource).Create(in _connectionString);
+        }
+        public DataSourceType DataSource { get { return _dataSource; } }
+        public string ConnectionString { get { return _connectionString; } }
 
         public int GetYearOffset()
         {
