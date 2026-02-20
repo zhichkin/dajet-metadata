@@ -90,7 +90,7 @@ namespace DaJet.Metadata
                 // Разрешить разделение итогов
                 metadata.UseSplitter = (reader[2][24].SeekNumber() != 0);
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 if (!registry.TryGetEntry(uuid, out AccountingRegister entry))
                 {

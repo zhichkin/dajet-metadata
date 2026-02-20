@@ -83,7 +83,7 @@ namespace DaJet.Metadata
                 //    _converter[1][1][1][1][11] += Parent; // uuid расширяемого объекта метаданных
                 //}
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 if (!registry.TryGetEntry(uuid, out Constant entry))
                 {
@@ -100,9 +100,9 @@ namespace DaJet.Metadata
 
                 uint[] root = [2, 2, 2, 3]; // Описание типа значения константы
 
-                DataType constantType = DataTypeParser.Parse(ref reader, root, in registry, out _);
+                DataType constantType = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);
 
-                Configurator.ConfigurePropertyЗначение(in table, constantType, in columnName);
+                Configurator.ConfigurePropertyЗначение(in table, constantType, in columnName, in references);
 
                 Configurator.ConfigurePropertyRecordKey(in table);
 

@@ -102,7 +102,7 @@ namespace DaJet.Metadata
                     registry.AddBusinessProcessToTask(task, uuid);
                 }
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 if (!registry.TryGetEntry(uuid, out BusinessProcess entry))
                 {

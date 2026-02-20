@@ -7,7 +7,7 @@ namespace DaJet.Metadata
     internal abstract class ConfigFileParser
     {
         internal abstract void Initialize(ReadOnlySpan<byte> file, in MetadataRegistry registry);
-        internal abstract EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations);
+        internal abstract EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry);
 
         private static readonly FrozenDictionary<Guid, ConfigFileParser> _parsers = CreateConfigFileParsersLookup();
         private static FrozenDictionary<Guid, ConfigFileParser> CreateConfigFileParsersLookup()

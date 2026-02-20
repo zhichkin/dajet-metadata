@@ -99,7 +99,7 @@ namespace DaJet.Metadata
                 // Маска кода (строка)
                 //string CodeMask = reader[2][22].SeekString();
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 if (!registry.TryGetEntry(uuid, out Account entry))
                 {

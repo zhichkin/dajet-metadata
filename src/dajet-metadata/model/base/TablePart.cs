@@ -10,6 +10,11 @@ namespace DaJet.Metadata
             return new TablePart(uuid);
         }
         internal TablePart(Guid uuid) : base(uuid) { }
+        /// <summary>
+        /// Максимальная длина номера строки (от 5 до 9 включительно)
+        /// <br>Изменено, начиная с версии 8.3.27 и выше (было = 5)</br>
+        /// </summary>
+        internal byte LineNumberLength { get; set; } = 5;
 
         private int _LineNo;
         internal override void AddDbName(int code, string name)
@@ -75,6 +80,28 @@ namespace DaJet.Metadata
                         //{
                         //    _converter[0][1][5][1][9] += Parent; // uuid расширяемого объекта метаданных
                         //}
+                    }
+
+                    if (entry is not null && registry.Version >= 80327)
+                    {
+                        int length = 5; // Длина номера строки табличной части (от 5 до 9 включительно)
+
+                        if (type == PropertyTypes.Document_TableParts ||
+                            type == PropertyTypes.BusinessTask_TableParts ||
+                            type == PropertyTypes.BusinessProcess_TableParts ||
+                            type == PropertyTypes.Publication_TableParts ||
+                            type == PropertyTypes.Account_TableParts)
+                        {
+                            length = reader[root][N][1][3].SeekNumber();
+                        }
+                        else if (type == PropertyTypes.Catalog_TableParts || type == PropertyTypes.Characteristic_TableParts)
+                        {
+                            // Вариант использования табличной части для групп и элементов
+                            //entry.TablePartUsage = (PropertyUsage)reader[root][N][1][3].SeekNumber();
+                            length = reader[root][N][1][4].SeekNumber();
+                        }
+
+                        entry.LineNumberLength = (byte)length;
                     }
 
                     if (entry is not null)

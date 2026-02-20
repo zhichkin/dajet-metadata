@@ -119,7 +119,7 @@ namespace DaJet.Metadata
                 //    _converter[1][13][1][15][2] += ExtensionDataTypeDescriptor;
                 //}
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 if (!registry.TryGetEntry(uuid, out Characteristic entry))
                 {

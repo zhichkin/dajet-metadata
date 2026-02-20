@@ -67,6 +67,9 @@ namespace DaJet.Metadata
         ///<summary>Идентификатор коллекции табличных частей задачи</summary>
         internal static Guid BusinessTask_TableParts = new("ee865d4b-a458-48a0-b38f-5a26898feeb0");
 
+        ///<summary>Идентификатор коллекции табличных частей бизнес-процесса</summary>
+        internal static Guid BusinessProcess_TableParts = new("a3fe6537-d787-40f7-8a06-419d2f0c1cfd");
+
         ///<summary>Идентификатор коллекции макетов объекта метаданных</summary>
         internal static Guid Template_Collection = new("3daea016-69b7-4ed4-9453-127911372fe6");
 

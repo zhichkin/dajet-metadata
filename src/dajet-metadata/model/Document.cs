@@ -121,7 +121,7 @@ namespace DaJet.Metadata
                     AddRecorderToRegisters(ref reader, metadata.Uuid, in registry);
                 }
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 EntityDefinition table = new();
 

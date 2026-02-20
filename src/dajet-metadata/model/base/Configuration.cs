@@ -64,7 +64,7 @@ namespace DaJet.Metadata
         /// <summary>
         /// Префикс имён собственных объектов расширения конфигурации
         /// </summary>
-        public string NamePrefix { get; set; }
+        public string NamePrefix { get; set; } = string.Empty;
         /// <summary>
         /// Поддерживать соответствие объектам расширяемой конфигурации по внутренним идентификаторам
         /// <br>Доступен, начиная с версии 8.3.14</br>
@@ -73,7 +73,7 @@ namespace DaJet.Metadata
         /// <summary>
         /// Режим совместимости расширения конфигурации
         /// </summary>
-        public int ExtensionCompatibility { get; set; }
+        public int ExtensionCompatibility { get; set; } = 80306;
 
         #endregion
 
@@ -104,7 +104,7 @@ namespace DaJet.Metadata
         
         #region "Парсер корневого файла конфигурации"
 
-        internal static Configuration Parse(Guid uuid, ReadOnlySpan<byte> fileData, in MetadataRegistry registry)
+        internal static Configuration Parse(Guid uuid, ReadOnlySpan<byte> fileData, byte cfid = 0)
         {
             Configuration configuration = new()
             {
@@ -128,7 +128,7 @@ namespace DaJet.Metadata
 
             // Свойства конфигурации
 
-            ParseConfigurationProperties(ref reader, in configuration);
+            ParseConfigurationProperties(ref reader, in configuration, cfid);
 
             // Реестр объектов конфигурации
 
@@ -141,7 +141,7 @@ namespace DaJet.Metadata
 
             return configuration;
         }
-        private static void ParseConfigurationProperties(ref ConfigFileReader reader, in Configuration configuration)
+        private static void ParseConfigurationProperties(ref ConfigFileReader reader, in Configuration configuration, byte cfid)
         {
             // Наименование конфигурации
             if (reader[4][2][2][2][2][3].Seek()) { configuration.Name = reader.ValueAsString; }
@@ -190,12 +190,12 @@ namespace DaJet.Metadata
             if (reader[4][2][2][42].Seek()) { configuration.SyncCallsMode = (SyncCallsMode)reader.ValueAsNumber; }
 
             // Свойства расширения конфигурации
-            //if (_cache != null && _cache.Extension != null)
-            //{
-            //    _converter[3][1][1][42] += NamePrefix;
-            //    _converter[3][1][1][43] += ExtensionCompatibility;
-            //    _converter[3][1][1][49] += MapMetadataByUuid;
-            //}
+            if (cfid > 0)
+            {
+                if (reader[4][2][2][43].Seek()) { configuration.NamePrefix = reader.ValueAsString; }
+                if (reader[4][2][2][44].Seek()) { configuration.ExtensionCompatibility = reader.ValueAsNumber; }
+                if (reader[4][2][2][50].Seek()) { configuration.MapMetadataByUuid = (reader.ValueAsNumber == 1); }
+            }
         }
         private static void ParsePlatformComponent(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> metadata)
         {
@@ -338,7 +338,7 @@ namespace DaJet.Metadata
 
         #endregion
 
-        internal static Configuration ParsePropertiesOnly(Guid uuid, ReadOnlySpan<byte> fileData)
+        internal static Configuration ParsePropertiesOnly(Guid uuid, ReadOnlySpan<byte> fileData, byte cfid)
         {
             Configuration metadata = new()
             {
@@ -352,7 +352,7 @@ namespace DaJet.Metadata
 
             // Свойства конфигурации
 
-            ParseConfigurationProperties(ref reader, in metadata);
+            ParseConfigurationProperties(ref reader, in metadata, cfid);
 
             return metadata;
         }

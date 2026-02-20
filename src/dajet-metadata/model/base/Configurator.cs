@@ -206,7 +206,7 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
-        internal static void ConfigurePropertyЗначение(in EntityDefinition table, DataType propertyType, in string columnName)
+        internal static void ConfigurePropertyЗначение(in EntityDefinition table, DataType propertyType, in string columnName, in List<Guid> references)
         {
             PropertyDefinition property = new()
             {
@@ -215,14 +215,14 @@ namespace DaJet.Metadata
             };
             property.Type = propertyType;
 
+            if (references is not null && references.Count > 0)
+            {
+                property.References = references;
+            }
+
             ConfigureDatabaseColumns(in property, in columnName);
 
             table.Properties.Add(property);
-
-            //if (cache.ResolveReferences && constant.References is not null && constant.References.Count > 0)
-            //{
-            //    property.References.AddRange(constant.References);
-            //}
         }
         ///<summary>
         ///Идентификатор объекта метаданных "Константа", значение которой было изменено
@@ -293,11 +293,8 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(typeCode);
 
-            //if (options.ResolveReferences)
-            //{
-            //    property.References.Add(metadata.Uuid);
-            //}
-
+            //property.References.Add(metadata.Uuid); self-reference
+            
             property.Columns = new List<ColumnDefinition>(1)
             {
                 new ColumnDefinition()
@@ -412,10 +409,7 @@ namespace DaJet.Metadata
 
             property.Type = DataType.Entity(typeCode);
 
-            //if (options.ResolveReferences)
-            //{
-            //    property.References.Add(metadata.Uuid);
-            //}
+            //property.References.Add(metadata.Uuid); self-reference
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -456,10 +450,10 @@ namespace DaJet.Metadata
                 Purpose = PropertyPurpose.System
             };
 
-            //if (options.ResolveReferences && owners is not null && owners.Count > 0)
-            //{
-            //    property.References.AddRange(owners);
-            //}
+            if (owners is not null && owners.Length > 0)
+            {
+                property.References.AddRange(owners);
+            }
 
             if (owners.Length == 1) // Single type value
             {
@@ -780,15 +774,7 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(); // Предварительно множественная ссылка
 
-            //if (options.ResolveReferences)
-            //{
-            //    property.References.Add(metadata.Uuid);
-            //}
-
-            //if (cache.ResolveReferences && recorders is not null || recorders.Count > 0)
-            //{
-            //    property.References.AddRange(recorders);
-            //}
+            property.References.AddRange(recorders);
 
             if (recorders.Count == 1) // Single type value
             {
@@ -895,10 +881,7 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(); // Предварительно множественная ссылка
 
-            //if (cache.ResolveReferences && processes is not null && processes.Count > 0)
-            //{
-            //    property.References.AddRange(processes);
-            //}
+            property.References.AddRange(processes);
 
             if (processes.Count == 1) // Single type value
             {
@@ -959,10 +942,7 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(); // Предварительно множественная ссылка
 
-            //if (cache.ResolveReferences && processes is not null && processes.Count > 0)
-            //{
-            //    property.References.AddRange(processes);
-            //}
+            property.References.AddRange(processes);
 
             if (processes.Count == 1) // Single type value
             {
@@ -1071,17 +1051,14 @@ namespace DaJet.Metadata
 
             int count = tasks.Count;
 
-            //if (cache.ResolveReferences)
-            //{
-            //    if (count == 1)
-            //    {
-            //        property.References.Add(process.BusinessTask); //NOTE: Единственная задача конфигурации
-            //    }
-            //    else
-            //    {
-            //        property.References.Add(ReferenceTypes.BusinessTask); //NOTE: Любые задачи, которые есть в конфигурации
-            //    }
-            //}
+            if (count == 1)
+            {
+                property.References.Add(task); // Единственная задача конфигурации
+            }
+            else
+            {
+                property.References.Add(ReferenceType.BusinessTask); // Любые задачи, которые есть в конфигурации
+            }
 
             if (count == 1) // Single type value
             {
@@ -1273,10 +1250,7 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(characteristic.Code);
 
-            //if (cache.ResolveReferences)
-            //{
-            //    property.References.Add(dimensionTypesUuid); account.DimensionTypes
-            //}
+            property.References.Add(dimensionTypesUuid); // Значение свойства "DimensionTypes" класса Account
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -1609,44 +1583,12 @@ namespace DaJet.Metadata
         #region "Табличная часть"
         internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in MetadataObject owner)
         {
-            //foreach (TablePart tablePart in aggregate.TableParts)
-            //{
-            //    if (cache.Extension != null && string.IsNullOrEmpty(tablePart.TableName))
-            //    {
-            //        //NOTE (!) Заимствованные из основной конфигурации табличные части в расширениях
-            //        //не имеют системных свойств (они их наследуют), если только они их не переопределяют.
-            //        continue;
-            //    }
-
-            //    if (tablePart.Uuid == Guid.Empty)
-            //    {
-            //        //NOTE: Системная табличная часть, например, "ВидыСубконто" плана счетов
-            //        continue;
-            //    }
-
-            //    ConfigurePropertyСсылка(in cache, in owner, in tablePart);
-            //    ConfigurePropertyКлючСтроки(in tablePart);
-            //    ConfigurePropertyНомерСтроки(in cache, in tablePart);
-            //}
-
             ConfigurePropertyСсылка(in table, in owner);
             ConfigurePropertyКлючСтроки(in table);
             ConfigurePropertyНомерСтроки(in table, in metadata);
         }
         internal static void ConfigurePropertyСсылка(in EntityDefinition table, in MetadataObject owner)
         {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "Ссылка",
-            //    Uuid = Guid.Empty,
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = owner.GetMainDbName() + "_IDRRef"
-            //};
-
-            //property.PropertyType.CanBeReference = true;
-            //property.PropertyType.TypeCode = owner.TypeCode;
-            //property.PropertyType.Reference = owner.Uuid;
-
             PropertyDefinition property = new()
             {
                 Name = "Ссылка",
@@ -1654,23 +1596,7 @@ namespace DaJet.Metadata
             };
             property.Type = DataType.Entity(owner.Code);
 
-            //if (cache.ResolveReferences)
-            //{
-            //    property.References.Add(owner.Uuid);
-            //}
-
-            // Собственная табличная часть расширения, но добавленная к заимствованному объекту основной конфигурации:
-            // в таком случае у заимствованного объекта значения TypeCode и Uuid надо искать в основной конфигурации.
-            // Однако, в данный момент мы находимся в контексте расширения и контекст основной конфигруации недоступен!
-            //if (owner.Parent != Guid.Empty)
-            //{
-            // TODO: нужно реализовать алгоритм разрешения ссылок на заимствованные объекты
-            // в процедуре применения расширения к основной конфиграции!
-
-            //MetadataObject parent = cache.GetMetadataObject(owner.Parent);
-            //}
-
-            //TODO: property.PropertyType.References.Add(new MetadataItem(MetadataTypess.Catalog, owner.Uuid, owner.Name));
+            property.References.Add(owner.Uuid);
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -1686,31 +1612,12 @@ namespace DaJet.Metadata
         }
         internal static void ConfigurePropertyКлючСтроки(in EntityDefinition table)
         {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "KeyField",    // Исправлено на латиницу из-за того, что в некоторых конфигурациях 1С
-            //    Alias = "КлючСтроки", // для реквизитов табличной части иногда используют имя "КлючСтроки".
-            //    Uuid = Guid.Empty,    // Это не запрещено 1С в отличие от имён реквизитов "Ссылка" и "НомерСтроки".
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = "_KeyField"
-            //};
-            //property.PropertyType.IsBinary = true;
-
             PropertyDefinition property = new()
             {
                 Name = "KeyField",
                 Purpose = PropertyPurpose.System
             };
             property.Type = DataType.Binary(4, false);
-
-            //property.Columns.Add(new MetadataColumn()
-            //{
-            //    Name = "_KeyField",
-            //    Length = 4,
-            //    TypeName = "binary",
-            //    KeyOrdinal = 2,
-            //    IsPrimaryKey = true
-            //});
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -1726,32 +1633,12 @@ namespace DaJet.Metadata
         }
         private static void ConfigurePropertyНомерСтроки(in EntityDefinition table, in TablePart metadata)
         {
-            //MetadataProperty property = new()
-            //{
-            //    Name = "НомерСтроки",
-            //    Uuid = Guid.Empty,
-            //    Purpose = PropertyPurpose.System,
-            //    DbName = CreateDbName(dbn.Name, dbn.Code)
-            //};
-            //property.PropertyType.CanBeNumeric = true;
-            //property.PropertyType.NumericKind = NumericKind.UnSigned;
-            //property.PropertyType.NumericPrecision = 5;
-
             PropertyDefinition property = new()
             {
                 Name = "НомерСтроки",
                 Purpose = PropertyPurpose.System
             };
-            //TODO: Начиная с 8.3.27, параметр precision может быть равен 9
-            property.Type = DataType.Decimal(5, 0);
-
-            //property.Columns.Add(new MetadataColumn()
-            //{
-            //    Name = property.DbName,
-            //    Length = 5,
-            //    Precision = 5,
-            //    TypeName = "numeric"
-            //});
+            property.Type = DataType.Decimal(metadata.LineNumberLength, 0);
 
             property.Columns = new List<ColumnDefinition>(1)
             {
@@ -1842,6 +1729,10 @@ namespace DaJet.Metadata
                 Type = DataType.Entity(),
                 Purpose = PropertyPurpose.System
             };
+
+            // Фактически допустимы только ссылки на узлы планов обмена,
+            // в состав которых входит соответствующий объект метаданных
+            //property.References.Add(ReferenceType.Publication);
 
             property.Columns = new List<ColumnDefinition>(2)
             {

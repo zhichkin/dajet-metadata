@@ -75,7 +75,7 @@ namespace DaJet.Metadata
                 //    _converter[1][3][11] += Parent;
                 //}
             }
-            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry, bool relations)
+            internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
                 throw new NotImplementedException();
             }

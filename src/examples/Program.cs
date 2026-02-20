@@ -44,14 +44,14 @@ namespace DaJet
 
             //ShowChangeTrackingTable();
 
-            //CompareMetadataToDatabase();
+            //DumpFile(); return;
+            //DumpRawFile(); return;
+
+            CompareMetadataToDatabase();
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
             //GetEnumerationSingleValue("Перечисление.ВидыОбъектовМаркетплейсов.КодАктивации");
-
-            //DumpFile(); return;
-            //DumpRawFile(); return;
 
             //ShowExtensions();
 
@@ -78,7 +78,7 @@ namespace DaJet
 
         private static void DumpFile()
         {
-            string fileName = "2b870ec1-271d-450b-abe0-ae78dd11fa23";
+            string fileName = "fee259e3-7102-4591-abe1-95ae49703a4b";
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}.txt");
 

@@ -91,7 +91,7 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
-                entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry, false);
+                entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
             if (entry.IsExtension) // Собственный объект расширения
@@ -133,7 +133,7 @@ namespace DaJet.Metadata
 
                         using (ConfigFileBuffer file = Load(in tableName, in fileName))
                         {
-                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry, false);
+                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
                         }
 
                         extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
@@ -179,7 +179,7 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(ConfigTables.Config, rootFile))
             {
-                configuration = Configuration.Parse(root, file.AsReadOnlySpan(), in registry);
+                configuration = Configuration.Parse(root, file.AsReadOnlySpan());
             }
             
             registry.Version = configuration.CompatibilityVersion;
@@ -660,7 +660,7 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(ConfigTables.ConfigCAS, rootFile))
             {
-                configuration = Configuration.Parse(extension.Uuid, file.AsReadOnlySpan(), in registry);
+                configuration = Configuration.Parse(extension.Uuid, file.AsReadOnlySpan(), cfid);
             }
 
             // Заполняем общий реестр метаданных объектами расширения
