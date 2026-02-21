@@ -123,6 +123,17 @@ namespace DaJet.TypeSystem
                 return false;
             }
         }
+        public readonly bool IsReferenceOnlyUnion
+        {
+            get
+            {
+                uint union = (uint)(_types & DataTypeFlags.UnionTypes);
+
+                int count = BitOperations.PopCount(union);
+
+                return (count == 1 && IsEntity && TypeCode == 0);
+            }
+        }
         public readonly bool IsFixed { get { return (_qualifiers & QualifierFlags.Fixed) == QualifierFlags.Fixed; } }
         public readonly bool IsSigned { get { return (_qualifiers & QualifierFlags.UnSigned) == 0; } }
         public readonly bool IsSequential { get { return (_qualifiers & QualifierFlags.Sequential) == QualifierFlags.Sequential; } }
@@ -153,64 +164,71 @@ namespace DaJet.TypeSystem
             }
             else if (IsUnion)
             {
-                view.Append("union(");
-                if (IsBoolean)
+                if (IsReferenceOnlyUnion)
                 {
-                    view.Append(" boolean");
+                    view.Append("entity");
                 }
-                if (IsDecimal)
+                else
                 {
-                    if (IsSigned)
+                    view.Append("union(");
+                    if (IsBoolean)
                     {
-                        view.Append($" decimal({Precision},{Scale})");
+                        view.Append(" boolean");
                     }
-                    else
+                    if (IsDecimal)
                     {
-                        view.Append($" decimal({Precision},{Scale}, unsigned)");
+                        if (IsSigned)
+                        {
+                            view.Append($" decimal({Precision},{Scale})");
+                        }
+                        else
+                        {
+                            view.Append($" decimal({Precision},{Scale},unsigned)");
+                        }
                     }
+                    if (IsDateTime)
+                    {
+                        if (IsDateOnly)
+                        {
+                            view.Append(" date");
+                        }
+                        else if (IsTimeOnly)
+                        {
+                            view.Append(" time");
+                        }
+                        else
+                        {
+                            view.Append(" datetime");
+                        }
+                    }
+                    if (IsString)
+                    {
+                        if (Size == 0)
+                        {
+                            view.Append(" string");
+                        }
+                        else if (IsFixed)
+                        {
+                            view.Append($" string({Size}, fixed)");
+                        }
+                        else
+                        {
+                            view.Append($" string({Size})");
+                        }
+                    }
+                    if (IsEntity)
+                    {
+                        if (TypeCode > 0)
+                        {
+                            view.Append($" entity({TypeCode})");
+                        }
+                        else
+                        {
+                            view.Append(" entity");
+                        }
+                    }
+                    view.Append(" )");
                 }
-                if (IsDateTime)
-                {
-                    if (IsDateOnly)
-                    {
-                        view.Append(" date");
-                    }
-                    else if (IsTimeOnly)
-                    {
-                        view.Append(" time");
-                    }
-                    else
-                    {
-                        view.Append(" datetime");
-                    }
-                }
-                if (IsString)
-                {
-                    if (Size == 0)
-                    {
-                        view.Append(" string");
-                    }
-                    else if (IsFixed)
-                    {
-                        view.Append($" string({Size}, fixed)");
-                    }
-                    else
-                    {
-                        view.Append($" string({Size})");
-                    }
-                }
-                if (IsEntity)
-                {
-                    if (TypeCode > 0)
-                    {
-                        view.Append($" entity({TypeCode})");
-                    }
-                    else
-                    {
-                        view.Append(" entity");
-                    }
-                }
-                view.Append(" )");
             }
             else if (IsBoolean)
             {
@@ -255,7 +273,7 @@ namespace DaJet.TypeSystem
                 }
                 else if (IsFixed)
                 {
-                    view.Append($"string({Size}, fixed)");
+                    view.Append($"string({Size},fixed)");
                 }
                 else
                 {
@@ -264,13 +282,17 @@ namespace DaJet.TypeSystem
             }
             else if (IsBinary)
             {
-                if (Size > 0)
+                if (Size == 0)
                 {
-                    view.Append($"binary({Size})");
+                    view.Append("binary");
+                }
+                else if (IsFixed)
+                {
+                    view.Append($"binary({Size},fixed)");
                 }
                 else
                 {
-                    view.Append("binary");
+                    view.Append($"binary({Size})");
                 }
             }
             else if (IsUuid)

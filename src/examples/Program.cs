@@ -1,8 +1,13 @@
 ﻿using DaJet.Data;
+using DaJet.Json;
 using DaJet.Metadata;
 using DaJet.TypeSystem;
 using System.Diagnostics;
 using System.Reflection.Emit;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Unicode;
 
 namespace DaJet
 {
@@ -28,6 +33,8 @@ namespace DaJet
 		public static void Main(string[] args)
         {
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
+
+            //TestDataTypeJsonConverter(); return;
 
             //TestResetFromAnotherThread(); return;
 
@@ -459,6 +466,28 @@ namespace DaJet
             MetadataProvider.Reset(in cacheKey);
 
             Console.WriteLine($"[{Environment.CurrentManagedThreadId}] Reset");
+        }
+
+        private static void TestDataTypeJsonConverter()
+        {
+            JsonSerializerOptions JsonOptions = new()
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            };
+
+            JsonOptions.Converters.Add(new DataTypeJsonConverter());
+
+            DataType type = DataType.Entity();
+
+            string json = JsonSerializer.Serialize(type, JsonOptions);
+
+            json = "\"entity\""; //"\"union(boolean|datetime|string(20)|decimal(10,0)|entity(23))\"";
+
+            DataType test = JsonSerializer.Deserialize<DataType>(json, JsonOptions);
+
+            Console.WriteLine(type.ToString());
+            Console.WriteLine(test.ToString());
         }
     }
 }

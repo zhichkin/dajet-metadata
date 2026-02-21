@@ -370,27 +370,22 @@ namespace DaJet.Metadata
         }
         public EntityDefinition GetMetadataObject(in string fullName)
         {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(fullName, nameof(fullName));
+
             ThrowIfNotInitialized();
 
-            string type = string.Empty;
-            string name = string.Empty;
-            string table = string.Empty;
+            StringSplitOptions TrimAndRemoveEmpty = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
 
-            int dot = fullName.IndexOf('.');
+            Span<Range> names = stackalloc Range[3];
 
-            if (dot > 0)
-            {
-                type = fullName[..dot];
-                name = fullName[(dot + 1)..];
-            }
+            int count = fullName.Split(names, '.', TrimAndRemoveEmpty);
 
-            dot = name.IndexOf('.');
+            //TODO: ReadOnlySpan<char> source = fullName.AsSpan();
+            //TODO: Use ReadOnlySpan<char> for type, name and table variables
 
-            if (dot > 0)
-            {
-                table = name[(dot + 1)..];
-                name = name[..dot];
-            }
+            string type = count > 0 ? fullName[names[0]] : string.Empty;
+            string name = count > 1 ? fullName[names[1]] : string.Empty;
+            string table = count > 2 ? fullName[names[2]] : string.Empty;
 
             if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
             {
