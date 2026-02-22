@@ -6,7 +6,6 @@ using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Text.Encodings.Web;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Unicode;
 
 namespace DaJet
@@ -255,7 +254,8 @@ namespace DaJet
         {
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
 
-            List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
+            List<string> names = provider.GetMetadataNames(MetadataNames.Catalog);
+            //List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
 
             foreach (string name in names)
             {

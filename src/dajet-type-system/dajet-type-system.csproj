@@ -10,7 +10,7 @@
     <PackageProjectUrl>https://zhichkin.github.io/</PackageProjectUrl>
     <Description>DaJet type system core library</Description>
     <Title>DaJet Type System</Title>
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <Authors>Zhichkin</Authors>
     <RepositoryUrl>https://github.com/zhichkin/dajet-metadata</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>

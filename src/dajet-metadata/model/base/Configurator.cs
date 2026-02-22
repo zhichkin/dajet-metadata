@@ -2051,8 +2051,6 @@ namespace DaJet.Metadata
         #region "Заимствованные объекты расширений"
         internal static bool TryApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
         {
-            ///THINK: <see cref="EntityDefinition.GetPropertyByColumnName"/>
-
             bool extended = false;
 
             foreach (PropertyDefinition property in borrowed.Properties)

@@ -356,7 +356,75 @@ namespace DaJet.Metadata
 
             return null;
         }
-        
+
+        public List<string> GetMetadataNames(in string typeName)
+        {
+            ThrowIfNotInitialized();
+
+            List<string> names = new();
+
+            Guid type = MetadataLookup.GetMetadataType(in typeName);
+
+            if (type == Guid.Empty)
+            {
+                return names;
+            }
+
+            if (!_registry.TryGetMetadataNames(in typeName, out Dictionary<string, Guid> items))
+            {
+                return names;
+            }
+
+            names = items.Keys.ToList();
+
+            if (names is null)
+            {
+                return names;
+            }
+
+            return names;
+        }
+        public List<string> GetMetadataNames(in string configurationName, in string typeName)
+        {
+            ThrowIfNotInitialized();
+
+            Configuration configuration = GetConfiguration(in configurationName);
+
+            if (configuration is null)
+            {
+                return new List<string>();
+            }
+
+            Guid type = MetadataLookup.GetMetadataType(in typeName);
+
+            if (type == Guid.Empty)
+            {
+                return new List<string>();
+            }
+
+            if (!configuration.Metadata.TryGetValue(type, out Guid[] items))
+            {
+                return new List<string>();
+            }
+
+            if (items is null || items.Length == 0)
+            {
+                return new List<string>();
+            }
+
+            List<string> names = new(items.Length);
+
+            foreach (Guid uuid in items)
+            {
+                if (_registry.TryGetEntry(uuid, out MetadataObject entry))
+                {
+                    names.Add(entry.Name);
+                }
+            }
+
+            return names;
+        }
+
         public EntityDefinition GetMetadataObject(int typeCode)
         {
             ThrowIfNotInitialized();
@@ -417,46 +485,6 @@ namespace DaJet.Metadata
                 yield return _loader.Load(in typeName, in entry, in _registry);
             }
         }
-        public List<string> GetMetadataNames(in string configurationName, in string typeName)
-        {
-            ThrowIfNotInitialized();
-
-            Configuration configuration = GetConfiguration(in configurationName);
-
-            if (configuration is null)
-            {
-                return new List<string>();
-            }
-
-            Guid type = MetadataLookup.GetMetadataType(in typeName);
-
-            if (type == Guid.Empty)
-            {
-                return new List<string>();
-            }
-
-            if (!configuration.Metadata.TryGetValue(type, out Guid[] items))
-            {
-                return new List<string>();
-            }
-
-            if (items is null || items.Length == 0)
-            {
-                return new List<string>();
-            }
-
-            List<string> names = new(items.Length);
-
-            foreach (Guid uuid in items)
-            {
-                if (_registry.TryGetEntry(uuid, out MetadataObject entry))
-                {
-                    names.Add(entry.Name);
-                }
-            }
-            
-            return names;
-        }
 
         public List<string> ResolveReferences(in List<Guid> references)
         {
@@ -499,14 +527,18 @@ namespace DaJet.Metadata
 
             return entry.Values;
         }
-        
+
+        #endregion
+
+        #region "DATABASE SERVICES"
+
         public string CompareMetadataToDatabase(List<string> names = null)
         {
             ThrowIfNotInitialized();
-            
+
             return new MetadataComparer(this, _loader).CompareMetadataToDatabase(names);
         }
-        
+
         #endregion
     }
 }
