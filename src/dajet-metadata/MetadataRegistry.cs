@@ -448,6 +448,15 @@ namespace DaJet.Metadata
                 {
                     types.Add(entry.ToString());
                 }
+                else if (TryGetEntry(reference, out entry))
+                {
+                    // Данная ветка нужна для идентификаторов объектов метаданных,
+                    // а не их ссылочных типов. Актуально для стандартных реквизитов,
+                    // например "Регистратор" или "Владелец", внешние ссылки которых
+                    // определяются в конфигураторе именно как объекты метаданных.
+
+                    types.Add(entry.ToString());
+                }
                 else // Общий ссылочный тип
                 {
                     if (reference == ReferenceType.AnyReference)

@@ -16,5 +16,24 @@
         public static readonly string AccountingRegister = "РегистрБухгалтерии";
         public static readonly string BusinessProcess = "БизнесПроцесс";
         public static readonly string BusinessTask = "Задача";
+
+        public static List<string> GetApplicationObjectNames()
+        {
+            return new List<string>(12)
+            {
+                Publication,
+                Constant,
+                Enumeration,
+                Catalog,
+                Document,
+                Characteristic,
+                InformationRegister,
+                AccumulationRegister,
+                Account,
+                AccountingRegister,
+                BusinessTask,
+                BusinessProcess
+            };
+        }
     }
 }

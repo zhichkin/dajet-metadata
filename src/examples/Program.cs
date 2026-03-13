@@ -1,4 +1,5 @@
-﻿using DaJet.Data;
+﻿using Azure;
+using DaJet.Data;
 using DaJet.Json;
 using DaJet.Metadata;
 using DaJet.TypeSystem;
@@ -6,6 +7,7 @@ using System.Diagnostics;
 using System.Reflection.Emit;
 using System.Text.Encodings.Web;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.Unicode;
 
 namespace DaJet
@@ -31,6 +33,8 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //ResolveReferences(); return;
+
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
 
             //TestDataTypeJsonConverter(); return;
@@ -210,44 +214,6 @@ namespace DaJet
             TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
 
             Console.WriteLine($"Loaded {count} entities in {elapsed.TotalMilliseconds} ms");
-        }
-
-        private static void CompareMetadataToDatabase()
-        {
-            long start = Stopwatch.GetTimestamp();
-
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
-
-            List<string> metadataNames = new()
-            {
-                MetadataNames.Constant,
-                MetadataNames.Publication,
-                MetadataNames.Catalog,
-                MetadataNames.Document,
-                MetadataNames.Characteristic,
-                MetadataNames.InformationRegister,
-                MetadataNames.AccumulationRegister,
-                MetadataNames.BusinessTask,
-                MetadataNames.BusinessProcess,
-                MetadataNames.Account,
-                MetadataNames.AccountingRegister
-            };
-
-            string report = provider.CompareMetadataToDatabase(metadataNames);
-
-            Console.WriteLine(report);
-
-            long end = Stopwatch.GetTimestamp();
-
-            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
-
-            Console.WriteLine();
-            Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
         }
 
         private static void GetMetadataNames()
@@ -476,6 +442,7 @@ namespace DaJet
                 Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
             };
 
+            JsonOptions.Converters.Add(new JsonStringEnumConverter());
             JsonOptions.Converters.Add(new DataTypeJsonConverter());
 
             DataType type = DataType.Entity();
@@ -488,6 +455,72 @@ namespace DaJet
 
             Console.WriteLine(type.ToString());
             Console.WriteLine(test.ToString());
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+
+            EntityDefinition metadata = provider.GetMetadataObject("РегистрСведений.Тестовый");
+
+            string content = JsonSerializer.Serialize(metadata, JsonOptions);
+
+            Console.WriteLine(JsonSerializer.Serialize(metadata, JsonOptions));
+
+            metadata = JsonSerializer.Deserialize<EntityDefinition>(content, JsonOptions);
+
+            Console.WriteLine(metadata.ToString());
+        }
+
+        private static void ResolveReferences()
+        {
+            MetadataProvider provider = MetadataProvider.GetOrCreate("PG_UNF", DataSourceType.PostgreSql, PG_UNF);
+
+            EntityDefinition entity = provider.GetMetadataObject("РегистрНакопления.АвансовыеПлатежиИностранцевПоНДФЛ");
+
+            PropertyDefinition property = entity.Properties.Where(p => p.Name == "Регистратор").FirstOrDefault();
+
+            List<string> names = provider.ResolveReferences(property.References);
+
+            foreach (string name in names)
+            {
+                Console.WriteLine(name);
+            }
+        }
+
+        private static void CompareMetadataToDatabase()
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
+
+            List<string> metadataNames = new()
+            {
+                MetadataNames.Constant,
+                MetadataNames.Publication,
+                MetadataNames.Catalog,
+                MetadataNames.Document,
+                MetadataNames.Characteristic,
+                MetadataNames.InformationRegister,
+                MetadataNames.AccumulationRegister,
+                MetadataNames.BusinessTask,
+                MetadataNames.BusinessProcess,
+                MetadataNames.Account,
+                MetadataNames.AccountingRegister
+            };
+
+            string report = provider.CompareMetadataToDatabase(metadataNames);
+
+            Console.WriteLine(report);
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
         }
     }
 }
