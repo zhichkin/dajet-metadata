@@ -1,5 +1,4 @@
-﻿using Azure;
-using DaJet.Data;
+﻿using DaJet.Data;
 using DaJet.Json;
 using DaJet.Metadata;
 using DaJet.TypeSystem;
@@ -33,6 +32,16 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //OneDbSchemaProvider schema = new();
+
+            //MetadataProvider.Add("MS_UNF", DataSourceType.SqlServer, in MS_UNF);
+
+            //EntityDefinition entity = schema.GetSchema("MS_UNF", "Справочник.Номенклатура");
+
+            //Guid value = schema.GetEnumerationValue("MS_UNF", "Перечисление.СпособыДоставки.Самовывоз");
+
+            //return;
+
             //ResolveReferences(); return;
 
             //Console.WriteLine(GetTypeSize(typeof(DataType))); return;
