@@ -154,6 +154,32 @@ namespace DaJet.TypeSystem
             }
         }
 
+        public readonly Type MapToType()
+        {
+            if (IsUnion)
+            {
+                return IsReferenceOnlyUnion ? typeof(Entity) : typeof(Union);
+            }
+            else if (IsBoolean) { return typeof(bool); }
+            else if (IsInteger)
+            {
+                if (Size == 1) { return IsSigned ? typeof(sbyte) : typeof(byte); }
+                else if (Size == 2) { return IsSigned ? typeof(short) : typeof(ushort); }
+                else if (Size == 4) { return IsSigned ? typeof(int) : typeof(uint); }
+                else { return IsSigned ? typeof(long) : typeof(ulong); }
+            }
+            else if (IsDecimal) { return typeof(decimal); }
+            else if (IsDateTime) { return typeof(DateTime); }
+            else if (IsString) { return typeof(string); }
+            else if (IsBinary) { return typeof(byte[]); }
+            else if (IsUuid) { return typeof(Guid); }
+            else if (IsEntity) { return typeof(Entity); }
+            else if (IsObject) { return typeof(object); }
+            else if (IsArray) { return typeof(Array); }
+
+            return null;
+        }
+
         public override string ToString()
         {
             StringBuilder view = new();

@@ -10,9 +10,30 @@
         {
             return string.Format("[{0}] {1}", DbName, Name);
         }
+        public PropertyDefinition GetPropertyByName(in string name)
+        {
+            if (Properties is null || Properties.Count == 0)
+            {
+                return null;
+            }
 
+            foreach (PropertyDefinition property in Properties)
+            {
+                if (property.Name.Equals(name, StringComparison.Ordinal))
+                {
+                    return property;
+                }
+            }
+
+            return null;
+        }
         public PropertyDefinition GetPropertyByColumnName(in string columnName)
         {
+            if (Properties is null || Properties.Count == 0)
+            {
+                return null;
+            }
+
             foreach (PropertyDefinition property in Properties)
             {
                 foreach (ColumnDefinition column in property.Columns)
