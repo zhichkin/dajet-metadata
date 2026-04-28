@@ -98,7 +98,32 @@ namespace DaJet.Metadata
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
-                throw new NotImplementedException();
+                if (!registry.TryGetEntry(uuid, out Enumeration entry))
+                {
+                    return null; // Идентификатор объекта не найден или не соответствует его типу
+                }
+
+                EntityDefinition entity = new()
+                {
+                    Name = entry.Name,
+                    DbName = entry.GetMainDbName()
+                };
+
+                PropertyDefinition property;
+
+                foreach (var item in entry.Values)
+                {
+                    property = new PropertyDefinition()
+                    {
+                        Name = item.Key,
+                        Type = DataType.Entity(entry.Code),
+                        References = [item.Value]
+                    };
+
+                    entity.Properties.Add(property);
+                }
+
+                return entity;
             }
         }
     }

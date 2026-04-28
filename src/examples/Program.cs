@@ -32,6 +32,8 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //TestEnumerationObjects(); return;
+
             //OneDbSchemaProvider schema = new();
 
             //MetadataProvider.Add("MS_UNF", DataSourceType.SqlServer, in MS_UNF);
@@ -274,6 +276,40 @@ namespace DaJet
             Console.WriteLine(value.ToString());
             Console.WriteLine();
             Console.WriteLine($"Executed in {elapsed.TotalMilliseconds} ms");
+        }
+        private static void TestEnumerationObjects()
+        {
+            // "Перечисление.БазыРаспределенияКосвенныхРасходовПоВидамДеятельности"
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+
+            List<string> names = new()
+            {
+                "Перечисление.ПеречислениеОсновное",
+                "Перечисление.ПеречислениеЗаимствованное",
+                "Перечисление.ПеречислениеЗаимствованноеРасширенное",
+                "Перечисление.Расш1_Собственное"
+            };
+
+            foreach (string name in names)
+            {
+                EntityDefinition metadata = provider.GetMetadataObject(in name);
+
+                Console.WriteLine($"Name: {metadata.Name}");
+                Console.WriteLine($"DbName: {metadata.DbName}");
+
+                foreach (PropertyDefinition property in metadata.Properties)
+                {
+                    if (property.Purpose.IsSharedProperty())
+                    {
+                        continue;
+                    }
+
+                    Console.WriteLine($"- {property.Name} {{{property.References[0]}}}");
+                }
+
+                Console.WriteLine($"---");
+            }
         }
 
         private static void ShowChangeTrackingTable()
