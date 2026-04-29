@@ -8,6 +8,7 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
+using static Azure.Core.HttpHeader;
 
 namespace DaJet
 {
@@ -32,6 +33,8 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //CreateLookupTable(); return;
+
             //TestEnumerationObjects(); return;
 
             //OneDbSchemaProvider schema = new();
@@ -528,6 +531,55 @@ namespace DaJet
             {
                 Console.WriteLine(name);
             }
+        }
+
+        private readonly static Dictionary<string, string> DbTableToEntitLookup = new();
+        private static void CreateLookupTable()
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            List<string> metadataTypes = new()
+            {
+                MetadataNames.Constant,
+                MetadataNames.Publication,
+                MetadataNames.Enumeration,
+                MetadataNames.Catalog,
+                MetadataNames.Document,
+                MetadataNames.Characteristic,
+                MetadataNames.InformationRegister,
+                MetadataNames.AccumulationRegister,
+                MetadataNames.BusinessTask,
+                MetadataNames.BusinessProcess,
+                MetadataNames.Account,
+                MetadataNames.AccountingRegister
+            };
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
+
+            foreach (string typeName in metadataTypes)
+            {
+                foreach (EntityDefinition entity in provider.GetMetadataObjects(typeName))
+                {
+                    string entityName = $"{typeName}.{entity.Name}";
+
+                    _ = DbTableToEntitLookup.TryAdd(entity.DbName, entityName);
+
+                    foreach (EntityDefinition tablePart in entity.Entities)
+                    {
+                        string tablePartName = $"{entityName}.{tablePart.Name}";
+
+                        _ = DbTableToEntitLookup.TryAdd(tablePart.DbName, tablePartName);
+                    }
+                }
+            }
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine($"Lookup table contains {DbTableToEntitLookup.Count} entries.");
+            Console.WriteLine();
+            Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
         }
 
         private static void CompareMetadataToDatabase()
