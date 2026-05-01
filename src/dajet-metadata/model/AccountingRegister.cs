@@ -42,6 +42,7 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.AccRgChngR, _ChngR);
         }
+        internal bool IsExtDimValuesEnabled { get { return _AccRgED > 0; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
         internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
@@ -88,7 +89,10 @@ namespace DaJet.Metadata
                 metadata.UseCorrespondence = (reader[2][21].SeekNumber() == 1);
 
                 // Разрешить разделение итогов
-                metadata.UseSplitter = (reader[2][24].SeekNumber() != 0);
+                if (registry.Version >= 80100)
+                {
+                    metadata.UseSplitter = (reader[2][24].SeekNumber() != 0);
+                }
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {

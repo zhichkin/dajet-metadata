@@ -5,10 +5,6 @@ namespace DaJet.Metadata
 {
     internal sealed class Property : MetadataObject
     {
-        internal static Property Create(Guid uuid)
-        {
-            return new Property(uuid);
-        }
         internal Property(Guid uuid) : base(uuid) { }
         internal override void AddDbName(int code, string name)
         {

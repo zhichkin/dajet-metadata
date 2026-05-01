@@ -41,6 +41,7 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.AccChngR, _ChngR);
         }
+        internal bool IsExtDimEnabled { get { return _ExtDim > 0; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
         internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()

@@ -27,6 +27,7 @@ namespace DaJet.Metadata
             MetadataToken.InfoRgSL,
             MetadataToken.AccumRg,
             MetadataToken.AccumRgT,
+            MetadataToken.AccumRgTn,
             MetadataToken.AccumRgOpt,
             MetadataToken.Acc,
             MetadataToken.AccRg,
@@ -1776,6 +1777,31 @@ namespace DaJet.Metadata
         }
         #endregion
 
+        internal static bool ApplySuffixToChangeTrackingTable(in MetadataObject entry, in MetadataRegistry registry)
+        {
+            if (entry.IsExtension)
+            {
+                return true; // Собственный объект расширения
+            }
+
+            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
+            {
+                return false; // Объект основной конфигурации без заимствований
+            }
+
+            foreach (Guid uuid in borrowed)
+            {
+                if (registry.TryGetEntry(uuid, out MetadataObject extension))
+                {
+                    if (extension.IsChangeTrackingEnabled)
+                    {
+                        return true; // Заимствованный объект включён в состав плана обмена расширения
+                    }
+                }
+            }
+
+            return false;
+        }
         internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
             if (entry.IsBorrowed)
@@ -1868,25 +1894,9 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (entry.IsExtension) // Собственный объект расширения
+            if (ApplySuffixToChangeTrackingTable(in entry, in registry))
             {
-                changes.DbName += "x1"; return changes;
-            }
-
-            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
-            {
-                return changes; // Объект основной конфигурации без заимствований
-            }
-
-            foreach (Guid uuid in borrowed)
-            {
-                if (registry.TryGetEntry(uuid, out MetadataObject extension))
-                {
-                    if (extension.IsChangeTrackingEnabled)
-                    {
-                        changes.DbName += "x1"; return changes;
-                    }
-                }
+                changes.DbName += "x1";
             }
 
             return changes;

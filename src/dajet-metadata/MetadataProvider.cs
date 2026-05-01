@@ -528,6 +528,94 @@ namespace DaJet.Metadata
             return entry.Values;
         }
 
+        public Dictionary<string, string> CreateDbNameToEntityLookup()
+        {
+            ThrowIfNotInitialized();
+
+            List<string> metadataTypes = MetadataNames.GetApplicationObjectNames();
+
+            Dictionary<string, string> lookup = new();
+
+            foreach (string typeName in metadataTypes)
+            {
+                foreach (MetadataObject entry in _registry.GetMetadataObjects(typeName))
+                {
+                    string tableName = entry.GetMainDbName();
+                    string entityName = $"{typeName}.{entry.Name}";
+
+                    if (entry.IsExtension)
+                    {
+                        tableName += "x1";
+                    }
+
+                    lookup.Add(tableName, entityName);
+                    
+                    if (entry.IsChangeTrackingEnabled)
+                    {
+                        tableName = entry.GetTableNameИзменения();
+
+                        if (Configurator.ApplySuffixToChangeTrackingTable(in entry, in _registry))
+                        {
+                            tableName += "x1";
+                        }
+
+                        lookup.Add(tableName, $"{entityName}.Изменения");
+                    }
+
+                    if (entry is Account ||
+                        entry is Catalog ||
+                        entry is Document ||
+                        entry is Characteristic ||
+                        entry is Publication)
+                    {
+                        EntityDefinition entity = GetMetadataObject(entityName);
+
+                        foreach (EntityDefinition tablePart in entity.Entities)
+                        {
+                            string tablePartName = $"{entityName}.{tablePart.Name}";
+
+                            lookup.Add(tablePart.DbName, tablePartName);
+                        }
+                    }
+                    else if (entry is AccountingRegister register1)
+                    {
+                        if (register1.IsExtDimValuesEnabled)
+                        {
+                            lookup.Add(register1.GetTableNameЗначенияСубконто(), $"{entityName}.ЗначенияСубконто");
+                        }
+                    }
+                    else if (entry is AccumulationRegister register2)
+                    {
+                        if (register2.IsTotalsEnabled)
+                        {
+                            tableName = register2.GetTableNameИтоги();
+
+                            if (entry.IsExtension)
+                            {
+                                tableName += "x1";
+                            }
+
+                            lookup.Add(tableName, $"{entityName}.Итоги");
+                        }
+                    }
+                    else if (entry is InformationRegister register3)
+                    {
+                        if (register3.IsSliceFirstEnabled)
+                        {
+                            lookup.Add(register3.GetTableNameСрезПервых(), $"{entityName}.СрезПервых");
+                        }
+
+                        if (register3.IsSliceLastEnabled)
+                        {
+                            lookup.Add(register3.GetTableNameСрезПоследних(), $"{entityName}.СрезПоследних");
+                        }
+                    }
+                }
+            }
+
+            return lookup;
+        }
+
         #endregion
 
         #region "DATABASE SERVICES"

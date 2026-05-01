@@ -71,7 +71,9 @@ namespace DaJet
             //DumpFile(); return;
             //DumpRawFile(); return;
 
-            CompareMetadataToDatabase();
+            CreateDbNameToEntityLookup(); return;
+
+            //CompareMetadataToDatabase(); return;
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -102,9 +104,9 @@ namespace DaJet
 
         private static void DumpFile()
         {
-            string fileName = "fee259e3-7102-4591-abe1-95ae49703a4b";
+            string fileName = "e2808e79-90c7-431f-8b33-42486e9a6446";
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
-            provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}.txt");
+            provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\РегистрНакопления.РегистрНакопления1.txt");
 
             //string fileName = "DBSchema";
             //MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
@@ -533,53 +535,37 @@ namespace DaJet
             }
         }
 
-        private readonly static Dictionary<string, string> DbTableToEntitLookup = new();
-        private static void CreateLookupTable()
+        private static void CreateDbNameToEntityLookup()
         {
+            string connectionString = PG_ERP;
+
             long start = Stopwatch.GetTimestamp();
 
-            List<string> metadataTypes = new()
-            {
-                MetadataNames.Constant,
-                MetadataNames.Publication,
-                MetadataNames.Enumeration,
-                MetadataNames.Catalog,
-                MetadataNames.Document,
-                MetadataNames.Characteristic,
-                MetadataNames.InformationRegister,
-                MetadataNames.AccumulationRegister,
-                MetadataNames.BusinessTask,
-                MetadataNames.BusinessProcess,
-                MetadataNames.Account,
-                MetadataNames.AccountingRegister
-            };
-
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
-
-            foreach (string typeName in metadataTypes)
-            {
-                foreach (EntityDefinition entity in provider.GetMetadataObjects(typeName))
-                {
-                    string entityName = $"{typeName}.{entity.Name}";
-
-                    _ = DbTableToEntitLookup.TryAdd(entity.DbName, entityName);
-
-                    foreach (EntityDefinition tablePart in entity.Entities)
-                    {
-                        string tablePartName = $"{entityName}.{tablePart.Name}";
-
-                        _ = DbTableToEntitLookup.TryAdd(tablePart.DbName, tablePartName);
-                    }
-                }
-            }
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in connectionString);
 
             long end = Stopwatch.GetTimestamp();
 
             TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
 
-            Console.WriteLine($"Lookup table contains {DbTableToEntitLookup.Count} entries.");
+            Console.WriteLine($"{connectionString}");
+            Console.WriteLine($"Metadata registry loaded in {elapsed.TotalMilliseconds} ms.");
+
+            start = Stopwatch.GetTimestamp();
+
+            Dictionary<string, string> lookup = provider.CreateDbNameToEntityLookup();
+
+            end = Stopwatch.GetTimestamp();
+
+            elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine($"Lookup table created in {elapsed.TotalMilliseconds} ms");
+            Console.WriteLine($"Lookup table contains {lookup.Count} entries.");
             Console.WriteLine();
-            Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
+
+            //foreach (var entry in lookup)
+            //{
+            //    Console.WriteLine($"[{entry.Key}] {entry.Value}");
+            //}
         }
 
         private static void CompareMetadataToDatabase()

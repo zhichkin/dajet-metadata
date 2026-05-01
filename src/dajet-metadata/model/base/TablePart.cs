@@ -5,10 +5,6 @@ namespace DaJet.Metadata
 {
     internal sealed class TablePart : MetadataObject
     {
-        internal static TablePart Create(Guid uuid)
-        {
-            return new TablePart(uuid);
-        }
         internal TablePart(Guid uuid) : base(uuid) { }
         /// <summary>
         /// Максимальная длина номера строки (от 5 до 9 включительно)

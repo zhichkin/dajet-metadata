@@ -10,6 +10,9 @@ namespace DaJet.Metadata
         }
         internal AccumulationRegister(Guid uuid) : base(uuid) { }
 
+        ///<summary>Разрешить разделение итогов</summary>
+        internal bool UseSplitter { get; set; } // _Splitter numeric(10,0) NOT NULL
+
         private int _ChngR;
         private int _AccumRgT;
         private int _AccumRgTn;
@@ -51,11 +54,16 @@ namespace DaJet.Metadata
             {
                 return string.Format("_{0}{1}", MetadataToken.AccumRgT, _AccumRgT);
             }
-            else
+            else if (_AccumRgTn > 0)
             {
                 return string.Format("_{0}{1}", MetadataToken.AccumRgTn, _AccumRgTn);
             }
+            else
+            {
+                return string.Empty; // Использование итогов отключено
+            }
         }
+        internal bool IsTotalsEnabled { get { return _AccumRgT > 0 || _AccumRgTn > 0; } }
         internal override string GetTableNameИзменения()
         {
             return string.Format("_{0}{1}", MetadataToken.AccumRgChngR, _ChngR);
@@ -99,6 +107,12 @@ namespace DaJet.Metadata
                     }
                 }
 
+                // Используется таблицей итогов. Доступно, начиная с версии 8.1 >= 80100
+                if (registry.Version >= 80100)
+                {
+                    metadata.UseSplitter = reader[2][21].SeekNumber() != 0;
+                }
+
                 //if (options.IsExtension)
                 //{
                 //    _converter[1][13][1][11] += Parent;
@@ -120,9 +134,6 @@ namespace DaJet.Metadata
 
                 // Вид регистра накопления (остатков или оборотов)
                 RegisterKind purpose = (RegisterKind)reader[2][16].SeekNumber();
-
-                // Используется таблицей итогов
-                //_converter[1][20] += UseSplitter;
 
                 Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
                 Configurator.ConfigurePropertyАктивность(in table);

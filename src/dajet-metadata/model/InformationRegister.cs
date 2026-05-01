@@ -13,6 +13,8 @@ namespace DaJet.Metadata
         internal bool UseRecorder { get; set; } // Регистр сведений, подчинённый регистратору
         internal RegisterPeriodicity Periodicity { get; set; } // Периодичность записей регистра сведений
         internal bool UsePeriodForChangeTracking { get; set; } // Регистрация изменений в разрезе реквизита "Период"
+        internal bool UseSliceLast { get; set; } // Использовать срез последних
+        internal bool UseSliceFirst { get; set; } // Использовать срез первых
 
         private int _ChngR;
         private int _InfoRgSF;
@@ -49,13 +51,29 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.InfoRgOpt, _InfoRgOpt);
         }
+        internal bool IsSliceFirstEnabled { get { return _InfoRgSF > 0; } } // Срез первых включено
         internal string GetTableNameСрезПервых()
         {
-            return string.Format("_{0}{1}", MetadataToken.InfoRgSF, _InfoRgSF);
+            if (_InfoRgSF > 0)
+            {
+                return string.Format("_{0}{1}", MetadataToken.InfoRgSF, _InfoRgSF);
+            }
+            else
+            {
+                return string.Empty; // Использование итогов отключено
+            }
         }
+        internal bool IsSliceLastEnabled { get { return _InfoRgSL > 0; } } // Срез последних включено
         internal string GetTableNameСрезПоследних()
         {
-            return string.Format("_{0}{1}", MetadataToken.InfoRgSL, _InfoRgSL);
+            if (_InfoRgSL > 0)
+            {
+                return string.Format("_{0}{1}", MetadataToken.InfoRgSL, _InfoRgSL);
+            }
+            else
+            {
+                return string.Empty; // Использование итогов отключено
+            }
         }
         internal override string GetTableNameИзменения()
         {
@@ -110,6 +128,13 @@ namespace DaJet.Metadata
                 // регистрации изменений если это периодический регистр сведений
                 metadata.UsePeriodForChangeTracking = reader[2][24].SeekNumber() == 1;
 
+                // Определяет наличие служебных таблиц итогов "СрезПоследних" и "СрезПервых"
+                if (registry.Version >= 80302)
+                {
+                    metadata.UseSliceLast = reader[2][35].SeekNumber() != 0;
+                    metadata.UseSliceFirst = reader[2][36].SeekNumber() != 0;
+                }
+
                 //if (options.IsExtension)
                 //{
                 //    _converter[1][15][1][13] += Parent;
@@ -126,13 +151,6 @@ namespace DaJet.Metadata
 
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
-
-                // Определяет наличие служебных таблиц итогов "СрезПоследних" и "СрезПервых"
-                //if (_cache is not null && _cache.InfoBase is not null && _cache.InfoBase.CompatibilityVersion >= 80302)
-                //{
-                //    _converter[1][34] += UseSliceLast;
-                //    _converter[1][35] += UseSliceFirst;
-                //}
 
                 if (entry.UseRecorder)
                 {
