@@ -534,7 +534,7 @@ namespace DaJet.Metadata
 
             List<string> metadataTypes = MetadataNames.GetApplicationObjectNames();
 
-            Dictionary<string, string> lookup = new();
+            Dictionary<string, string> lookup = new(StringComparer.OrdinalIgnoreCase);
 
             foreach (string typeName in metadataTypes)
             {

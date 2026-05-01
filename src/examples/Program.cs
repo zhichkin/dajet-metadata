@@ -8,7 +8,6 @@ using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Unicode;
-using static Azure.Core.HttpHeader;
 
 namespace DaJet
 {
@@ -71,9 +70,9 @@ namespace DaJet
             //DumpFile(); return;
             //DumpRawFile(); return;
 
-            CreateDbNameToEntityLookup(); return;
+            //CreateDbNameToEntityLookup(); return;
 
-            //CompareMetadataToDatabase(); return;
+            CompareMetadataToDatabase(); return;
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -560,7 +559,23 @@ namespace DaJet
 
             Console.WriteLine($"Lookup table created in {elapsed.TotalMilliseconds} ms");
             Console.WriteLine($"Lookup table contains {lookup.Count} entries.");
-            Console.WriteLine();
+
+            string tableName = "_Document1420_VT41611"; // Документ.ЗаказКлиента.Товары
+
+            start = Stopwatch.GetTimestamp();
+
+            if (lookup.TryGetValue(tableName, out string entityName))
+            {
+                end = Stopwatch.GetTimestamp();
+
+                elapsed = Stopwatch.GetElapsedTime(start, end);
+
+                Console.WriteLine($"Table name [{tableName}] is mapped to \"{entityName}\" in {elapsed.TotalMicroseconds} us");
+            }
+            else
+            {
+                Console.WriteLine($"Table name [{tableName}] is not found.");
+            }
 
             //foreach (var entry in lookup)
             //{
