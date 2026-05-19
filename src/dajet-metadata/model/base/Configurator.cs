@@ -1307,6 +1307,26 @@ namespace DaJet.Metadata
         #endregion
 
         #region "Регистр бухгалтерии"
+        internal static void ConfigurePropertyУточнениеПериода(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "УточнениеПериода",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(1, 0);
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_PeriodAdjustment",
+                    Type = property.Type
+                }
+            };
+
+            table.Properties.Add(property);
+        }
         internal static void ConfigurePropertyВидДвиженияБухгалтерии(in EntityDefinition table)
         {
             // 0 = Дебет

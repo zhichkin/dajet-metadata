@@ -12,6 +12,7 @@ namespace DaJet.Metadata
         internal Guid ChartOfAccounts { get; set; } // План счетов
         internal bool UseCorrespondence { get; set; } // Корреспонденция счетов
         internal bool UseSplitter { get; set; } // Разрешить разделение итогов
+        internal int PeriodAdjustment { get; set; } // Длина уточнения периода
 
         private int _ChngR;
         private int _AccRgED;
@@ -59,13 +60,22 @@ namespace DaJet.Metadata
                 // Идентификатор объекта метаданных - значение поля FileName в таблице Config
                 Guid uuid = reader[2][16][2][2][3].SeekUuid();
 
+                bool adjustment = (uuid == Guid.Empty); // Оптимизация загрузки уточнения периода (см. ниже)
+
+                if (adjustment)
+                {
+                    uuid = reader[2][17][2][2][3].SeekUuid();
+                }
+
                 if (!registry.TryGetEntry(uuid, out AccountingRegister metadata))
                 {
                     throw new InvalidOperationException();
                 }
 
                 // Имя объекта метаданных конфигурации
-                metadata.Name = reader[2][16][2][3].SeekString();
+                metadata.Name = adjustment
+                    ? reader[2][17][2][3].SeekString()
+                    : reader[2][16][2][3].SeekString();
 
                 if (metadata.Code > 0)
                 {
@@ -83,15 +93,30 @@ namespace DaJet.Metadata
                 }
 
                 // План счетов
-                metadata.ChartOfAccounts = reader[2][19].SeekUuid();
+                metadata.ChartOfAccounts = adjustment
+                    ? reader[2][20].SeekUuid()
+                    : reader[2][19].SeekUuid();
 
                 // Корреспонденция счетов
-                metadata.UseCorrespondence = (reader[2][21].SeekNumber() == 1);
+                metadata.UseCorrespondence = adjustment
+                    ? (reader[2][22].SeekNumber() == 1)
+                    : (reader[2][21].SeekNumber() == 1);
 
                 // Разрешить разделение итогов
                 if (registry.Version >= 80100)
                 {
-                    metadata.UseSplitter = (reader[2][24].SeekNumber() != 0);
+                    metadata.UseSplitter = adjustment
+                        ? (reader[2][25].SeekNumber() != 0)
+                        : (reader[2][24].SeekNumber() != 0);
+                }
+
+                // Длина уточнения периода
+                if (registry.Version >= 80309)
+                {
+                    if (reader[2][31].Seek()) // Может отсутствовать если регистр не поддерживает уточнение периода
+                    {
+                        metadata.PeriodAdjustment = reader.ValueAsNumber; // Значение от 1 до 3 включительно
+                    }
                 }
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
@@ -110,6 +135,11 @@ namespace DaJet.Metadata
                 Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
                 Configurator.ConfigurePropertyНомерЗаписи(in table);
                 Configurator.ConfigurePropertyАктивность(in table);
+
+                if (entry.PeriodAdjustment > 0)
+                {
+                    Configurator.ConfigurePropertyУточнениеПериода(in table);
+                }
 
                 ConfigFileReader reader = new(file);
 

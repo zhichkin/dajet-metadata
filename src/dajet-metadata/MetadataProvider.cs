@@ -228,6 +228,19 @@ namespace DaJet.Metadata
             return list;
         }
 
+        public static void Dump(DataSourceType source, in string connectionString, in string tableName, in string fileName, in string outputPath)
+        {
+            MetadataLoader loader = MetadataLoader.Create(source, in connectionString);
+
+            loader.Dump(in tableName, in fileName, in outputPath);
+        }
+        public static void DumpRaw(DataSourceType source, in string connectionString, in string tableName, in string fileName, in string outputPath)
+        {
+            MetadataLoader loader = MetadataLoader.Create(source, in connectionString);
+
+            loader.DumpRaw(in tableName, in fileName, in outputPath);
+        }
+
         #endregion
 
         private readonly MetadataLoader _loader;

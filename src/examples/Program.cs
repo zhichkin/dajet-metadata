@@ -13,6 +13,7 @@ namespace DaJet
 {
     public static class Program
     {
+        private static readonly string MS_TEST = "Data Source=ZHICHKIN;Initial Catalog=test;Integrated Security=True;Encrypt=False;";
         private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_METADATA = "Host=localhost;Port=5432;Database=dajet-metadata;Username=postgres;Password=postgres;";
         private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
@@ -32,6 +33,12 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //DumpFile(); return;
+            //DumpRawFile(); return;
+            //GetMetadataNames(); return;
+            //GetMetadataObject("РегистрБухгалтерии.РегистрБухгалтерии1"); return;
+            CompareMetadataToDatabase(); return;
+
             //CreateLookupTable(); return;
 
             //TestEnumerationObjects(); return;
@@ -56,23 +63,14 @@ namespace DaJet
 
             //TestMetadataCache(); return;
 
-            //GetMetadataObject("Справочник.Номенклатура"); return;
-
             //IterateMetadataObjects(MetadataNames.Catalog); return;
-
-            //GetMetadataNames(); return;
 
             //GetEnumerationNames(); return;
             //GetEnumerationValues("Перечисление.ЭлементыСтруктурыОтчета"); return;
 
             //ShowChangeTrackingTable();
 
-            //DumpFile(); return;
-            //DumpRawFile(); return;
-
             //CreateDbNameToEntityLookup(); return;
-
-            CompareMetadataToDatabase(); return;
 
             //GetEnumerationNames();
             //GetEnumerationValues("Перечисление.ВидыОбъектовМаркетплейсов");
@@ -103,33 +101,16 @@ namespace DaJet
 
         private static void DumpFile()
         {
-            string fileName = "e2808e79-90c7-431f-8b33-42486e9a6446";
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
-            provider.Dump("Config", fileName, $"C:\\temp\\1c-dump\\РегистрНакопления.РегистрНакопления1.txt");
+            // 8e54bb3b-2103-4fd7-be38-d2f082828348 Международный
+            // 73a02607-36df-4a7e-822c-f4a96c99f0a6 МеждународныйБезКорреспонденции
+            // 7b248429-2107-4371-b371-a099028cd179 Хозрасчетный
 
-            //string fileName = "DBSchema";
-            //MetadataProvider provider = new(DataSourceType.SqlServer, in MS_METADATA);
-            //provider.Dump("DBSchema", string.Empty, $"C:\\temp\\1c-dump\\{fileName}.txt");
+            // cf0c90da-010f-4356-a8b6-d050279c90d9 РегистрБухгалтерии1
 
-            return;
+            string fileName = "cf0c90da-010f-4356-a8b6-d050279c90d9";
+            string outputPath = $"C:\\temp\\1c-dump\\РегистрБухгалтерии.РегистрБухгалтерии1.txt";
 
-            //MetadataRegistry registry = new();
-            //MsMetadataLoader loader = new(in MS_CONNECTION);
-            //using (ConfigFileBuffer file = loader.Load("d11b89e1-90a2-47e7-b43f-7f231ec64b2f"))
-            //{
-            //    Guid uuid = new(file.FileName);
-            //    //registry.AddEntry(uuid, null);
-            //    CatalogParser parser = new();
-            //    parser.Parse(uuid, file.AsReadOnlySpan(), in registry);
-            //}
-
-            //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
-            //Configuration infoBase = provider.GetConfiguration();
-            //string fileName = infoBase.Uuid.ToString().ToLowerInvariant();
-            //provider.Dump(ConfigTables.Config, fileName, $"C:\\temp\\1c-dump\\config_unf.txt");
-
-            //OneDbMetadataProvider provider = new(DataSourceType.SqlServer, in MS_CONNECTION);
-            //provider.Dump(ConfigTables.Params, "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
+            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
         }
 
         private static void DumpRawFile()
@@ -193,7 +174,7 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
 
             //EntityDefinition metadata = provider.GetMetadataObject(63);
@@ -235,7 +216,7 @@ namespace DaJet
         {
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
 
-            List<string> names = provider.GetMetadataNames(MetadataNames.Catalog);
+            List<string> names = provider.GetMetadataNames(MetadataNames.AccountingRegister);
             //List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
 
             foreach (string name in names)
@@ -587,7 +568,8 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
