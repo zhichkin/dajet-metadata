@@ -1,7 +1,7 @@
 ﻿using DaJet.Data;
 using DaJet.Data.PostgreSql;
 using DaJet.TypeSystem;
-using Microsoft.Data.SqlClient;
+using DaJet.Utilities;
 using Npgsql;
 using System.Data;
 using System.Data.Common;
@@ -28,7 +28,34 @@ namespace DaJet.Metadata
         {
             return _source.CreateConnection();
         }
-
+        internal override string DataSource
+        {
+            get
+            {
+                try
+                {
+                    return new NpgsqlConnectionStringBuilder(_source.ConnectionString).Host ?? string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+        }
+        internal override string Database
+        {
+            get
+            {
+                try
+                {
+                    return new NpgsqlConnectionStringBuilder(_source.ConnectionString).Database ?? string.Empty;
+                }
+                catch
+                {
+                    return string.Empty;
+                }
+            }
+        }
         internal override int GetYearOffset()
         {
             using (NpgsqlConnection connection = _source.CreateConnection())
@@ -332,39 +359,54 @@ namespace DaJet.Metadata
         }
         internal override List<ExtensionInfo> GetExtensions()
         {
-            List<ExtensionInfo> list = new();
+            return TryGetExtensions();
+        }
+        private List<ExtensionInfo> TryGetExtensions()
+        {
+            List<ExtensionInfo> extensions = new();
 
-            if (!IsExtensionsSupported())
+            try
             {
-                return list;
-            }
-
-            int YearOffset = GetYearOffset();
-
-            foreach (NpgsqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
-            {
-                byte[] zippedInfo = (byte[])reader.GetValue(6);
-
-                Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
-
-                ExtensionInfo extension = new()
+                if (!IsExtensionsSupported())
                 {
-                    Identity = uuid, // Поле _IDRRef используется для поиска файла DbNames расширения
-                    Order = (int)reader.GetDecimal(1),
-                    Name = reader.GetString(2),
-                    Updated = reader.GetDateTime(3).AddYears(-YearOffset),
-                    Purpose = (ExtensionPurpose)reader.GetDecimal(4),
-                    Scope = (ExtensionScope)reader.GetDecimal(5),
-                    MasterNode = reader.GetString(7),
-                    IsDistributed = reader.GetBoolean(8)
-                };
+                    return extensions;
+                }
 
-                DecodeZippedInfo(in zippedInfo, in extension);
+                int YearOffset = GetYearOffset();
 
-                list.Add(extension);
+                foreach (NpgsqlDataReader reader in ExecuteReader(SELECT_EXTENSIONS_SCRIPT, 10))
+                {
+                    byte[] zippedInfo = (byte[])reader.GetValue(6);
+
+                    Guid uuid = new(DbUtilities.Get1CUuid((byte[])reader.GetValue(0)));
+
+                    ExtensionInfo extension = new()
+                    {
+                        Identity = uuid, // Поле _IDRRef используется для поиска файла DbNames расширения
+                        Order = (int)reader.GetDecimal(1),
+                        Name = reader.GetString(2),
+                        Updated = reader.GetDateTime(3).AddYears(-YearOffset),
+                        Purpose = (ExtensionPurpose)reader.GetDecimal(4),
+                        Scope = (ExtensionScope)reader.GetDecimal(5),
+                        MasterNode = reader.GetString(7),
+                        IsDistributed = reader.GetBoolean(8)
+                    };
+
+                    DecodeZippedInfo(in zippedInfo, in extension);
+
+                    extensions.Add(extension);
+                }
+            }
+            catch (Exception error)
+            {
+                string message = $"[ERROR][{DataSource}][{Database}] Initialize extensions: failed to read [_extensionsinfo] table.";
+                MetadataLogger.Write(message);
+                MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
             }
 
-            return list;
+            //NOTE: В случае возникновения ошибки продолжаем работу без расширений
+
+            return extensions;
         }
     }
 }

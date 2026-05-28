@@ -1,6 +1,7 @@
 ﻿using DaJet.Data;
 using DaJet.Metadata.Services;
 using DaJet.TypeSystem;
+using DaJet.Utilities;
 using System.Collections.Concurrent;
 using System.Data.Common;
 using System.Security.Cryptography;
@@ -275,6 +276,12 @@ namespace DaJet.Metadata
                 _registry = _loader.CreateMetadataRegistry();
 
                 RefreshLastUpdateValue();
+            }
+            catch (Exception error)
+            {
+                string message = $"[ERROR][{_loader.DataSource}][{_loader.Database}] Initialize metadata: failed to create metadata registry.";
+                MetadataLogger.Write(message);
+                MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
             }
             finally
             {

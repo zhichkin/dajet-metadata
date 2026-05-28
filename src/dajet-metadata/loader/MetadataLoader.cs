@@ -1,5 +1,6 @@
 ﻿using DaJet.Data;
 using DaJet.TypeSystem;
+using DaJet.Utilities;
 using System.Data.Common;
 using System.Text;
 
@@ -44,6 +45,8 @@ namespace DaJet.Metadata
         }
 
         internal abstract int GetYearOffset();
+        internal abstract string DataSource { get; }
+        internal abstract string Database { get; }
         internal abstract DbConnection CreateConnection();
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
@@ -222,7 +225,7 @@ namespace DaJet.Metadata
 
             if (configuration.CompatibilityVersion >= 80312)
             {
-                InitializeExtensions(in registry);
+                TryInitializeExtensions(in registry);
             }
             
             return registry;
@@ -510,9 +513,29 @@ namespace DaJet.Metadata
                 extension.IsActive = (zippedInfo[offset + size] == 0x82);
             }
         }
+        private void TryInitializeExtensions(in MetadataRegistry registry)
+        {
+            //NOTE: В случае возникновения ошибки продолжаем работу без расширений
+
+            try
+            {
+                InitializeExtensions(in registry);
+            }
+            catch (Exception error)
+            {
+                string message = $"[ERROR][{DataSource}][{Database}] Initialize extensions: unhandled error.";
+                MetadataLogger.Write(message);
+                MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
+            }
+        }
         private void InitializeExtensions(in MetadataRegistry registry)
         {
             List<ExtensionInfo> extensions = GetExtensions();
+
+            if (extensions is null || extensions.Count == 0)
+            {
+                return; // Расширения не обнаружены или возникла ошибка чтения таблицы _ExtensionsInfo
+            }
 
             foreach (ExtensionInfo extension in extensions)
             {
