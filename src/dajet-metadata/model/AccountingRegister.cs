@@ -16,15 +16,20 @@ namespace DaJet.Metadata
 
         private int _ChngR;
         private int _AccRgED;
+        private int _AccRgOpt;
         internal override void AddDbName(int code, string name)
         {
             if (name == MetadataToken.AccRg)
             {
                 Code = code;
             }
-            if (name == MetadataToken.AccRgED)
+            else if (name == MetadataToken.AccRgED)
             {
                 _AccRgED = code;
+            }
+            else if (name == MetadataToken.AccRgOpt)
+            {
+                _AccRgOpt = code;
             }
             else if (name == MetadataToken.AccRgChngR)
             {
@@ -34,6 +39,10 @@ namespace DaJet.Metadata
         internal override string GetMainDbName()
         {
             return string.Format("_{0}{1}", MetadataToken.AccRg, Code);
+        }
+        internal string GetTableNameНастройки()
+        {
+            return string.Format("_{0}{1}", MetadataToken.AccRgOpt, _AccRgOpt);
         }
         internal string GetTableNameЗначенияСубконто()
         {

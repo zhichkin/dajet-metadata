@@ -51,6 +51,8 @@
         public const string Acc = "Acc";
         ///<summary>Регистр бухгалтерии (значимый тип данных)</summary>
         public const string AccRg = "AccRg";
+        ///<summary>Таблица настроек регистра бухгалтерии (зависимый значимый тип данных)</summary>
+        public const string AccRgOpt = "AccRgOpt";
         ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
         public const string AccRgED = "AccRgED";
         ///<summary>Регистр накопления (значимый тип данных)</summary>

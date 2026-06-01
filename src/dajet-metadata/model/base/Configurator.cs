@@ -33,6 +33,7 @@ namespace DaJet.Metadata
             MetadataToken.AccRg,
             MetadataToken.ExtDim,
             MetadataToken.AccRgED,
+            MetadataToken.AccRgOpt,
             MetadataToken.AccChngR,
             MetadataToken.AccRgChngR,
             MetadataToken.AccumRgChngR,
@@ -837,6 +838,147 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
+        internal static EntityDefinition GetInfoRegisterSettingsTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not InformationRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            EntityDefinition table = new() // Таблица настроек регистра сведений
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "Настройки"),
+                DbName = register.GetTableNameНастройки()
+            };
+
+            ConfigurePropertySliceUsing(in table); // _SliceUsing binary(1) boolean
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        private static void ConfigurePropertySliceUsing(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "SliceUsing",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Boolean;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_SliceUsing",
+                Type = DataType.Binary(1, false)
+            });
+
+            table.Properties.Add(property);
+        }
+        internal static EntityDefinition GetSliceLastTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not InformationRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (!register.IsSliceLastEnabled)
+            {
+                return null;
+            }
+
+            EntityDefinition table = new() // Таблица итогов регистра сведений (срез последних)
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "СрезПоследних"),
+                DbName = register.GetTableNameСрезПоследних()
+            };
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose == PropertyPurpose.System)
+                {
+                    if (property.Name == "Период" || property.Name == "Регистратор")
+                    {
+                        table.Properties.Add(property);
+                    }
+
+                    continue;
+                }
+
+                if (!property.Purpose.IsSharedProperty())
+                {
+                    table.Properties.Add(property);
+                }
+                else if (property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        internal static EntityDefinition GetSliceFirstTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not InformationRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (!register.IsSliceFirstEnabled)
+            {
+                return null;
+            }
+
+            EntityDefinition table = new() // Таблица итогов регистра сведений (срез первых)
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "СрезПервых"),
+                DbName = register.GetTableNameСрезПервых()
+            };
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose == PropertyPurpose.System)
+                {
+                    if (property.Name == "Период" || property.Name == "Регистратор")
+                    {
+                        table.Properties.Add(property);
+                    }
+
+                    continue;
+                }
+
+                if (!property.Purpose.IsSharedProperty())
+                {
+                    table.Properties.Add(property);
+                }
+                else if (property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
         #endregion
 
         #region "Регистр накопления"
@@ -860,6 +1002,315 @@ namespace DaJet.Metadata
                     Type = property.Type
                 }
             };
+
+            table.Properties.Add(property);
+        }
+
+        ///<summary>
+        ///<b>Справка 1С:Предприятие 8 :</b> Хеш-функция измерений.
+        ///<br>Поле присутствует, если количество измерений не позволяет организовать уникальный индекс по измерениям.</br>
+        ///</summary>
+        private static void ConfigurePropertyDimHash(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "DimHash",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(10, 0);
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_DimHash",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        ///<summary>
+        ///Разделитель итогов. Включается специальной настройкой "Разрешить разделение итогов" в конфигураторе.
+        ///<br>Используется для параллельной записи документов в таблицу итогов регистра по одинаковым значениям измерений.</br>
+        ///</summary>
+        private static void ConfigurePropertySplitter(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "Splitter",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(10, 0);
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_Splitter",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        internal static bool ApplySuffixToServiceTable(in MetadataObject entry, in MetadataRegistry registry)
+        {
+            if (entry.IsExtension)
+            {
+                return true; // Собственный объект расширения
+            }
+
+            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
+            {
+                return false; // Объект основной конфигурации без заимствований
+            }
+
+            return false;
+        }
+        internal static EntityDefinition GetRegisterTotalsTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not AccumulationRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            EntityDefinition table = new() // Таблица итогов регистра накопления
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "Итоги"),
+                DbName = register.GetTableNameИтоги()
+            };
+
+            ConfigurePropertyПериод(in table);
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose == PropertyPurpose.Dimension)
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose == PropertyPurpose.Measure)
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (register.UseSplitter) // Разрешить разделение итогов
+            {
+                ConfigurePropertySplitter(in table);
+            }
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        internal static EntityDefinition GetRegisterSettingsTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            string settingsTableName;
+
+            if (entry is AccumulationRegister accumulation)
+            {
+                settingsTableName = accumulation.GetTableNameНастройки();
+            }
+            else if (entry is AccountingRegister accounting)
+            {
+                settingsTableName = accounting.GetTableNameНастройки();
+            }
+            else
+            {
+                throw new InvalidOperationException();
+            }
+
+            EntityDefinition table = new() // Таблица настроек регистра накопления
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "Настройки"),
+                DbName = settingsTableName
+            };
+
+            ConfigurePropertyRegID(in table);               // _RegID               binary(16)        Идентификатор объекта метаданных
+            ConfigurePropertyPeriod(in table);              // _Period              datetime          Периодичность хранения итогов (не используется)
+            ConfigurePropertyActualPeriod(in table);        // _ActualPeriod        binary(1) boolean Использовать текущие итоги
+            ConfigurePropertyPeriodicity(in table);         // _Periodicity         numeric(2,0)      Периодичность регистра
+            ConfigurePropertyRepetitionFactor(in table);    // _RepetitionFactor    numeric(2,0)      Кратность (не используется)
+            ConfigurePropertyUseTotals(in table);           // _UseTotals           numeric(1,0)      Использовать итоги
+            ConfigurePropertyMinPeriod(in table);           // _MinPeriod           datetime          Период расчитанных итогов
+            ConfigurePropertyUseSplitter(in table);         // _UseSplitter         binary(1) boolean Разрешить разделение итогов
+            ConfigurePropertyMinCalculatedPeriod(in table); // _MinCalculatedPeriod datetime          Минимальный период (не используется - ?)
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        private static void ConfigurePropertyRegID(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "RegID",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Uuid();
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_RegID",
+                Type = DataType.Binary(16, false)
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyPeriod(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "Period",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.DateTime;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_Period",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyActualPeriod(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "ActualPeriod",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Boolean;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_ActualPeriod",
+                Type = DataType.Binary(1, false)
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyPeriodicity(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "Periodicity",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(2, 0);
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_Periodicity",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyRepetitionFactor(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "RepetitionFactor",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(2, 0);
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_RepetitionFactor",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyUseTotals(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "UseTotals",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Decimal(1, 0);
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_UseTotals",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyMinPeriod(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "MinPeriod",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.DateTime;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_MinPeriod",
+                Type = property.Type
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyUseSplitter(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "UseSplitter",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Boolean;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_UseSplitter",
+                Type = DataType.Binary(1, false)
+            });
+
+            table.Properties.Add(property);
+        }
+        private static void ConfigurePropertyMinCalculatedPeriod(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "MinCalculatedPeriod",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.DateTime;
+
+            property.Columns.Add(new ColumnDefinition()
+            {
+                Name = "_MinCalculatedPeriod",
+                Type = property.Type
+            });
 
             table.Properties.Add(property);
         }
@@ -1505,100 +1956,110 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
+        internal static EntityDefinition GetDimensionValuesTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not AccountingRegister register)
+            {
+                throw new InvalidOperationException();
+            }
 
-        //internal static void ConfigureTableЗначенияСубконто(in OneDbMetadataProvider cache, in AccountingDimensionValuesTable table)
-        //{
-        //    if (table.Entity is not AccountingRegister register)
-        //    {
-        //        return;
-        //    }
+            EntityDefinition table = new() // Таблица значений субконто регистра бухгалтерии
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "ЗначенияСубконто"),
+                DbName = register.GetTableNameЗначенияСубконто()
+            };
 
-        //    if (!cache.TryGetAccRgED(register.Uuid, out DbName dbn))
-        //    {
-        //        return;
-        //    }
+            ConfigurePropertyПериод(in table);
+            ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
+            ConfigurePropertyНомерЗаписи(in table);
 
-        //    table.Uuid = register.Uuid;
-        //    table.Name = register.Name + ".ЗначенияСубконто";
-        //    table.Alias = "Таблица значений субконто регистра бухгалтерии";
-        //    table.TypeCode = register.TypeCode;
-        //    table.TableName = $"_{dbn.Name}{dbn.Code}";
+            if (register.UseCorrespondence)
+            {
+                ConfigurePropertyВидДвиженияБухгалтерии(in table);
+            }
 
-        //    ConfigurePropertyПериод(table);
-        //    ConfigurePropertyРегистратор(in cache, table);
-        //    ConfigurePropertyНомерЗаписи(table);
+            Guid account_uuid = register.ChartOfAccounts;
 
-        //    if (register.UseCorrespondence)
-        //    {
-        //        ConfigurePropertyВидДвиженияБухгалтерии(table);
-        //    }
+            if (account_uuid == Guid.Empty)
+            {
+                return table; // Субконто не используются
+            }
 
-        //    Guid account_uuid = register.ChartOfAccounts;
+            int account_code;
 
-        //    if (account_uuid == Guid.Empty)
-        //    {
-        //        return; // Субконто не используются
-        //    }
+            if (registry.TryGetEntry(account_uuid, out Account account))
+            {
+                account_code = account.Code;
+            }
+            else
+            {
+                throw new InvalidOperationException($"План счетов для регистра бухгалтерии {register.Name} не найден!");
+            }
 
-        //    int account_code;
+            if (account.MaxDimensionCount == 0)
+            {
+                return table; // Субконто не используются
+            }
 
-        //    if (cache.TryGetDbName(account_uuid, out DbName dbn1))
-        //    {
-        //        account_code = dbn1.Code;
-        //    }
-        //    else
-        //    {
-        //        throw new InvalidOperationException("Ошибка получения кода типа для плана счетов!");
-        //    }
+            Guid dimension_uuid = account.DimensionTypes;
 
-        //    MetadataObject metadata1 = cache.GetMetadataObject(MetadataTypes.Account, account_uuid);
+            if (dimension_uuid == Guid.Empty)
+            {
+                return table; // Субконто не используются
+            }
 
-        //    if (metadata1 is not Account account)
-        //    {
-        //        throw new InvalidOperationException("Объект метаданных плана счетов не найден!");
-        //    }
+            int dimension_code;
 
-        //    if (account.MaxDimensionCount == 0)
-        //    {
-        //        return; // Субконто не используются
-        //    }
+            if(registry.TryGetEntry(dimension_uuid, out Characteristic characteristic))
+            {
+                dimension_code = characteristic.Code;
+            }
+            else
+            {
+                throw new InvalidOperationException($"План видов характеристик (субконто) для плана счетов {register.Name} не найден!");
+            }
 
-        //    Guid dimension_uuid = account.DimensionTypes;
+            PropertyDefinition propertyKind = new()
+            {
+                Name = "ВидСубконто",
+                Type = DataType.Entity(characteristic.Code), // Вид субконто
+                Purpose = PropertyPurpose.System
+            };
+            
+            propertyKind.Columns.Add(new ColumnDefinition()
+            {
+                Name = string.Format("_KindRRef"),
+                Type = DataType.Binary(16, false)
+            });
 
-        //    if (dimension_uuid == Guid.Empty)
-        //    {
-        //        return; // Субконто не используются
-        //    }
+            table.Properties.Add(propertyKind);
 
-        //    int dimension_code;
+            PropertyDefinition propertyValue = new()
+            {
+                Name = "Значение",
+                Type = characteristic.Type, // Типы значений субконто
+                Purpose = PropertyPurpose.System
+            };
+            
+            ConfigureDatabaseColumns(in propertyValue, "_Value");
+            
+            table.Properties.Add(propertyValue);
 
-        //    if (cache.TryGetDbName(dimension_uuid, out DbName dbn2))
-        //    {
-        //        dimension_code = dbn2.Code;
-        //    }
-        //    else
-        //    {
-        //        throw new InvalidOperationException("Ошибка получения кода типа для плана видов характеристик (субконто) плана счетов!");
-        //    }
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
 
-        //    MetadataObject metadata2 = cache.GetMetadataObject(MetadataTypes.Characteristic, dimension_uuid);
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
 
-        //    if (metadata2 is not Characteristic characteristic)
-        //    {
-        //        throw new InvalidOperationException("Объект метаданных плана видов характеристик (субконто) плана счетов не найден!");
-        //    }
-
-        //    ConfigureAccountingDimensionType(table, dimension_code, dimension_uuid, "ВидСубконто", "_KindRRef");
-        //    ConfigureAccountingDimensionValue(in cache, table, in characteristic, "Значение", "_Value");
-
-        //    foreach (MetadataProperty property in register.Properties)
-        //    {
-        //        if (property is SharedProperty shared)
-        //        {
-        //            table.Properties.Add(shared.Copy());
-        //        }
-        //    }
-        //}
+            return table;
+        }
         #endregion
 
         #region "Табличная часть"

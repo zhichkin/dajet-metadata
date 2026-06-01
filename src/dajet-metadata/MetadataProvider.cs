@@ -491,9 +491,68 @@ namespace DaJet.Metadata
             {
                 return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry);
             }
-            
+
+            if (entry is AccumulationRegister)
+            {
+                if (table == "Настройки") // Таблица настроек регистра накопления
+                {
+                    return Configurator.GetRegisterSettingsTable(in entry, in entity, in _registry);
+                }
+                else if (table == "Итоги") // Таблица итогов регистра накопления
+                {
+                    return Configurator.GetRegisterTotalsTable(in entry, in entity, in _registry);
+                }
+                else
+                {
+                    return null; //NOTE: Таблица отсутствует
+                }
+            }
+
+            if (entry is AccountingRegister)
+            {
+                if (table == "Настройки") // Таблица настроек регистра бухгалтерии
+                {
+                    return Configurator.GetRegisterSettingsTable(in entry, in entity, in _registry);
+                }
+                else if (table == "ЗначенияСубконто") // Таблица значений субконто регистра бухгалтерии
+                {
+                    return Configurator.GetDimensionValuesTable(in entry, in entity, in _registry);
+                }
+                else
+                {
+                    return null; //NOTE: Таблица отсутствует
+                }
+            }
+
+            if (entry is InformationRegister)
+            {
+                if (_registry.Version >= 80302)
+                {
+                    if (table == "Настройки") // Таблица настроек регистра сведений
+                    {
+                        return Configurator.GetInfoRegisterSettingsTable(in entry, in entity, in _registry);
+                    }
+                    else if (table == "СрезПервых") // Таблица итогов регистра сведений (срез первых)
+                    {
+                        return Configurator.GetSliceFirstTable(in entry, in entity, in _registry);
+                    }
+                    else if (table == "СрезПоследних") // Таблица итогов регистра сведений (срез последних)
+                    {
+                        return Configurator.GetSliceLastTable(in entry, in entity, in _registry);
+                    }
+                    else
+                    {
+                        return null; //NOTE: Таблица отсутствует
+                    }
+                }
+                else
+                {
+                    return null; //NOTE: Таблицы срезов не поддерживаются
+                }
+            }
+
             // Табличная часть объекта метаданных
-            
+
             return entity.Entities.Where(e => e.Name == table).FirstOrDefault();
         }
         public IEnumerable<EntityDefinition> GetMetadataObjects(string typeName)
@@ -645,6 +704,16 @@ namespace DaJet.Metadata
             ThrowIfNotInitialized();
 
             return new MetadataComparer(this, _loader).CompareMetadataToDatabase(names);
+        }
+        public string CompareMetadataObjectToDatabase(in EntityDefinition entity)
+        {
+            ThrowIfNotInitialized();
+
+            StringBuilder logger = new();
+
+            new MetadataComparer(this, _loader).CompareMetadataObjectToDatabase(in entity, in logger);
+
+            return logger.ToString();
         }
 
         #endregion

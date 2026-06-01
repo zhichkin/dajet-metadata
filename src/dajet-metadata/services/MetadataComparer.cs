@@ -59,12 +59,35 @@ namespace DaJet.Metadata.Services
                     {
                         CompareMetadataObjectToDatabase(in changes, in logger);
                     }
+
+                    // Служебные таблицы регистров накопления
+
+                    //if (name == MetadataNames.AccumulationRegister)
+                    //{
+                    //    fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Итоги");
+
+                    //    EntityDefinition table = _provider.GetMetadataObject(fullName);
+
+                    //    if (table is not null)
+                    //    {
+                    //        CompareMetadataObjectToDatabase(in table, in logger);
+                    //    }
+
+                    //    fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Настройки");
+
+                    //    table = _provider.GetMetadataObject(fullName);
+
+                    //    if (table is not null)
+                    //    {
+                    //        CompareMetadataObjectToDatabase(in table, in logger);
+                    //    }
+                    //}
                 }
             }
 
             return logger.ToString();
         }
-        private void CompareMetadataObjectToDatabase(in EntityDefinition entity, in StringBuilder logger)
+        internal void CompareMetadataObjectToDatabase(in EntityDefinition entity, in StringBuilder logger)
         {
             EntityDefinition table = _loader.GetDbTableSchema(entity.DbName);
 

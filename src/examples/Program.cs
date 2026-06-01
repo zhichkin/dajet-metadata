@@ -37,7 +37,14 @@ namespace DaJet
             //DumpRawFile(); return;
             //GetMetadataNames(); return;
             //GetMetadataObject("РегистрБухгалтерии.РегистрБухгалтерии1"); return;
-            CompareMetadataToDatabase(); return;
+            //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов"); return;
+            //GetMetadataObject("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
+
+            //CompareMetadataToDatabase(); return;
+            //CompareMetadataObjectToDatabase("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
+            //CompareMetadataObjectToDatabase("РегистрБухгалтерии.Хозрасчетный.Настройки"); return;
+            //CompareMetadataObjectToDatabase("РегистрБухгалтерии.РегистрБухгалтерии1"); return;
+            CompareMetadataObjectToDatabase("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
 
             //CreateLookupTable(); return;
 
@@ -174,11 +181,17 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
 
             //EntityDefinition metadata = provider.GetMetadataObject(63);
             EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
+
+            if (metadata is null)
+            {
+                Console.WriteLine($"Таблица [{metadataFullName}] не найдена."); return;
+            }
 
             ShowEhtityDefinition(in metadata, in provider);
 
@@ -592,6 +605,36 @@ namespace DaJet
             };
 
             string report = provider.CompareMetadataToDatabase(metadataNames);
+
+            Console.WriteLine(report);
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"Done in {elapsed.TotalMilliseconds} ms");
+        }
+        private static void CompareMetadataObjectToDatabase(in string metadataFullName)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
+
+            EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
+
+            if (metadata is null)
+            {
+                Console.WriteLine($"Таблица [{metadataFullName}] не найдена."); return;
+            }
+
+            string report = provider.CompareMetadataObjectToDatabase(in metadata);
 
             Console.WriteLine(report);
 
