@@ -53,35 +53,139 @@ namespace DaJet.Metadata.Services
 
                     string fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Изменения");
 
-                    EntityDefinition changes = _provider.GetMetadataObject(fullName);
-
-                    if (changes is not null)
+                    if (name != MetadataNames.Publication)
                     {
-                        CompareMetadataObjectToDatabase(in changes, in logger);
+                        EntityDefinition changes = _provider.GetMetadataObject(fullName);
+
+                        if (changes is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in changes, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
                     }
 
                     // Служебные таблицы регистров накопления
 
-                    //if (name == MetadataNames.AccumulationRegister)
-                    //{
-                    //    fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Итоги");
+                    if (name == MetadataNames.AccumulationRegister)
+                    {
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Итоги");
 
-                    //    EntityDefinition table = _provider.GetMetadataObject(fullName);
+                        EntityDefinition table = _provider.GetMetadataObject(fullName);
 
-                    //    if (table is not null)
-                    //    {
-                    //        CompareMetadataObjectToDatabase(in table, in logger);
-                    //    }
+                        if (table is not null && !string.IsNullOrEmpty(table.DbName))
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
 
-                    //    fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Настройки");
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Настройки");
 
-                    //    table = _provider.GetMetadataObject(fullName);
+                        table = _provider.GetMetadataObject(fullName);
 
-                    //    if (table is not null)
-                    //    {
-                    //        CompareMetadataObjectToDatabase(in table, in logger);
-                    //    }
-                    //}
+                        if (table is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
+                    }
+
+                    // Служебные таблицы регистров бухгалтерии
+
+                    if (name == MetadataNames.AccountingRegister)
+                    {
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Настройки");
+
+                        EntityDefinition table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
+
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "ЗначенияСубконто");
+
+                        table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null && table.DbName != "_AccRgED0")
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
+
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "ИтогиПоСчетам");
+
+                        table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
+
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "ИтогиМеждуСчетами");
+
+                        table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null)
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                        else
+                        {
+                            logger.AppendLine($"Объект метаданных [{fullName}] отсутствует.");
+                        }
+                    }
+
+                    // Служебные таблицы регистров сведений
+
+                    if (name == MetadataNames.InformationRegister)
+                    {
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "Настройки");
+
+                        EntityDefinition table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null && table.DbName != "_InfoRgOpt0")
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "СрезПервых");
+
+                        table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null && table.DbName != "_InfoRgSF0")
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+
+                        fullName = string.Format("{0}.{1}.{2}", name, entity.Name, "СрезПоследних");
+
+                        table = _provider.GetMetadataObject(fullName);
+
+                        if (table is not null && table.DbName != "_InfoRgSL0")
+                        {
+                            CompareMetadataObjectToDatabase(in table, in logger);
+                        }
+                    }
                 }
             }
 

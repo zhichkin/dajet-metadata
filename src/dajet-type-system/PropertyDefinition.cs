@@ -2,6 +2,7 @@
 {
     public sealed class PropertyDefinition
     {
+        public Guid Uuid { get; set; }
         public string Name { get; set; } = string.Empty;
         public DataType Type { get; set; }
         public PropertyPurpose Purpose { get; set; }

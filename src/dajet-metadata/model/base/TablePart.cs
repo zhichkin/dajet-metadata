@@ -60,11 +60,11 @@ namespace DaJet.Metadata
 
                 if (reader[root][N][ConfigFileToken.StartObject].Seek())
                 {
-                    Guid uuid = reader[root][N][1][2][6][2][2][3].SeekUuid();
-
+                    // Идентификатор объекта метаданных (табличной части)
+                    table.Uuid = reader[root][N][1][2][6][2][2][3].SeekUuid();
                     table.Name = reader[root][N][1][2][6][2][3].SeekString();
 
-                    if (registry.TryGetEntry(uuid, out TablePart entry))
+                    if (registry.TryGetEntry(table.Uuid, out TablePart entry))
                     {
                         table.DbName = string.Format("{0}{1}", ownerEntry.GetMainDbName(), entry.GetMainDbName());
                     }

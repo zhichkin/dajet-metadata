@@ -10,6 +10,9 @@ namespace DaJet.Metadata
         }
         internal AccumulationRegister(Guid uuid) : base(uuid) { }
 
+        ///<summary>Вид регистра накопления</summary>
+        internal RegisterKind Purpose { get; set; }
+
         ///<summary>Разрешить разделение итогов</summary>
         internal bool UseSplitter { get; set; } // _Splitter numeric(10,0) NOT NULL
 
@@ -107,6 +110,9 @@ namespace DaJet.Metadata
                     }
                 }
 
+                // Вид регистра накопления (остатков или оборотов)
+                metadata.Purpose = (RegisterKind)reader[2][16].SeekNumber();
+
                 // Используется таблицей итогов. Доступно, начиная с версии 8.1 >= 80100
                 if (registry.Version >= 80100)
                 {
@@ -127,20 +133,18 @@ namespace DaJet.Metadata
 
                 EntityDefinition table = new();
 
+                table.Uuid = entry.Uuid;
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
                 ConfigFileReader reader = new(file);
-
-                // Вид регистра накопления (остатков или оборотов)
-                RegisterKind purpose = (RegisterKind)reader[2][16].SeekNumber();
 
                 Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
                 Configurator.ConfigurePropertyАктивность(in table);
                 Configurator.ConfigurePropertyПериод(in table);
                 Configurator.ConfigurePropertyНомерЗаписи(in table);
 
-                if (purpose == RegisterKind.Balance)
+                if (entry.Purpose == RegisterKind.Balance) // Регистр накопления остатков
                 {
                     Configurator.ConfigurePropertyВидДвиженияНакопления(in table);
                 }

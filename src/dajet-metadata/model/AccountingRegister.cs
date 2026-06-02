@@ -17,6 +17,8 @@ namespace DaJet.Metadata
         private int _ChngR;
         private int _AccRgED;
         private int _AccRgOpt;
+        private int _AccRgCT;
+        private readonly int[] _AccRgAT = new int[6];
         internal override void AddDbName(int code, string name)
         {
             if (name == MetadataToken.AccRg)
@@ -35,6 +37,13 @@ namespace DaJet.Metadata
             {
                 _ChngR = code;
             }
+            else if (name == MetadataToken.AccRgCT) { _AccRgCT = code; }
+            else if (name == MetadataToken.AccRgAT0) { _AccRgAT[0] = code; }
+            else if (name == MetadataToken.AccRgAT1) { _AccRgAT[1] = code; }
+            else if (name == MetadataToken.AccRgAT2) { _AccRgAT[2] = code; }
+            else if (name == MetadataToken.AccRgAT3) { _AccRgAT[3] = code; }
+            else if (name == MetadataToken.AccRgAT4) { _AccRgAT[4] = code; }
+            else if (name == MetadataToken.AccRgAT5) { _AccRgAT[5] = code; }
         }
         internal override string GetMainDbName()
         {
@@ -43,6 +52,18 @@ namespace DaJet.Metadata
         internal string GetTableNameНастройки()
         {
             return string.Format("_{0}{1}", MetadataToken.AccRgOpt, _AccRgOpt);
+        }
+        internal string GetTableNameИтогиМеждуСчетами()
+        {
+            return string.Format("_{0}{1}", MetadataToken.AccRgCT, _AccRgCT);
+        }
+        internal string GetTableNameИтогиПоСчетам()
+        {
+            return string.Format("_{0}0{1}", MetadataToken.AccRgAT, _AccRgAT[0]);
+        }
+        internal string GetTableNameИтогиПоСубконто(int ordinal)
+        {
+            return string.Format("_{0}{1}{2}", MetadataToken.AccRgAT, ordinal, _AccRgAT[ordinal]);
         }
         internal string GetTableNameЗначенияСубконто()
         {
@@ -137,6 +158,7 @@ namespace DaJet.Metadata
 
                 EntityDefinition table = new();
 
+                table.Uuid = entry.Uuid;
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 
@@ -186,7 +208,7 @@ namespace DaJet.Metadata
                     Configurator.ConfigurePropertyСчёт(in entry, in account, in table);
                 }
 
-                Configurator.ConfigureAccountingRegisterDimensions(in table, in entry, in registry);
+                Configurator.ConfigureAccountingDimensions(in table, in entry, in registry);
 
                 //TODO: _EDHashDt
                 //TODO: _EDHashCt

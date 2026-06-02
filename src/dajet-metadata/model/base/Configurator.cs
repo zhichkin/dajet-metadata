@@ -12,6 +12,9 @@ namespace DaJet.Metadata
             MetadataToken.VT,
             MetadataToken.LineNo,
             MetadataToken.Fld,
+            MetadataToken.Turnover,
+            MetadataToken.TurnoverDt,
+            MetadataToken.TurnoverCt,
             MetadataToken.Enum,
             MetadataToken.Chrc,
             MetadataToken.Node,
@@ -34,6 +37,13 @@ namespace DaJet.Metadata
             MetadataToken.ExtDim,
             MetadataToken.AccRgED,
             MetadataToken.AccRgOpt,
+            MetadataToken.AccRgCT,
+            MetadataToken.AccRgAT0,
+            MetadataToken.AccRgAT1,
+            MetadataToken.AccRgAT2,
+            MetadataToken.AccRgAT3,
+            MetadataToken.AccRgAT4,
+            MetadataToken.AccRgAT5,
             MetadataToken.AccChngR,
             MetadataToken.AccRgChngR,
             MetadataToken.AccumRgChngR,
@@ -1079,15 +1089,19 @@ namespace DaJet.Metadata
 
             foreach (PropertyDefinition property in entity.Properties)
             {
-                if (property.Purpose == PropertyPurpose.Dimension)
+                if (property.Purpose.IsDimension())
                 {
-                    table.Properties.Add(property);
+                    if (register.Purpose == RegisterKind.Balance ||
+                        property.Purpose.UseForTurnoverTotals())
+                    {
+                        table.Properties.Add(property);
+                    }
                 }
             }
 
             foreach (PropertyDefinition property in entity.Properties)
             {
-                if (property.Purpose == PropertyPurpose.Measure)
+                if (property.Purpose.IsMeasure())
                 {
                     table.Properties.Add(property);
                 }
@@ -1869,7 +1883,7 @@ namespace DaJet.Metadata
                 table.Properties.Add(property);
             }
         }
-        internal static void ConfigureAccountingRegisterDimensions(in EntityDefinition table, in AccountingRegister register, in MetadataRegistry registry)
+        internal static void ConfigureAccountingDimensions(in EntityDefinition table, in AccountingRegister register, in MetadataRegistry registry)
         {
             if (register.ChartOfAccounts == Guid.Empty) // План счетов
             {
@@ -1906,19 +1920,19 @@ namespace DaJet.Metadata
                 DataType kind = DataType.Entity(characteristic.Code); // Вид субконто
                 DataType value = characteristic.Type; // Типы значений субконто
 
-                for (int order = 1; order < count; order++)
+                for (int ordinal = 1; ordinal < count; ordinal++)
                 {
                     if (register.UseCorrespondence)
                     {
-                        ConfigureAccountingDimensionType(in table, order, kind, "Дт", "Dt");
-                        ConfigureAccountingDimensionValue(in table, order, value, "Дт", "Dt");
-                        ConfigureAccountingDimensionType(in table, order, kind, "Кт", "Ct");
-                        ConfigureAccountingDimensionValue(in table, order, value, "Кт", "Ct");
+                        ConfigureAccountingDimensionType(in table, ordinal, kind, "Дт", "Dt");
+                        ConfigureAccountingDimensionValue(in table, ordinal, value, "Дт", "Dt");
+                        ConfigureAccountingDimensionType(in table, ordinal, kind, "Кт", "Ct");
+                        ConfigureAccountingDimensionValue(in table, ordinal, value, "Кт", "Ct");
                     }
                     else
                     {
-                        ConfigureAccountingDimensionType(in table, order, kind, string.Empty, string.Empty);
-                        ConfigureAccountingDimensionValue(in table, order, value, string.Empty, string.Empty);
+                        ConfigureAccountingDimensionType(in table, ordinal, kind, string.Empty, string.Empty);
+                        ConfigureAccountingDimensionValue(in table, ordinal, value, string.Empty, string.Empty);
                     }
                 }
             }
@@ -1943,16 +1957,16 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
-        internal static void ConfigureAccountingDimensionValue(in EntityDefinition table, int order, DataType propertyType, string propertyName, string databaseName)
+        internal static void ConfigureAccountingDimensionValue(in EntityDefinition table, int ordinal, DataType propertyType, string propertyName, string databaseName)
         {
             PropertyDefinition property = new()
             {
-                Name = string.Format("Субконто{0}{1}", propertyName, order),
+                Name = string.Format("Субконто{0}{1}", propertyName, ordinal),
                 Type = propertyType,
                 Purpose = PropertyPurpose.System
             };
 
-            ConfigureDatabaseColumns(in property, string.Format("_Value{0}{1}", databaseName, order));
+            ConfigureDatabaseColumns(in property, string.Format("_Value{0}{1}", databaseName, ordinal));
 
             table.Properties.Add(property);
         }
@@ -1976,6 +1990,11 @@ namespace DaJet.Metadata
             if (register.UseCorrespondence)
             {
                 ConfigurePropertyВидДвиженияБухгалтерии(in table);
+            }
+
+            if (register.PeriodAdjustment > 0)
+            {
+                ConfigurePropertyУточнениеПериода(in table);
             }
 
             Guid account_uuid = register.ChartOfAccounts;
@@ -2010,7 +2029,7 @@ namespace DaJet.Metadata
 
             int dimension_code;
 
-            if(registry.TryGetEntry(dimension_uuid, out Characteristic characteristic))
+            if (registry.TryGetEntry(dimension_uuid, out Characteristic characteristic))
             {
                 dimension_code = characteristic.Code;
             }
@@ -2051,6 +2070,314 @@ namespace DaJet.Metadata
                 {
                     table.Properties.Add(property);
                 }
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        internal static EntityDefinition GetCrossAccountTurnovers(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not AccountingRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (!register.UseCorrespondence)
+            {
+                return null; // Не используется и не создаётся в базе данных
+            }
+
+            EntityDefinition table = new() // Таблица итогов оборотов между счетами
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "ИтогиМеждуСчетами"),
+                DbName = register.GetTableNameИтогиМеждуСчетами()
+            };
+
+            ConfigurePropertyПериод(in table);
+
+            Guid account_uuid = register.ChartOfAccounts;
+
+            if (account_uuid == Guid.Empty)
+            {
+                return table; // Субконто не используются
+            }
+
+            if (registry.TryGetEntry(account_uuid, out Account account))
+            {
+                ConfigurePropertyСчёт(in register, in account, in table);
+            }
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsDimension() || property.Purpose.IsMeasure())
+                {
+                    table.Properties.Add(property);
+                }
+                else if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (register.UseSplitter) // Разрешить разделение итогов
+            {
+                ConfigurePropertySplitter(in table);
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        internal static EntityDefinition GetAccountTurnovers(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
+        {
+            if (entry is not AccountingRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            EntityDefinition table = new() // Таблица итогов оборотов по счетам
+            {
+                Name = string.Format("{0}.{1}", entry.ToString(), "ИтогиПоСчетам"),
+                DbName = register.GetTableNameИтогиПоСчетам()
+            };
+
+            Guid account_uuid = register.ChartOfAccounts;
+
+            if (account_uuid == Guid.Empty)
+            {
+                return table; // Субконто не используются
+            }
+
+            if (registry.TryGetEntry(account_uuid, out Account account))
+            {
+                PropertyDefinition property = new()
+                {
+                    Name = "Счет",
+                    Purpose = PropertyPurpose.System,
+                    Type = DataType.Entity(account.Code)
+                };
+                property.Columns.Add(new ColumnDefinition()
+                {
+                    Name = "_AccountRRef",
+                    Type = DataType.Binary(16, false)
+                });
+                table.Properties.Add(property);
+            }
+
+            ConfigurePropertyПериод(in table);
+
+            HashSet<Guid> properties = new();
+
+            foreach (PropertyDefinition property in entity.Properties)
+            {
+                if (property.Purpose.IsDimension())
+                {
+                    if (properties.Contains(property.Uuid)) { continue; }
+
+                    if (property.Purpose.IsBalance())
+                    {
+                        table.Properties.Add(property);
+                    }
+                    else if (registry.TryGetEntry(property.Uuid, out Property fld))
+                    {
+                        string propertyName = property.Name.EndsWith("Дт", StringComparison.Ordinal)
+                            ? property.Name.TrimEnd("Дт").ToString()
+                            : property.Name.TrimEnd("Кт").ToString();
+
+                        string databaseName = fld.GetMainDbName();
+
+                        PropertyDefinition dimension = new()
+                        {
+                            Uuid = property.Uuid,
+                            Name = propertyName,
+                            Type = property.Type,
+                            Purpose = property.Purpose,
+                            References = property.References
+                        };
+
+                        ConfigureDatabaseColumns(in dimension, databaseName);
+
+                        table.Properties.Add(dimension);
+                    }
+
+                    properties.Add(property.Uuid);
+                }
+                else if (property.Purpose.IsMeasure())
+                {
+                    if (properties.Contains(property.Uuid)) { continue; }
+
+                    if (registry.TryGetEntry(property.Uuid, out Property fld))
+                    {
+                        if (property.Purpose.IsBalance())
+                        {
+                            table.Properties.Add(property);
+                        }
+                        else
+                        {
+                            string propertyName = property.Name.EndsWith("Дт", StringComparison.Ordinal)
+                                ? property.Name.TrimEnd("Дт").ToString()
+                                : property.Name.TrimEnd("Кт").ToString();
+
+                            string databaseName = fld.GetMainDbName();
+
+                            PropertyDefinition measure = new()
+                            {
+                                Uuid = property.Uuid,
+                                Name = propertyName,
+                                Type = property.Type,
+                                Purpose = property.Purpose,
+                                References = property.References
+                            };
+
+                            ConfigureDatabaseColumns(in measure, databaseName);
+
+                            table.Properties.Add(measure);
+                        }
+
+                        if (fld.HasTurnoverDt)
+                        {
+                            string propertyName = property.Name.EndsWith("Дт", StringComparison.Ordinal)
+                                    ? property.Name.TrimEnd("Дт").ToString()
+                                    : property.Name.TrimEnd("Кт").ToString();
+
+                            string databaseName = fld.GetFieldNameTurnoverDt();
+
+                            PropertyDefinition turnover = new()
+                            {
+                                Uuid = property.Uuid,
+                                Name = string.Format("{0}ОборотДт", propertyName),
+                                Type = property.Type,
+                                Purpose = property.Purpose,
+                                References = property.References
+                            };
+
+                            ConfigureDatabaseColumns(in turnover, databaseName);
+
+                            table.Properties.Add(turnover);
+                        }
+
+                        if (fld.HasTurnoverCt)
+                        {
+                            string propertyName = property.Name.EndsWith("Дт", StringComparison.Ordinal)
+                                    ? property.Name.TrimEnd("Дт").ToString()
+                                    : property.Name.TrimEnd("Кт").ToString();
+
+                            string databaseName = fld.GetFieldNameTurnoverCt();
+
+                            PropertyDefinition turnover = new()
+                            {
+                                Uuid = property.Uuid,
+                                Name = string.Format("{0}ОборотКт", propertyName),
+                                Type = property.Type,
+                                Purpose = property.Purpose,
+                                References = property.References
+                            };
+
+                            ConfigureDatabaseColumns(in turnover, databaseName);
+
+                            table.Properties.Add(turnover);
+                        }
+
+                        if (fld.HasTurnover)
+                        {
+                            string propertyName = property.Name.EndsWith("Дт", StringComparison.Ordinal)
+                                    ? property.Name.TrimEnd("Дт").ToString()
+                                    : property.Name.TrimEnd("Кт").ToString();
+
+                            string databaseName = fld.GetFieldNameTurnover();
+
+                            PropertyDefinition turnover = new()
+                            {
+                                Uuid = property.Uuid,
+                                Name = string.Format("{0}Оборот", propertyName),
+                                Type = property.Type,
+                                Purpose = property.Purpose,
+                                References = property.References
+                            };
+
+                            ConfigureDatabaseColumns(in turnover, databaseName);
+
+                            table.Properties.Add(turnover);
+                        }
+                    }
+
+                    properties.Add(property.Uuid);
+                }
+                else if (property.Purpose.IsSharedProperty() && property.Purpose.UseDataSeparation())
+                {
+                    table.Properties.Add(property);
+                }
+            }
+
+            if (register.UseSplitter) // Разрешить разделение итогов
+            {
+                ConfigurePropertySplitter(in table);
+            }
+
+            if (ApplySuffixToServiceTable(in entry, in registry))
+            {
+                table.DbName += "x1";
+            }
+
+            return table;
+        }
+        internal static EntityDefinition GetDimensionTurnovers(in MetadataObject entry, in EntityDefinition entity, int dimension, in MetadataRegistry registry)
+        {
+            if (entry is not AccountingRegister register)
+            {
+                throw new InvalidOperationException();
+            }
+
+            if (dimension < 1 || dimension > 5)
+            {
+                throw new ArgumentOutOfRangeException(nameof(dimension));
+            }
+
+            Guid account_uuid = register.ChartOfAccounts;
+
+            if (account_uuid == Guid.Empty)
+            {
+                return null; // Субконто не используются
+            }
+
+            if (!registry.TryGetEntry(account_uuid, out Account account))
+            {
+                throw new InvalidOperationException($"План счетов для регистра бухгалтерии {register.Name} не найден!");
+            }
+
+            if (account.MaxDimensionCount == 0)
+            {
+                return null; // Субконто не используются
+            }
+
+            if (dimension > account.MaxDimensionCount)
+            {
+                return null; // Превышено максимально допустимое количество субконто, установленное по планом счетов
+            }
+
+            if (!registry.TryGetEntry(account.DimensionTypes, out Characteristic characteristic))
+            {
+                throw new InvalidOperationException($"План видов характеристик (субконто) для плана счетов {register.Name} не найден!");
+            }
+
+            EntityDefinition table = GetAccountTurnovers(in entry, in entity, in registry);
+
+            table.Name = string.Format("{0}.{1}{2}", entry.ToString(), "ИтогиПоСубконто", dimension);
+
+            table.DbName = register.GetTableNameИтогиПоСубконто(dimension);
+
+            DataType type = characteristic.Type; // Типы значений субконто (характеристика)
+
+            for (int ordinal = 1; ordinal <= dimension; ordinal++)
+            {
+                ConfigureAccountingDimensionValue(in table, ordinal, type, string.Empty, string.Empty);
             }
 
             if (ApplySuffixToServiceTable(in entry, in registry))

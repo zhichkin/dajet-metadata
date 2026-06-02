@@ -123,13 +123,14 @@ namespace DaJet.Metadata
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
-                EntityDefinition table = new();
-
                 if (!registry.TryGetEntry(uuid, out Document entry))
                 {
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                EntityDefinition table = new();
+
+                table.Uuid = entry.Uuid;
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 

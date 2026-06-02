@@ -6,16 +6,47 @@ namespace DaJet.Metadata
     internal sealed class Property : MetadataObject
     {
         internal Property(Guid uuid) : base(uuid) { }
+
+        private int _Turnover;
+        private int _TurnoverDt;
+        private int _TurnoverCt;
         internal override void AddDbName(int code, string name)
         {
             if (name == MetadataToken.Fld)
             {
                 Code = code;
             }
+            else if (name == MetadataToken.Turnover)
+            {
+                _Turnover = code;
+            }
+            else if (name == MetadataToken.TurnoverDt)
+            {
+                _TurnoverDt = code;
+            }
+            else if (name == MetadataToken.TurnoverCt)
+            {
+                _TurnoverCt = code;
+            }
         }
         internal override string GetMainDbName()
         {
             return string.Format("_{0}{1}", MetadataToken.Fld, Code);
+        }
+        internal bool HasTurnover { get { return _Turnover > 0; } }
+        internal string GetFieldNameTurnover()
+        {
+            return string.Format("_{0}{1}", MetadataToken.Turnover, _Turnover);
+        }
+        internal bool HasTurnoverDt { get { return _TurnoverDt > 0; } }
+        internal string GetFieldNameTurnoverDt()
+        {
+            return string.Format("_{0}{1}", MetadataToken.TurnoverDt, _TurnoverDt);
+        }
+        internal bool HasTurnoverCt { get { return _TurnoverCt > 0; } }
+        internal string GetFieldNameTurnoverCt()
+        {
+            return string.Format("_{0}{1}", MetadataToken.TurnoverCt, _TurnoverCt);
         }
         internal override string GetTableNameИзменения()
         {
@@ -66,11 +97,10 @@ namespace DaJet.Metadata
             };
 
             // Идентификатор объекта метаданных (свойства)
-            Guid uuid = reader[root][1][2][2][2][2][3].SeekUuid();
-
+            property.Uuid = reader[root][1][2][2][2][2][3].SeekUuid();
             property.Name = reader[root][1][2][2][2][3].SeekString();
 
-            if (!registry.TryGetEntry(uuid, out Property entry))
+            if (!registry.TryGetEntry(property.Uuid, out Property entry))
             {
                 return; // Заимствованное расширением свойство
 
@@ -101,42 +131,53 @@ namespace DaJet.Metadata
                 property.References = references;
             }
 
-            bool IsDebitAndCredit = false;
-
             if (type == PropertyTypes.AccountingRegister_Measure ||
                 type == PropertyTypes.AccountingRegister_Dimension)
             {
                 //NOTE: Особый случай: регистр бухгалтерии, который использует корреспонденцию счетов,
                 //NOTE: согласно настройке измерения или ресурса "Балансовый" делит их на дебет и кредит.
 
-                if (owner is AccountingRegister register && register.UseCorrespondence)
+                bool IsBalance = reader[root][1][3].SeekNumber() == 1; // Балансовый
+
+                if (IsBalance) // Балансовое измерение или ресурс
                 {
-                    IsDebitAndCredit = reader[root][1][3].SeekNumber() != 1; // Не балансовый реквизит (не сальдо)
+                    property.Purpose |= PropertyPurpose.IsBalance;
                 }
-            }
-
-            if (IsDebitAndCredit) // Особый случай - очень редкое выполнение
-            {
-                string databaseName = entry.GetMainDbName();
-
-                string columnName = string.Format("{0}{1}", databaseName, "Dt");
-                Configurator.ConfigureDatabaseColumns(in property, columnName);
-
-                table.Properties.Add(property);
-
-                columnName = string.Format("{0}{1}", databaseName, "Ct");
-                property = new PropertyDefinition()
+                else if (owner is AccountingRegister register && register.UseCorrespondence)
                 {
-                    Name = property.Name,
-                    Type = property.Type,
-                    Purpose = property.Purpose,
-                    References = property.References
-                };
-                Configurator.ConfigureDatabaseColumns(in property, columnName);
+                    // Не балансовый реквизит (не сальдо) - делим на дебет и кредит
+                    //NOTE: Логика формирования свойств основной таблицы регистра бухгалтерии _AccRg
+                    //NOTE: В таблице итогов по счетам _AccRgAT0 свойство не делится на дебет и кредит
 
-                table.Properties.Add(property);
+                    string propertyName = property.Name;
 
-                return; // Особый случай - очень редкое выполнение
+                    string databaseName = entry.GetMainDbName();
+
+                    property.Name = string.Format("{0}{1}", propertyName, "Дт");
+
+                    string columnName = string.Format("{0}{1}", databaseName, "Dt");
+
+                    Configurator.ConfigureDatabaseColumns(in property, columnName);
+                    
+                    table.Properties.Add(property); // Дебет
+
+                    property = new PropertyDefinition()
+                    {
+                        Uuid = property.Uuid,
+                        Name = string.Format("{0}{1}", propertyName, "Кт"),
+                        Type = property.Type,
+                        Purpose = property.Purpose,
+                        References = property.References
+                    };
+
+                    columnName = string.Format("{0}{1}", databaseName, "Ct");
+
+                    Configurator.ConfigureDatabaseColumns(in property, columnName);
+
+                    table.Properties.Add(property); // Кредит
+
+                    return;
+                }
             }
 
             Configurator.ConfigureDatabaseColumns(in entry, in property);
@@ -153,6 +194,25 @@ namespace DaJet.Metadata
                 if (UseForChangeTracking)
                 {
                     property.Purpose |= PropertyPurpose.UseForChangeTracking;
+                }
+            }
+            else if (type == PropertyTypes.AccumulationRegister_Dimension)
+            {
+                if (owner is AccumulationRegister register && register.Purpose == RegisterKind.Turnovers)
+                {
+                    if (registry.Version >= 80100)
+                    {
+                        bool UseForTurnoverTotals = reader[root][1][6].SeekNumber() == 1;
+
+                        if (UseForTurnoverTotals)
+                        {
+                            property.Purpose |= PropertyPurpose.UseForTurnoverTotals;
+                        }
+                    }
+                    else
+                    {
+                        property.Purpose |= PropertyPurpose.UseForTurnoverTotals;
+                    }
                 }
             }
 

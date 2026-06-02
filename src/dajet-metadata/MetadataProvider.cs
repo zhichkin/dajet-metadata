@@ -491,8 +491,7 @@ namespace DaJet.Metadata
             {
                 return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry);
             }
-
-            if (entry is AccumulationRegister)
+            else if (entry is AccumulationRegister)
             {
                 if (table == "Настройки") // Таблица настроек регистра накопления
                 {
@@ -504,11 +503,10 @@ namespace DaJet.Metadata
                 }
                 else
                 {
-                    return null; //NOTE: Таблица отсутствует
+                    return null; //NOTE: Таблица отсутствует или не поддерживается
                 }
             }
-
-            if (entry is AccountingRegister)
+            else if (entry is AccountingRegister)
             {
                 if (table == "Настройки") // Таблица настроек регистра бухгалтерии
                 {
@@ -516,15 +514,33 @@ namespace DaJet.Metadata
                 }
                 else if (table == "ЗначенияСубконто") // Таблица значений субконто регистра бухгалтерии
                 {
-                    return Configurator.GetDimensionValuesTable(in entry, in entity, in _registry);
+                    return Configurator.GetDimensionValuesTable(in entry, in entity, in _registry); // _AccRgED
+                }
+                else if (table == "ИтогиПоСчетам") // _AccRgAT0
+                {
+                    return Configurator.GetAccountTurnovers(in entry, in entity, in _registry);
+                }
+                else if (table == "ИтогиМеждуСчетами") // _AccRgCT
+                {
+                    return Configurator.GetCrossAccountTurnovers(in entry, in entity, in _registry);
+                }
+                else if (table.StartsWith("ИтогиПоСубконто")) // _AccRgAT[n]
+                {
+                    string number = table["ИтогиПоСубконто".Length..];
+                    
+                    if (!int.TryParse(number, out int dimension))
+                    {
+                        return null; //NOTE: Таблица отсутствует
+                    }
+
+                    return Configurator.GetDimensionTurnovers(in entry, in entity, dimension, in _registry);
                 }
                 else
                 {
-                    return null; //NOTE: Таблица отсутствует
+                    return null; //NOTE: Таблица отсутствует или не поддерживается
                 }
             }
-
-            if (entry is InformationRegister)
+            else if (entry is InformationRegister)
             {
                 if (_registry.Version >= 80302)
                 {
@@ -534,15 +550,15 @@ namespace DaJet.Metadata
                     }
                     else if (table == "СрезПервых") // Таблица итогов регистра сведений (срез первых)
                     {
-                        return Configurator.GetSliceFirstTable(in entry, in entity, in _registry);
+                        return Configurator.GetSliceFirstTable(in entry, in entity, in _registry); // _InfoRgSF
                     }
                     else if (table == "СрезПоследних") // Таблица итогов регистра сведений (срез последних)
                     {
-                        return Configurator.GetSliceLastTable(in entry, in entity, in _registry);
+                        return Configurator.GetSliceLastTable(in entry, in entity, in _registry); // _InfoRgSL
                     }
                     else
                     {
-                        return null; //NOTE: Таблица отсутствует
+                        return null; //NOTE: Таблица отсутствует или не поддерживается
                     }
                 }
                 else

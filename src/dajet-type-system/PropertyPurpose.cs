@@ -46,10 +46,22 @@
         /// <summary>
         /// <b>Использование разделения данных внутри одной информационной базы</b>
         /// </summary>
-        UseDataSeparation = 256
+        UseDataSeparation = 256,
+        /// <summary>
+        /// <b>Балансовое измерение или ресурс регистра бухгалтерии</b>
+        /// </summary>
+        IsBalance = 512,
+        /// <summary>
+        /// <b>Использовать измерение в итогах регистра накопления оборотов</b>
+        /// </summary>
+        UseForTurnoverTotals = 1024
     }
     public static class PropertyPurposeExtensions
     {
+        public static bool IsMeasure(this PropertyPurpose purpose)
+        {
+            return (purpose & PropertyPurpose.Measure) == PropertyPurpose.Measure;
+        }
         public static bool IsDimension(this PropertyPurpose purpose)
         {
             return (purpose & PropertyPurpose.Dimension) == PropertyPurpose.Dimension;
@@ -57,6 +69,10 @@
         public static bool UseForChangeTracking(this PropertyPurpose purpose)
         {
             return (purpose & PropertyPurpose.UseForChangeTracking) == PropertyPurpose.UseForChangeTracking;
+        }
+        public static bool UseForTurnoverTotals(this PropertyPurpose purpose)
+        {
+            return (purpose & PropertyPurpose.UseForTurnoverTotals) == PropertyPurpose.UseForTurnoverTotals;
         }
 
         public static bool IsSharedProperty(this PropertyPurpose purpose)
@@ -68,6 +84,10 @@
             return (purpose & PropertyPurpose.UseDataSeparation) == PropertyPurpose.UseDataSeparation;
         }
 
+        public static bool IsBalance(this PropertyPurpose purpose)
+        {
+            return (purpose & PropertyPurpose.IsBalance) == PropertyPurpose.IsBalance;
+        }
         public static bool IsAccountingDimensionFlag(this PropertyPurpose purpose)
         {
             return (purpose & PropertyPurpose.AccountingDimensionFlag) == PropertyPurpose.AccountingDimensionFlag;
@@ -76,10 +96,10 @@
         public static string GetName(this PropertyPurpose purpose)
         {
             if (purpose == PropertyPurpose.System) { return "СтандартныйРеквизит"; }
-            else if (purpose == PropertyPurpose.Measure) { return "Ресурс"; }
             else if (purpose == PropertyPurpose.Property) { return "Реквизит"; }
             else if (purpose == PropertyPurpose.SharedProperty) { return "ОбщийРеквизит"; }
-            else if ((purpose & PropertyPurpose.Dimension) == PropertyPurpose.Dimension) { return "Измерение"; }
+            else if (purpose.IsMeasure()) { return "Ресурс"; }
+            else if (purpose.IsDimension()) { return "Измерение"; }
             else if (purpose == PropertyPurpose.RoutingProperty) { return "РеквизитАдресации"; }
             else if (purpose == PropertyPurpose.AccountingFlag) { return "ПризнакУчёта"; }
             else if (purpose == PropertyPurpose.AccountingDimensionFlag) { return "ПризнакУчётаСубконто"; }

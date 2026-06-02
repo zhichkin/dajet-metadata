@@ -3,6 +3,7 @@ using DaJet.Json;
 using DaJet.Metadata;
 using DaJet.TypeSystem;
 using System.Diagnostics;
+using System.Globalization;
 using System.Reflection.Emit;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -35,16 +36,19 @@ namespace DaJet
         {
             //DumpFile(); return;
             //DumpRawFile(); return;
-            //GetMetadataNames(); return;
-            //GetMetadataObject("РегистрБухгалтерии.РегистрБухгалтерии1"); return;
-            //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов"); return;
+            //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
+            //GetMetadataObject("РегистрБухгалтерии.Международный"); return; //МеждународныйБезКорреспонденции
+            //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
             //GetMetadataObject("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
+            //GetMetadataObject("Документ.ЗаказКлиента"); return;
+            //GetMetadataObject("РегистрБухгалтерии.Международный.ИтогиПоСубконто3"); return;
 
-            //CompareMetadataToDatabase(); return;
+            CompareMetadataToDatabase(); return;
             //CompareMetadataObjectToDatabase("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
-            //CompareMetadataObjectToDatabase("РегистрБухгалтерии.Хозрасчетный.Настройки"); return;
+            //CompareMetadataObjectToDatabase("РегистрБухгалтерии.Международный"); return;
             //CompareMetadataObjectToDatabase("РегистрБухгалтерии.РегистрБухгалтерии1"); return;
-            CompareMetadataObjectToDatabase("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
+            //CompareMetadataObjectToDatabase("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
+            //CompareMetadataObjectToDatabase("РегистрБухгалтерии.Хозрасчетный.ИтогиПоСубконто3"); return;
 
             //CreateLookupTable(); return;
 
@@ -114,10 +118,27 @@ namespace DaJet
 
             // cf0c90da-010f-4356-a8b6-d050279c90d9 РегистрБухгалтерии1
 
-            string fileName = "cf0c90da-010f-4356-a8b6-d050279c90d9";
-            string outputPath = $"C:\\temp\\1c-dump\\РегистрБухгалтерии.РегистрБухгалтерии1.txt";
+            //string fileName = "cf0c90da-010f-4356-a8b6-d050279c90d9";
+            //string outputPath = $"C:\\temp\\1c-dump\\РегистрБухгалтерии.РегистрБухгалтерии1.txt";
 
-            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
+            //MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
+
+            //MetadataProvider.Dump(DataSourceType.SqlServer, in MS_ERP, "Params", "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+
+            EntityDefinition metadata = provider.GetMetadataObject("РегистрНакопления.Обороты");
+
+            if (metadata is null)
+            {
+                Console.WriteLine("Таблица \"РегистрНакопления.Обороты\" не найдена.");
+            }
+            else
+            {
+                string fileName = metadata.Uuid.ToString().ToLower(CultureInfo.InvariantCulture);
+                string outputPath = $"C:\\temp\\1c-dump\\РегистрНакопления.Обороты.txt";
+                MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
+            }
         }
 
         private static void DumpRawFile()
@@ -619,12 +640,12 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
 
             EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);

@@ -2,6 +2,7 @@
 {
     public sealed class EntityDefinition
     {
+        public Guid Uuid { get; set; }
         public string Name { get; set; } = string.Empty;
         public string DbName { get; set; } = string.Empty;
         public List<PropertyDefinition> Properties { get; set; } = new();

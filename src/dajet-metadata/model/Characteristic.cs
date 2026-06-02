@@ -128,6 +128,7 @@ namespace DaJet.Metadata
 
                 EntityDefinition table = new();
 
+                table.Uuid = entry.Uuid;
                 table.Name = entry.Name;
                 table.DbName = entry.GetMainDbName();
 

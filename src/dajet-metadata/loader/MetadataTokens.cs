@@ -53,6 +53,16 @@
         public const string AccRg = "AccRg";
         ///<summary>Таблица настроек регистра бухгалтерии (зависимый значимый тип данных)</summary>
         public const string AccRgOpt = "AccRgOpt";
+        ///<summary>Таблица итогов оборотов регистра бухгалтерии между счетами</summary>
+        public const string AccRgCT = "AccRgCT";
+        ///<summary>Таблицы итогов оборотов регистра бухгалтерии по счетам и субконто</summary>
+        public const string AccRgAT = "AccRgAT";
+        public const string AccRgAT0 = "AccRgAT0";
+        public const string AccRgAT1 = "AccRgAT1";
+        public const string AccRgAT2 = "AccRgAT2";
+        public const string AccRgAT3 = "AccRgAT3";
+        public const string AccRgAT4 = "AccRgAT4";
+        public const string AccRgAT5 = "AccRgAT5";
         ///<summary>Операции регистра бухгалтерии, журнал проводок (зависимый значимый тип данных)</summary>
         public const string AccRgED = "AccRgED";
         ///<summary>Регистр накопления (значимый тип данных)</summary>
@@ -95,6 +105,9 @@
         #region "Токены полей таблиц СУБД объектов метаданных"
 
         public const string Fld = "Fld";
+        public const string Turnover = "Turnover";
+        public const string TurnoverDt = "TurnoverDt";
+        public const string TurnoverCt = "TurnoverCt";
         public const string IDRRef = "IDRRef";
         public const string Version = "Version";
         public const string Marked = "Marked";

@@ -105,6 +105,7 @@ namespace DaJet.Metadata
 
                 EntityDefinition entity = new()
                 {
+                    Uuid = entry.Uuid,
                     Name = entry.Name,
                     DbName = entry.GetMainDbName()
                 };
