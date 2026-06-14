@@ -14,7 +14,7 @@ namespace DaJet
 {
     public static class Program
     {
-        private static readonly string MS_TEST = "Data Source=ZHICHKIN;Initial Catalog=test;Integrated Security=True;Encrypt=False;";
+        private static readonly string MS_TEST = "Data Source=Z-NOTEBOOK;Initial Catalog=test;Integrated Security=True;Encrypt=False;";
         private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_METADATA = "Host=localhost;Port=5432;Database=dajet-metadata;Username=postgres;Password=postgres;";
         private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
@@ -42,6 +42,12 @@ namespace DaJet
             //GetMetadataObject("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
             //GetMetadataObject("Документ.ЗаказКлиента"); return;
             //GetMetadataObject("РегистрБухгалтерии.Международный.ИтогиПоСубконто3"); return;
+
+            //GetMetadataEntry(53);
+            //GetMetadataEntry("Справочник.Номенклатура");
+            //GetMetadataEntry(new Guid("e8eec380-7851-4d79-9105-84ea876e9c53"));
+            //GetEnumerationEntity("Перечисление.ВидНоменклатуры.Товар");
+            //return;
 
             CompareMetadataToDatabase(); return;
             //CompareMetadataObjectToDatabase("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
@@ -149,6 +155,87 @@ namespace DaJet
             return;
         }
 
+        private static void GetMetadataEntry(int typeCode)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            MetadataEntry entry = provider.GetMetadataEntry(typeCode);
+
+            if (entry is null)
+            {
+                Console.WriteLine($"Объект метаданных [{typeCode}] не найден."); return;
+            }
+
+            Console.WriteLine(entry.FullName);
+            Console.WriteLine($"Uuid: {entry.Uuid}");
+            Console.WriteLine($"Code: {entry.Code}");
+            Console.WriteLine($"Type: {entry.Type}");
+            Console.WriteLine($"Name: {entry.Name}");
+            Console.WriteLine(entry.ToString());
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"[{entry.FullName}] elapsed {elapsed.TotalMilliseconds} ms");
+        }
+        private static void GetMetadataEntry(Guid typeUuid)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            MetadataEntry entry = provider.GetMetadataEntry(typeUuid);
+
+            if (entry is null)
+            {
+                Console.WriteLine($"Объект метаданных [{typeUuid}] не найден."); return;
+            }
+
+            Console.WriteLine(entry.FullName);
+            Console.WriteLine($"Uuid: {entry.Uuid}");
+            Console.WriteLine($"Code: {entry.Code}");
+            Console.WriteLine($"Type: {entry.Type}");
+            Console.WriteLine($"Name: {entry.Name}");
+            Console.WriteLine(entry.ToString());
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"[{entry.FullName}] elapsed {elapsed.TotalMilliseconds} ms");
+        }
+        private static void GetMetadataEntry(in string fullName)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            MetadataEntry entry = provider.GetMetadataEntry(in fullName);
+
+            if (entry is null)
+            {
+                Console.WriteLine($"Объект метаданных [{fullName}] не найден."); return;
+            }
+
+            Console.WriteLine(entry.FullName);
+            Console.WriteLine($"Uuid: {entry.Uuid}");
+            Console.WriteLine($"Code: {entry.Code}");
+            Console.WriteLine($"Type: {entry.Type}");
+            Console.WriteLine($"Name: {entry.Name}");
+            Console.WriteLine(entry.ToString());
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"[{entry.FullName}] elapsed {elapsed.TotalMilliseconds} ms");
+        }
         private static void ShowEhtityDefinition(in EntityDefinition metadata, in MetadataProvider provider)
         {
             Console.WriteLine($"Name: {metadata.Name}");
@@ -292,6 +379,24 @@ namespace DaJet
 
             TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
 
+            Console.WriteLine(value.ToString());
+            Console.WriteLine();
+            Console.WriteLine($"Executed in {elapsed.TotalMilliseconds} ms");
+        }
+        private static void GetEnumerationEntity(in string fullName)
+        {
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            long start = Stopwatch.GetTimestamp();
+
+            Entity value = provider.GetEnumerationEntity(in fullName);
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine(fullName);
             Console.WriteLine(value.ToString());
             Console.WriteLine();
             Console.WriteLine($"Executed in {elapsed.TotalMilliseconds} ms");

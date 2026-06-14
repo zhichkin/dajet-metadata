@@ -445,6 +445,77 @@ namespace DaJet.Metadata
             return names;
         }
 
+        public MetadataEntry GetMetadataEntry(int typeCode)
+        {
+            ThrowIfNotInitialized();
+
+            if (!_registry.TryGetEntry(typeCode, out MetadataObject entry))
+            {
+                return null;
+            }
+
+            string fullName = entry.ToString();
+
+            string typeName = fullName[..fullName.IndexOf('.')];
+
+            return new MetadataEntry()
+            {
+                Uuid = entry.Uuid,
+                Code = entry.Code,
+                Type = typeName,
+                Name = entry.Name
+            };
+        }
+        public MetadataEntry GetMetadataEntry(Guid typeUuid)
+        {
+            ThrowIfNotInitialized();
+
+            if (!_registry.TryGetEntry(typeUuid, out MetadataObject entry))
+            {
+                return null;
+            }
+
+            string fullName = entry.ToString();
+
+            string typeName = fullName[..fullName.IndexOf('.')];
+
+            return new MetadataEntry()
+            {
+                Uuid = entry.Uuid,
+                Code = entry.Code,
+                Type = typeName,
+                Name = entry.Name
+            };
+        }
+        public MetadataEntry GetMetadataEntry(in string fullName)
+        {
+            ArgumentNullException.ThrowIfNullOrWhiteSpace(fullName, nameof(fullName));
+
+            ThrowIfNotInitialized();
+
+            StringSplitOptions TrimAndRemoveEmpty = StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries;
+
+            Span<Range> names = stackalloc Range[3];
+
+            int count = fullName.Split(names, '.', TrimAndRemoveEmpty);
+
+            string type = count > 0 ? fullName[names[0]] : string.Empty;
+            string name = count > 1 ? fullName[names[1]] : string.Empty;
+            string table = count > 2 ? fullName[names[2]] : string.Empty;
+
+            if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
+            {
+                return null;
+            }
+
+            return new MetadataEntry()
+            {
+                Uuid = entry.Uuid,
+                Code = entry.Code,
+                Type = type,
+                Name = name
+            };
+        }
         public EntityDefinition GetMetadataObject(int typeCode)
         {
             ThrowIfNotInitialized();
@@ -600,6 +671,24 @@ namespace DaJet.Metadata
             }
 
             return entry.Values[names[2]];
+        }
+        public Entity GetEnumerationEntity(in string fullName)
+        {
+            ThrowIfNotInitialized();
+
+            string[] names = fullName.Split('.');
+
+            if (!_registry.TryGetEntry(names[0], names[1], out Enumeration entry))
+            {
+                return Entity.Undefined;
+            }
+
+            if (!entry.Values.TryGetValue(names[2], out Guid identity))
+            {
+                return new Entity(entry.Code, Guid.Empty);
+            }
+
+            return new Entity(entry.Code, identity);
         }
         public Dictionary<string, Guid> GetEnumerationValues(in string fullName)
         {
