@@ -458,13 +458,7 @@ namespace DaJet.Metadata
 
             string typeName = fullName[..fullName.IndexOf('.')];
 
-            return new MetadataEntry()
-            {
-                Uuid = entry.Uuid,
-                Code = entry.Code,
-                Type = typeName,
-                Name = entry.Name
-            };
+            return new MetadataEntry(entry.Code, entry.Uuid, typeName, entry.Name);
         }
         public MetadataEntry GetMetadataEntry(Guid typeUuid)
         {
@@ -479,13 +473,7 @@ namespace DaJet.Metadata
 
             string typeName = fullName[..fullName.IndexOf('.')];
 
-            return new MetadataEntry()
-            {
-                Uuid = entry.Uuid,
-                Code = entry.Code,
-                Type = typeName,
-                Name = entry.Name
-            };
+            return new MetadataEntry(entry.Code, entry.Uuid, typeName, entry.Name);
         }
         public MetadataEntry GetMetadataEntry(in string fullName)
         {
@@ -508,13 +496,7 @@ namespace DaJet.Metadata
                 return null;
             }
 
-            return new MetadataEntry()
-            {
-                Uuid = entry.Uuid,
-                Code = entry.Code,
-                Type = type,
-                Name = name
-            };
+            return new MetadataEntry(entry.Code, entry.Uuid, type, name);
         }
         public EntityDefinition GetMetadataObject(int typeCode)
         {
