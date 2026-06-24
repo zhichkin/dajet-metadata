@@ -7,34 +7,30 @@ namespace DaJet.TypeSystem
         public static readonly Entity Undefined;
         public static Entity Parse(string value)
         {
-            string[] parts = value.TrimStart('{').TrimEnd('}').Split(':', StringSplitOptions.RemoveEmptyEntries);
+            // {int:uuid}
 
-            if (parts.Length < 2)
+            ArgumentNullException.ThrowIfNullOrEmpty(value, nameof(value));
+
+            if (value.Length < 40)
             {
-                throw new FormatException($"Failed to parse Entity value: {value}");
+                throw new ArgumentOutOfRangeException(nameof(value));
             }
 
-            int typeCode = int.Parse(parts[0]);
-            Guid identity = new Guid(parts[1]);
+            ReadOnlySpan<char> buffer = value.AsSpan(1..(value.Length - 1));
+
+            int colon = buffer.IndexOf(':');
+            int typeCode = int.Parse(buffer[0..colon]);
+            Guid identity = Guid.Parse(buffer[(colon + 1)..]);
 
             return new Entity(typeCode, identity);
         }
         public static bool TryParse(string value, out Entity entity)
         {
-            entity = Entity.Undefined;
-
-            string[] parts = value.TrimStart('{').TrimEnd('}').Split(':', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-
-            if (parts.Length < 2)
-            {
-                return false;
-            }
+            entity = Undefined;
 
             try
             {
-                int typeCode = int.Parse(parts[0]);
-                Guid identity = new Guid(parts[1]);
-                entity = new Entity(typeCode, identity);
+                entity = Parse(value);
             }
             catch
             {
@@ -53,7 +49,28 @@ namespace DaJet.TypeSystem
         public Entity Copy() { return new Entity(TypeCode, Identity); }
         [JsonIgnore] public bool IsEmpty { get { return TypeCode > 0 && Identity == Guid.Empty; } }
         [JsonIgnore] public bool IsUndefined { get { return this == Undefined; } }
-        public override string ToString() { return $"{{{TypeCode}:{Identity}}}"; }
+        public override string ToString()
+        {
+            Span<char> buffer = stackalloc char[64];
+
+            buffer[0] = '{'; int position = 1;
+
+            if (!TypeCode.TryFormat(buffer[1..], out int count, "d"))
+            {
+                throw new FormatException();
+            }
+
+            position += count; buffer[position] = ':'; position++;
+
+            if (!Identity.TryFormat(buffer[position..], out count, "D"))
+            {
+                throw new FormatException();
+            }
+
+            position += count; buffer[position] = '}'; position++;
+
+            return buffer[0..position].ToString();
+        }
 
         #region " Переопределение методов сравнения "
 

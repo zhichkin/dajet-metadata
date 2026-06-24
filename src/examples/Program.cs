@@ -618,16 +618,16 @@ namespace DaJet
 
             string json = JsonSerializer.Serialize(type, JsonOptions);
 
-            json = "\"entity\""; //"\"union(boolean|datetime|string(20)|decimal(10,0)|entity(23))\"";
+            json = "\"decimal(15,4)\"";
 
             DataType test = JsonSerializer.Deserialize<DataType>(json, JsonOptions);
 
             Console.WriteLine(type.ToString());
             Console.WriteLine(test.ToString());
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
 
-            EntityDefinition metadata = provider.GetMetadataObject("РегистрСведений.Тестовый");
+            EntityDefinition metadata = provider.GetMetadataObject("Справочник.Номенклатура");
 
             string content = JsonSerializer.Serialize(metadata, JsonOptions);
 
