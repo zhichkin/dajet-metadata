@@ -8,7 +8,7 @@
     <AssemblyName>DaJet.Data</AssemblyName>
     <Title>DaJet Data Providers</Title>
     <Authors>Zhichkin</Authors>
-    <Version>2.0.1</Version>
+    <Version>2.0.2</Version>
     <Copyright>Zhichkin © 2025</Copyright>
     <Description>DaJet database providers core library</Description>
     <PackageProjectUrl>https://zhichkin.github.io/</PackageProjectUrl>
@@ -17,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.9" />
     <PackageReference Include="Npgsql" Version="10.0.3" />
   </ItemGroup>

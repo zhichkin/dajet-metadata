@@ -30,7 +30,7 @@ namespace DaJet.TypeSystem
         public abstract object Value { get; }
         public abstract Union Copy();
         public abstract bool GetBoolean();
-        public abstract decimal GetNumeric();
+        public abstract decimal GetDecimal();
         public abstract DateTime GetDateTime();
         public abstract string GetString();
         public abstract Entity GetEntity();
@@ -52,7 +52,7 @@ namespace DaJet.TypeSystem
             {
                 throw new BadUnionAccessException(typeof(bool), typeof(CaseUndefined));
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 throw new BadUnionAccessException(typeof(decimal), typeof(CaseUndefined));
             }
@@ -79,7 +79,7 @@ namespace DaJet.TypeSystem
             {
                 return _value;
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 throw new BadUnionAccessException(typeof(decimal), typeof(CaseBoolean));
             }
@@ -106,7 +106,7 @@ namespace DaJet.TypeSystem
             {
                 throw new BadUnionAccessException(typeof(bool), typeof(CaseDecimal));
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 return _value;
             }
@@ -133,7 +133,7 @@ namespace DaJet.TypeSystem
             {
                 throw new BadUnionAccessException(typeof(bool), typeof(CaseDateTime));
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 throw new BadUnionAccessException(typeof(decimal), typeof(CaseDateTime));
             }
@@ -160,7 +160,7 @@ namespace DaJet.TypeSystem
             {
                 throw new BadUnionAccessException(typeof(bool), typeof(CaseString));
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 throw new BadUnionAccessException(typeof(decimal), typeof(CaseString));
             }
@@ -187,7 +187,7 @@ namespace DaJet.TypeSystem
             {
                 throw new BadUnionAccessException(typeof(bool), typeof(CaseEntity));
             }
-            public override decimal GetNumeric()
+            public override decimal GetDecimal()
             {
                 throw new BadUnionAccessException(typeof(decimal), typeof(CaseEntity));
             }

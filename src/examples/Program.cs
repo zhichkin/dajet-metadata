@@ -34,6 +34,8 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            //TestDataObjectJsonConverter(); return;
+
             //DumpFile(); return;
             //DumpRawFile(); return;
             //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
@@ -146,7 +148,6 @@ namespace DaJet
                 MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
             }
         }
-
         private static void DumpRawFile()
         {
             string fileName = "2b870ec1-271d-450b-abe0-ae78dd11fa23";
@@ -636,6 +637,42 @@ namespace DaJet
             metadata = JsonSerializer.Deserialize<EntityDefinition>(content, JsonOptions);
 
             Console.WriteLine(metadata.ToString());
+        }
+        private static void TestDataObjectJsonConverter()
+        {
+            JsonSerializerOptions JsonOptions = new()
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.Create(UnicodeRanges.All)
+            };
+            JsonOptions.Converters.Add(new DataObjectJsonConverter());
+
+            DataObject value = new();
+            value.SetValue("Булево", true);
+            value.SetValue("ЦелоеЧисло", 1234);
+            value.SetValue("ДесятичноеЧисло", 12.34M);
+            value.SetValue("ДатаВремя", DateTime.Now);
+            value.SetValue("Строка", "Это строка");
+            value.SetValue("Двоичное", new byte[] { 1, 2, 3, 4 });
+            value.SetValue("Идентификатор", Guid.NewGuid());
+            value.SetValue("Ссылка", Entity.Undefined);
+            value.SetValue("ТипДанных", DataType.Decimal());
+            DataObject data = new();
+            data.SetValue("Record", "Object");
+            value.SetValue("Объект", data);
+            DataObject item = new();
+            item.SetValue("RecItem", "ArrayDictionary");
+            value.SetValue("МассивОбъектов", new List<DataObject>() { item });
+            value.SetValue("МассивСтрок", new List<string>() { "MS-001", "MS-002", "MS-003" });
+            value.SetValue("МассивСсылок", new List<Entity>() { Entity.Undefined, new(333, Guid.Empty), new(123, Guid.NewGuid()) });
+
+            string json = JsonSerializer.Serialize(value, JsonOptions);
+
+            Console.WriteLine(json);
+
+            DataObject test = JsonSerializer.Deserialize<DataObject>(json, JsonOptions);
+            
+            Console.WriteLine(test.ToString());
         }
 
         private static void ResolveReferences()
