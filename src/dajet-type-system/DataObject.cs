@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Dynamic;
+using static DaJet.TypeSystem.Union;
 
 namespace DaJet.TypeSystem
 {
@@ -18,6 +19,8 @@ namespace DaJet.TypeSystem
         {
             _data = data is not null ? data : new Dictionary<string, object>();
         }
+        public static implicit operator DataObject(Dictionary<string, object> value) => new(value);
+        public static implicit operator Dictionary<string, object>(DataObject value) => value._data;
         public bool IsEmpty { get { return _data.Count == 0; } }
         public void SetValue(string name, object value)
         {
