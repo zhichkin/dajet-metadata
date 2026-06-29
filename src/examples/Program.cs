@@ -671,8 +671,16 @@ namespace DaJet
             Console.WriteLine(json);
 
             DataObject test = JsonSerializer.Deserialize<DataObject>(json, JsonOptions);
-            
-            Console.WriteLine(test.ToString());
+
+            if (test.Count > 0)
+            {
+                Console.WriteLine($"{test.GetName(0)} = {test.GetValue(0)}");
+            }
+
+            foreach (var property in test)
+            {
+                Console.WriteLine($"{property.Key} = {property.Value}");
+            }
         }
 
         private static void ResolveReferences()

@@ -14,10 +14,10 @@ namespace DaJet.Json
 
             writer.WriteStartObject();
 
-            foreach (KeyValuePair<string, object> item in source)
+            for (int ordinal = 0; ordinal < source.Count; ordinal++)
             {
-                name = item.Key;
-                value = item.Value;
+                name = source.GetName(ordinal);
+                value = source.GetValue(name);
 
                 if (value is null) { writer.WriteNull(name); }
                 else if (value is bool boolean) { writer.WriteBoolean(name, boolean); }
