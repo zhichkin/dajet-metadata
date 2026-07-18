@@ -4,6 +4,19 @@ namespace DaJet.Metadata
 {
     public sealed class OneDbSchemaProvider : ISchemaProvider
     {
+        public int GetYearOffset(in string domain)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(domain, nameof(domain));
+
+            MetadataProvider provider = MetadataProvider.Get(in domain);
+
+            if (provider is null)
+            {
+                return 0;
+            }
+
+            return provider.GetYearOffset();
+        }
         public MetadataEntry GetEntry(in string domain, int typeCode)
         {
             ArgumentException.ThrowIfNullOrEmpty(domain, nameof(domain));
