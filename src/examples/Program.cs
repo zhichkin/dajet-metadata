@@ -34,6 +34,11 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
+            DataType type = DataType.Integer();
+            object value = type.DefaultValue();
+            Console.WriteLine(value.GetType());
+            return;
+
             //TestDataObjectJsonConverter(); return;
 
             //DumpFile(); return;

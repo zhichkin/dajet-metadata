@@ -268,8 +268,8 @@ namespace DaJet.TypeSystem
             {
                 if (Size == 1) { return IsSigned ? (sbyte)0 : (byte)0; }
                 else if (Size == 2) { return IsSigned ? (short)0 : (ushort)0; }
-                else if (Size == 4) { return IsSigned ? 0 : 0U; }
-                else if (Size == 8) { return IsSigned ? 0L : 0UL; }
+                else if (Size == 4) { if (IsSigned) { return 0; } else { return 0U; } }
+                else if (Size == 8) { if (IsSigned) { return 0L; } else { return 0UL; } }
             }
             else if (IsDateTime) { return System.DateTime.MinValue; }
             else if (IsString) { return string.Empty; }
