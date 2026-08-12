@@ -45,6 +45,7 @@ namespace DaJet.Metadata
         }
 
         internal abstract int GetYearOffset();
+        internal abstract int GetRuntimeVersion();
         internal abstract string DataSource { get; }
         internal abstract string Database { get; }
         internal abstract DbConnection CreateConnection();
@@ -184,7 +185,10 @@ namespace DaJet.Metadata
             {
                 configuration = Configuration.Parse(root, file.AsReadOnlySpan());
             }
-            
+
+            configuration.YearOffset = registry.YearOffset;
+            //configuration.RuntimeVersion = GetRuntimeVersion();
+
             registry.Version = configuration.CompatibilityVersion;
             
             registry.Configurations.Add(configuration);
@@ -544,6 +548,8 @@ namespace DaJet.Metadata
                 byte cfid = (byte)registry.Configurations.Count;
 
                 Configuration configuration = LoadExtensionMetadata(in extension, cfid, in registry);
+
+                configuration.YearOffset = registry.YearOffset;
 
                 registry.Configurations.Add(configuration);
             }

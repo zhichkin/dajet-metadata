@@ -84,7 +84,37 @@ namespace DaJet.Metadata
                 }
             }
         }
-        
+        internal override int GetRuntimeVersion()
+        {
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'IBVersion';";
+
+                    object value = command.ExecuteScalar();
+
+                    if (value is null)
+                    {
+                        return -1;
+                    }
+
+                    command.CommandText = "SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];";
+
+                    value = command.ExecuteScalar();
+
+                    if (value is not int version)
+                    {
+                        return 0;
+                    }
+
+                    return version;
+                }
+            }
+        }
+
         internal override ConfigFileBuffer Load(in string tableName, in string fileName)
         {
             ConfigFileBuffer buffer = new();

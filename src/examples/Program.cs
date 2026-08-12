@@ -4,6 +4,7 @@ using DaJet.Metadata;
 using DaJet.TypeSystem;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using System.Reflection.Emit;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -15,6 +16,7 @@ namespace DaJet
     public static class Program
     {
         private static readonly string MS_TEST = "Data Source=Z-NOTEBOOK;Initial Catalog=test;Integrated Security=True;Encrypt=False;";
+        private static readonly string PG_TEST = "Host=localhost;Port=5432;Database=test;Username=postgres;Password=postgres;";
         private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_METADATA = "Host=localhost;Port=5432;Database=dajet-metadata;Username=postgres;Password=postgres;";
         private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
@@ -34,10 +36,12 @@ namespace DaJet
 		}
 		public static void Main(string[] args)
         {
-            DataType type = DataType.Integer();
-            object value = type.DefaultValue();
-            Console.WriteLine(value.GetType());
-            return;
+            //DataType type = DataType.Integer();
+            //object value = type.DefaultValue();
+            //Console.WriteLine(value.GetType());
+            //return;
+
+            ShowConfigurations(); return;
 
             //TestDataObjectJsonConverter(); return;
 
@@ -474,6 +478,27 @@ namespace DaJet
                 Console.WriteLine($"- Updated: {extension.Updated:dd-MM-yyyy HH:mm:ss}");
                 Console.WriteLine($"- Root file: {extension.RootFile}");
                 Console.WriteLine($"- File name: {extension.FileName}");
+                Console.WriteLine("------------------------------");
+            }
+        }
+        private static void ShowConfigurations()
+        {
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, MS_TEST);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, PG_TEST);
+
+            List<Configuration> configurations = provider.GetConfigurations();
+
+            foreach (Configuration configuration in configurations)
+            {
+                PropertyInfo[] properties = typeof(Configuration).GetProperties();
+
+                Console.WriteLine("------------------------------");
+
+                foreach (PropertyInfo property in properties)
+                {
+                    Console.WriteLine($"{property.Name} = [{property.GetValue(configuration)}]");
+                }
+
                 Console.WriteLine("------------------------------");
             }
         }

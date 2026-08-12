@@ -16,7 +16,7 @@ namespace DaJet.Metadata
         /// <summary>
         /// Версия среды выполнения платформы
         /// </summary>
-        public int PlatformVersion { get; set; }
+        //public int RuntimeVersion { get; set; } // SELECT TOP 1 [PlatformVersionReq] FROM [IBVersion];
         /// <summary>
         /// Режим совместимости платформы
         /// </summary>
