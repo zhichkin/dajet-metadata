@@ -53,18 +53,17 @@ namespace DaJet.Metadata
         }
         internal string GetTableNameИтоги()
         {
-            if (_AccumRgT > 0)
+            if (Purpose == RegisterKind.Balance)
             {
-                return string.Format("_{0}{1}", MetadataToken.AccumRgT, _AccumRgT);
+                return _AccumRgT > 0 ? string.Format("_{0}{1}", MetadataToken.AccumRgT, _AccumRgT) : string.Empty;
             }
-            else if (_AccumRgTn > 0)
+            
+            if (Purpose == RegisterKind.Turnovers)
             {
-                return string.Format("_{0}{1}", MetadataToken.AccumRgTn, _AccumRgTn);
+                return _AccumRgTn > 0 ? string.Format("_{0}{1}", MetadataToken.AccumRgTn, _AccumRgTn) : string.Empty;
             }
-            else
-            {
-                return string.Empty; // Использование итогов отключено
-            }
+            
+            return string.Empty; // Таблица итогов отсутствует
         }
         internal bool IsTotalsEnabled { get { return _AccumRgT > 0 || _AccumRgTn > 0; } }
         internal override string GetTableNameИзменения()

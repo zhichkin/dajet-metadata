@@ -41,7 +41,7 @@ namespace DaJet
             //Console.WriteLine(value.GetType());
             //return;
 
-            ShowConfigurations(); return;
+            //ShowConfigurations(); return;
 
             //TestDataObjectJsonConverter(); return;
 
