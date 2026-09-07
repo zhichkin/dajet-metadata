@@ -321,6 +321,42 @@ namespace DaJet.Metadata
                 }
             }
         }
+        private const string SELECT_STORAGE_SCHEMAS_PG = "SELECT schemaid, currentschema FROM schemastorage ORDER BY schemaid;";
+        internal override void InitializeStorageSchemas(in MetadataRegistry registry)
+        {
+            //NOTE: PostgreSQL: та же таблица в нижнем регистре. Не проверено на живой базе —
+            //NOTE: при любой ошибке чтения остаётся прежнее поведение.
+
+            try
+            {
+                bool available = false;
+
+                foreach (NpgsqlDataReader reader in ExecuteReader(SELECT_STORAGE_SCHEMAS_PG, 10))
+                {
+                    available = true;
+
+                    int schemaId = reader.GetInt32(0);
+
+                    if (schemaId == 0 || reader.IsDBNull(1))
+                    {
+                        continue;
+                    }
+
+                    byte[] schema = (byte[])reader.GetValue(1);
+
+                    StorageSchemaReader.Parse(schema, schemaId, in registry);
+                }
+
+                registry.IsStorageSchemaAvailable = available;
+            }
+            catch (Exception error)
+            {
+                registry.IsStorageSchemaAvailable = false;
+
+                MetadataLogger.Write($"[WARNING][{DataSource}][{Database}] schemastorage is not available: {error.Message}");
+            }
+        }
+
 
         private const string SELECT_TABLE_SCHEMA_SCRIPT = "SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name = LOWER($1);";
         internal override EntityDefinition GetDbTableSchema(in string tableName)

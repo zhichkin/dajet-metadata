@@ -871,10 +871,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -935,10 +932,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -982,10 +976,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -1058,6 +1049,28 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
+        //NOTE: Суффикс физического имени берётся из схемы хранения платформы, если она прочитана:
+        //NOTE: объект, чья таблица описана в схеме N > 0, хранится в таблице <имя>x<N>. Признак
+        //NOTE: "расширенности", выведенный из разницы наборов свойств, для этого не годится —
+        //NOTE: он даёт как ложные срабатывания, так и пропуски. Пока схема недоступна
+        //NOTE: (старая платформа, нет прав на SchemaStorage), остаётся прежнее поведение.
+        internal static void ApplyStorageSchema(in MetadataRegistry registry, in EntityDefinition table, bool legacyVerdict)
+        {
+            if (registry.IsStorageSchemaAvailable)
+            {
+                if (registry.TryGetStorageSchema(table.DbName, out int schemaId) && schemaId > 0)
+                {
+                    table.DbName = string.Format("{0}x{1}", table.DbName, schemaId);
+                }
+
+                return;
+            }
+
+            if (legacyVerdict)
+            {
+                table.DbName += "x1";
+            }
+        }
         internal static bool ApplySuffixToServiceTable(in MetadataObject entry, in MetadataRegistry registry)
         {
             if (entry.IsExtension)
@@ -1120,10 +1133,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -1168,10 +1178,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -2072,10 +2079,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -2128,10 +2132,7 @@ namespace DaJet.Metadata
                 ConfigurePropertySplitter(in table);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -2321,10 +2322,7 @@ namespace DaJet.Metadata
                 ConfigurePropertySplitter(in table);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -2380,10 +2378,7 @@ namespace DaJet.Metadata
                 ConfigureAccountingDimensionValue(in table, ordinal, type, string.Empty, string.Empty);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in table, ApplySuffixToServiceTable(in entry, in registry));
 
             return table;
         }
@@ -2702,10 +2697,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToChangeTrackingTable(in entry, in registry))
-            {
-                changes.DbName += "x1";
-            }
+            ApplyStorageSchema(in registry, in changes, ApplySuffixToChangeTrackingTable(in entry, in registry));
 
             return changes;
         }

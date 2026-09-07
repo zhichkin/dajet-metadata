@@ -53,6 +53,7 @@ namespace DaJet.Metadata
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
+        internal abstract void InitializeStorageSchemas(in MetadataRegistry registry);
         internal abstract List<ExtensionInfo> GetExtensions();
         internal abstract T ExecuteScalar<T>(in string script, int timeout);
 
@@ -98,25 +99,17 @@ namespace DaJet.Metadata
                 entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
+            bool legacyVerdict = false;
+
             if (entry.IsExtension) // Собственный объект расширения
             {
-                entity.DbName += "x1";
-
-                foreach (EntityDefinition table in entity.Entities)
-                {
-                    table.DbName += "x1";
-                }
+                legacyVerdict = true;
             }
             else if (entry.IsMain)
             {
                 if (Configurator.TryApplyGenericDataTypeExtension(in entity, in registry))
                 {
-                    entity.DbName += "x1";
-
-                    foreach (EntityDefinition table in entity.Entities)
-                    {
-                        table.DbName += "x1";
-                    }
+                    legacyVerdict = true;
                 }
                 else if (registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
                 {
@@ -140,19 +133,22 @@ namespace DaJet.Metadata
                             extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
                         }
 
-                        extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
+                        //NOTE: объект может быть заимствован несколькими расширениями:
+                        //NOTE: вердикт даёт любое из них, а не последнее в списке
+                        extended |= Configurator.TryApplyBorrowedObject(in entity, in extension);
                     }
 
-                    if (extended)
-                    {
-                        entity.DbName += "x1";
-
-                        foreach (EntityDefinition table in entity.Entities)
-                        {
-                            table.DbName += "x1";
-                        }
-                    }
+                    legacyVerdict = extended;
                 }
+            }
+
+            //NOTE: Слияние определения и вердикт о физическом хранении — разные вопросы.
+            //NOTE: Хранение определяет схема платформы, а не разница наборов свойств.
+            Configurator.ApplyStorageSchema(in registry, in entity, legacyVerdict);
+
+            foreach (EntityDefinition table in entity.Entities)
+            {
+                Configurator.ApplyStorageSchema(in registry, in table, legacyVerdict);
             }
 
             Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
@@ -172,6 +168,10 @@ namespace DaJet.Metadata
             MetadataRegistry registry = new();
 
             registry.YearOffset = GetYearOffset();
+
+            // Схемы хранения платформы: они называют таблицы объектов, хранимых расширениями
+
+            InitializeStorageSchemas(in registry);
 
             // Загружаем реестр объектов метаданных из файла root
 

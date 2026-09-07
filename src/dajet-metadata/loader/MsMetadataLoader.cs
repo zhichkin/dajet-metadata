@@ -314,6 +314,42 @@ namespace DaJet.Metadata
             }
         }
 
+        private const string SELECT_STORAGE_SCHEMAS = "SELECT SchemaID, CurrentSchema FROM SchemaStorage ORDER BY SchemaID;";
+        internal override void InitializeStorageSchemas(in MetadataRegistry registry)
+        {
+            //NOTE: Таблица SchemaStorage описывает схемы хранения: нулевая — основной
+            //NOTE: конфигурации, остальные принадлежат расширениям. Если её нет или нет
+            //NOTE: прав на чтение, работаем по-старому: признак остаётся невычисленным.
+
+            try
+            {
+                bool available = false;
+
+                foreach (SqlDataReader reader in ExecuteReader(SELECT_STORAGE_SCHEMAS, 10))
+                {
+                    available = true;
+
+                    int schemaId = reader.GetInt32(0);
+
+                    if (schemaId == 0 || reader.IsDBNull(1))
+                    {
+                        continue; // Основная конфигурация: суффикса у её таблиц нет
+                    }
+
+                    byte[] schema = (byte[])reader.GetValue(1);
+
+                    StorageSchemaReader.Parse(schema, schemaId, in registry);
+                }
+
+                registry.IsStorageSchemaAvailable = available;
+            }
+            catch (Exception error)
+            {
+                registry.IsStorageSchemaAvailable = false;
+
+                MetadataLogger.Write($"[WARNING][{DataSource}][{Database}] SchemaStorage is not available: {error.Message}");
+            }
+        }
         private const string SELECT_TABLE_SCHEMA_SCRIPT = "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = @tableName;";
         internal override EntityDefinition GetDbTableSchema(in string tableName)
         {

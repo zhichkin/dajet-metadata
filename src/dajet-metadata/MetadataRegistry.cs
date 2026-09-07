@@ -44,6 +44,20 @@ namespace DaJet.Metadata
         };
         internal List<Configuration> Configurations { get; } = new();
 
+        //NOTE: Схемы хранения из таблицы SchemaStorage: имя таблицы -> номер схемы.
+        //NOTE: Схема 0 — основная конфигурация, схемы больше нуля принадлежат расширениям,
+        //NOTE: и физическое имя таблицы такого объекта имеет суффикс x<номер схемы>.
+        private readonly Dictionary<string, int> _storageSchemas = new(StringComparer.OrdinalIgnoreCase);
+        internal bool IsStorageSchemaAvailable { get; set; } = false;
+        internal void RegisterStorageSchema(in string tableName, int schemaId)
+        {
+            _storageSchemas[tableName] = schemaId;
+        }
+        internal bool TryGetStorageSchema(in string tableName, out int schemaId)
+        {
+            return _storageSchemas.TryGetValue(tableName, out schemaId);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddFileName(in string identifier, in string fileName)
         {
