@@ -98,6 +98,19 @@ namespace DaJet.Metadata
                 { MetadataTypes.BusinessTask,         null }  // Задача
             };
         }
+        // Типы, которых нет в файле конфигурации, остаются null в заготовке.
+        // На режиме совместимости 8.2 это как минимум определяемые типы —
+        // foreach по Value в MetadataLoader.CreateMetadataRegistry даёт NullReferenceException.
+        private static void CompleteMetadataRegistry(Dictionary<Guid, Guid[]> metadata)
+        {
+            foreach (Guid key in metadata.Keys)
+            {
+                if (metadata[key] is null)
+                {
+                    metadata[key] = Array.Empty<Guid>();
+                }
+            }
+        }
         public Dictionary<Guid, Guid[]> Metadata { get { return _metadata; } }
 
         public override string ToString() { return Name; }
@@ -138,6 +151,8 @@ namespace DaJet.Metadata
             {
                 ParsePlatformComponent(ref reader, node, configuration.Metadata);
             }
+
+            CompleteMetadataRegistry(configuration.Metadata);
 
             return configuration;
         }
