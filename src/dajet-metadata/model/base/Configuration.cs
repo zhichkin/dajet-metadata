@@ -82,20 +82,20 @@ namespace DaJet.Metadata
         {
             return new(14)
             {
-                { MetadataTypes.SharedProperty,       null }, // Общие реквизиты
-                { MetadataTypes.Publication,          null }, // Планы обмена
-                { MetadataTypes.DefinedType,          null }, // Определяемые типы
-                { MetadataTypes.Constant,             null }, // Константы
-                { MetadataTypes.Catalog,              null }, // Справочники
-                { MetadataTypes.Document,             null }, // Документы
-                { MetadataTypes.Enumeration,          null }, // Перечисления
-                { MetadataTypes.Characteristic,       null }, // Планы видов характеристик
-                { MetadataTypes.Account,              null }, // Планы счетов
-                { MetadataTypes.InformationRegister,  null }, // Регистры сведений
-                { MetadataTypes.AccumulationRegister, null }, // Регистры накопления
-                { MetadataTypes.AccountingRegister,   null }, // Регистры бухгалтерии
-                { MetadataTypes.BusinessProcess,      null }, // Бизнес-процесс
-                { MetadataTypes.BusinessTask,         null }  // Задача
+                { MetadataTypes.SharedProperty,       Array.Empty<Guid>() }, // Общие реквизиты
+                { MetadataTypes.Publication,          Array.Empty<Guid>() }, // Планы обмена
+                { MetadataTypes.DefinedType,          Array.Empty<Guid>() }, // Определяемые типы
+                { MetadataTypes.Constant,             Array.Empty<Guid>() }, // Константы
+                { MetadataTypes.Catalog,              Array.Empty<Guid>() }, // Справочники
+                { MetadataTypes.Document,             Array.Empty<Guid>() }, // Документы
+                { MetadataTypes.Enumeration,          Array.Empty<Guid>() }, // Перечисления
+                { MetadataTypes.Characteristic,       Array.Empty<Guid>() }, // Планы видов характеристик
+                { MetadataTypes.Account,              Array.Empty<Guid>() }, // Планы счетов
+                { MetadataTypes.InformationRegister,  Array.Empty<Guid>() }, // Регистры сведений
+                { MetadataTypes.AccumulationRegister, Array.Empty<Guid>() }, // Регистры накопления
+                { MetadataTypes.AccountingRegister,   Array.Empty<Guid>() }, // Регистры бухгалтерии
+                { MetadataTypes.BusinessProcess,      Array.Empty<Guid>() }, // Бизнес-процесс
+                { MetadataTypes.BusinessTask,         Array.Empty<Guid>() }  // Задача
             };
         }
         public Dictionary<Guid, Guid[]> Metadata { get { return _metadata; } }
@@ -261,7 +261,7 @@ namespace DaJet.Metadata
 
                 Guid uuid = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!metadata.TryGetValue(uuid, out Guid[] objects))
+                if (!metadata.ContainsKey(uuid))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
@@ -270,20 +270,10 @@ namespace DaJet.Metadata
 
                 int number_of_objects = reader.ValueAsNumber; // Количество объектов данного типа
 
-                if (objects is null)
-                {
-                    if (number_of_objects == 0)
-                    {
-                        objects = Array.Empty<Guid>();
-                    }
-                    else
-                    {
-                        objects = new Guid[number_of_objects];
-                    }
+                if (number_of_objects == 0) { continue; }
 
-                    metadata[uuid] = objects;
-                }
-
+                Guid[] objects = new Guid[number_of_objects];
+                
                 for (int item = 0; item < objects.Length; item++) // [component][2][type][item]
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
@@ -291,6 +281,8 @@ namespace DaJet.Metadata
                         objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
                     }
                 }
+
+                metadata[uuid] = objects;
             }
         }
         private static void ParseOperationsMetadataObjects(ref ConfigFileReader reader, uint component, in Dictionary<Guid, Guid[]> metadata)
@@ -310,7 +302,7 @@ namespace DaJet.Metadata
 
                 Guid type = reader.ValueAsUuid; // Идентификатор типа объекта метаданных
 
-                if (!metadata.TryGetValue(type, out Guid[] objects))
+                if (!metadata.ContainsKey(type))
                 {
                     continue; // Неподдерживаемый тип объекта метаданных
                 }
@@ -319,13 +311,10 @@ namespace DaJet.Metadata
 
                 int number_of_objects = reader.ValueAsNumber; // Количество объектов данного типа
 
-                if (objects is null)
-                {
-                    objects = new Guid[number_of_objects];
+                if (number_of_objects == 0) { continue; }
 
-                    metadata[type] = objects;
-                }
-
+                Guid[] objects = new Guid[number_of_objects];
+                
                 for (int item = 0; item < objects.Length; item++) // [5][2][2][node][item]
                 {
                     if (reader.Read() && reader.Token == ConfigFileToken.Value)
@@ -333,6 +322,8 @@ namespace DaJet.Metadata
                         objects[item] = reader.ValueAsUuid; // Идентификатор объекта метаданных
                     }
                 }
+
+                metadata[type] = objects;
             }
         }
 

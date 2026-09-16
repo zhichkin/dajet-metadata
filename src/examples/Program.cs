@@ -19,7 +19,7 @@ namespace DaJet
         private static readonly string PG_TEST = "Host=localhost;Port=5432;Database=test;Username=postgres;Password=postgres;";
         private static readonly string MS_METADATA = "Data Source=ZHICHKIN;Initial Catalog=dajet-metadata;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_METADATA = "Host=localhost;Port=5432;Database=dajet-metadata;Username=postgres;Password=postgres;";
-        private static readonly string MS_UNF = "Data Source=ZHICHKIN;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
+        private static readonly string MS_UNF = "Data Source=Z-NOTEBOOK;Initial Catalog=unf;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_UNF = "Host=localhost;Port=5432;Database=unf;Username=postgres;Password=postgres;";
         private static readonly string MS_ERP = "Data Source=ZHICHKIN;Initial Catalog=erp_uh;Integrated Security=True;Encrypt=False;";
         private static readonly string PG_ERP = "Host=localhost;Port=5432;Database=erp_uh;Username=postgres;Password=postgres;";
@@ -782,10 +782,10 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
