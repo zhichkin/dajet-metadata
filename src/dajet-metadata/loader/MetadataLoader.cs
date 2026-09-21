@@ -23,13 +23,35 @@ namespace DaJet.Metadata
         }
         internal void Dump(in string tableName, in string fileName, in string outputPath)
         {
+            ConfigFileBuffer file;
+            ConfigFileReader reader;
+
             using (StreamWriter writer = new(outputPath, false, Encoding.UTF8))
             {
-                using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                if (ConfigTables.SchemaStorage.CompareTo(tableName, StringComparison.OrdinalIgnoreCase) == 0)
                 {
-                    ConfigFileReader reader = new(file.AsReadOnlySpan());
+                    using (file = LoadSchemaStorage(1, "CurrentSchema"))
+                    {
+                        if (file.Length > 0)
+                        {
+                            reader = new(file.AsReadOnlySpan());
 
-                    reader.Dump(in writer);
+                            reader.Dump(in writer);
+                        }
+                        else
+                        {
+                            writer.WriteLine("File is not found or empty");
+                        }
+                    }
+                }
+                else
+                {
+                    using (file = Load(in tableName, in fileName))
+                    {
+                        reader = new(file.AsReadOnlySpan());
+
+                        reader.Dump(in writer);
+                    }
                 }
             }
         }
@@ -50,6 +72,7 @@ namespace DaJet.Metadata
         internal abstract string Database { get; }
         internal abstract DbConnection CreateConnection();
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
+        internal abstract ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
@@ -229,6 +252,16 @@ namespace DaJet.Metadata
 
             if (configuration.CompatibilityVersion >= 80312)
             {
+                List<int> lookup = new();
+
+                using (ConfigFileBuffer file = LoadSchemaStorage(1, "CurrentSchema"))
+                {
+                    if (file.Length > 0)
+                    {
+                        SchemaStorage.Parse(file.AsReadOnlySpan(), in registry, in lookup);
+                    }
+                }
+
                 TryInitializeExtensions(in registry);
             }
             

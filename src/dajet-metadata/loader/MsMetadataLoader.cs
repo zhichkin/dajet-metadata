@@ -15,6 +15,7 @@ namespace DaJet.Metadata
         private const string MS_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, Config.FileName AS FileName, BinaryData FROM Config INNER JOIN #ConfigFileNames AS T ON Config.FileName = T.FileName;";
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";
         private const string MS_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, ConfigCAS.FileName AS FileName, BinaryData FROM ConfigCAS INNER JOIN #ConfigFileNames AS T ON ConfigCAS.FileName = T.FileName;";
+        private const string MS_SELECT_CURRENT_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, N'CurrentSchema', CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID = @SchemaID AND Status = 100;";
 
         private readonly string _connectionString;
         internal MsMetadataLoader(in string connectionString)
@@ -149,6 +150,35 @@ namespace DaJet.Metadata
                         {
                             buffer.Load(reader);
                         }
+                        reader.Close();
+                    }
+                }
+            }
+
+            return buffer;
+        }
+        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
+        {
+            ConfigFileBuffer buffer = new();
+
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.CommandText = MS_SELECT_CURRENT_SCHEMA_STORAGE;
+                    command.Parameters.AddWithValue("SchemaID", schema);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            buffer.Load(reader);
+                        }
+
                         reader.Close();
                     }
                 }

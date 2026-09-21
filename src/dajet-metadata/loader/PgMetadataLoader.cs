@@ -17,6 +17,7 @@ namespace DaJet.Metadata
         private const string PG_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename IN (";
         private const string PG_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename IN (";
+        private const string PG_SELECT_CURRENT_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(currentschema, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, LENGTH(currentschema) AS DataSize, currentschema AS BinaryData FROM schemastorage WHERE schemaid = $1 AND status = 100;";
 
         private readonly NpgsqlDataSource _source;
         internal PgMetadataLoader(in string connectionString)
@@ -161,6 +162,10 @@ namespace DaJet.Metadata
             }
 
             return buffer;
+        }
+        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
+        {
+            return default;
         }
         internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern)
         {

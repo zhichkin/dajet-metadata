@@ -47,6 +47,7 @@ namespace DaJet
 
             //DumpFile(); return;
             //DumpRawFile(); return;
+            //DumpSchemaStorage(); return;
             //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
             //GetMetadataObject("РегистрБухгалтерии.Международный"); return; //МеждународныйБезКорреспонденции
             //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
@@ -163,6 +164,13 @@ namespace DaJet
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             provider.DumpRaw("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}_raw.txt");
             return;
+        }
+        private static void DumpSchemaStorage()
+        {
+            string fileName = "CurrentSchema";
+            string outputPath = $"C:\\temp\\1c-dump\\SchemaStorage.txt";
+
+            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "SchemaStorage", in fileName, in outputPath);
         }
 
         private static void GetMetadataEntry(int typeCode)
@@ -782,10 +790,10 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
-            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_METADATA);
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_UNF);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.PostgreSql, in PG_ERP);
