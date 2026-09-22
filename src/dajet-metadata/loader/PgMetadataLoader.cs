@@ -17,8 +17,10 @@ namespace DaJet.Metadata
         private const string PG_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM config WHERE filename IN (";
         private const string PG_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename = $1::mvarchar";
         private const string PG_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(binarydata, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, CAST(datasize AS int) AS DataSize, filename::text, binarydata FROM configcas WHERE filename IN (";
+        private const string PG_SCHEMA_STORAGE_EXISTS = "SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'schemastorage';";
+        private const string PG_STREAM_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(currentschema, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, LENGTH(currentschema) AS DataSize, currentschema AS BinaryData FROM schemastorage WHERE schemaid > 0 AND status = 100;";
         private const string PG_SELECT_CURRENT_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(currentschema, 1, 3) = E'\\\\xEFBBBF' THEN 1 ELSE 0 END) AS UTF8, LENGTH(currentschema) AS DataSize, currentschema AS BinaryData FROM schemastorage WHERE schemaid = $1 AND status = 100;";
-
+        
         private readonly NpgsqlDataSource _source;
         internal PgMetadataLoader(in string connectionString)
         {
@@ -118,6 +120,72 @@ namespace DaJet.Metadata
             }
         }
 
+        internal override bool SchemaStorageExists()
+        {
+            return (ExecuteScalar<int>(PG_SCHEMA_STORAGE_EXISTS, 10) == 1);
+        }
+        internal override IEnumerable<ConfigFileBuffer> StreamSchemaStorage()
+        {
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.CommandText = PG_STREAM_SCHEMA_STORAGE;
+
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+        }
+        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
+        {
+            ConfigFileBuffer buffer = new();
+
+            using (NpgsqlConnection connection = _source.CreateConnection())
+            {
+                connection.Open();
+
+                using (NpgsqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.CommandText = PG_SELECT_CURRENT_SCHEMA_STORAGE;
+
+                    command.Parameters.Add(new NpgsqlParameter<int>()
+                    {
+                        TypedValue = schema,
+                        NpgsqlDbType = NpgsqlTypes.NpgsqlDbType.Integer
+                    });
+
+                    using (NpgsqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            buffer.Load(reader);
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+
+            return buffer;
+        }
+
         internal override ConfigFileBuffer Load(in string tableName, in string fileName)
         {
             ConfigFileBuffer buffer = new();
@@ -162,10 +230,6 @@ namespace DaJet.Metadata
             }
 
             return buffer;
-        }
-        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
-        {
-            return default;
         }
         internal override IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern)
         {

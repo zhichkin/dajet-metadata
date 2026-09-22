@@ -15,6 +15,8 @@ namespace DaJet.Metadata
         private const string MS_CONFIG_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, Config.FileName AS FileName, BinaryData FROM Config INNER JOIN #ConfigFileNames AS T ON Config.FileName = T.FileName;";
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";
         private const string MS_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, ConfigCAS.FileName AS FileName, BinaryData FROM ConfigCAS INNER JOIN #ConfigFileNames AS T ON ConfigCAS.FileName = T.FileName;";
+        private const string MS_SCHEMA_STORAGE_EXISTS = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'SchemaStorage';";
+        private const string MS_STREAM_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, N'CurrentSchema', CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID > 0 AND Status = 100;";
         private const string MS_SELECT_CURRENT_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, N'CurrentSchema', CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID = @SchemaID AND Status = 100;";
 
         private readonly string _connectionString;
@@ -116,6 +118,67 @@ namespace DaJet.Metadata
             }
         }
 
+        internal override bool SchemaStorageExists()
+        {
+            return (ExecuteScalar<int>(MS_SCHEMA_STORAGE_EXISTS, 10) == 1);
+        }
+        internal override IEnumerable<ConfigFileBuffer> StreamSchemaStorage()
+        {
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.CommandText = MS_STREAM_SCHEMA_STORAGE;
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            using (ConfigFileBuffer buffer = new(reader))
+                            {
+                                yield return buffer;
+                            }
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+        }
+        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
+        {
+            ConfigFileBuffer buffer = new();
+
+            using (SqlConnection connection = new(_connectionString))
+            {
+                connection.Open();
+
+                using (SqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandType = CommandType.Text;
+                    command.CommandTimeout = 10; // seconds
+                    command.CommandText = MS_SELECT_CURRENT_SCHEMA_STORAGE;
+                    command.Parameters.AddWithValue("SchemaID", schema);
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            buffer.Load(reader);
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+
+            return buffer;
+        }
+        
         internal override ConfigFileBuffer Load(in string tableName, in string fileName)
         {
             ConfigFileBuffer buffer = new();
@@ -150,35 +213,6 @@ namespace DaJet.Metadata
                         {
                             buffer.Load(reader);
                         }
-                        reader.Close();
-                    }
-                }
-            }
-
-            return buffer;
-        }
-        internal override ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName)
-        {
-            ConfigFileBuffer buffer = new();
-
-            using (SqlConnection connection = new(_connectionString))
-            {
-                connection.Open();
-
-                using (SqlCommand command = connection.CreateCommand())
-                {
-                    command.CommandType = CommandType.Text;
-                    command.CommandTimeout = 10; // seconds
-                    command.CommandText = MS_SELECT_CURRENT_SCHEMA_STORAGE;
-                    command.Parameters.AddWithValue("SchemaID", schema);
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        if (reader.Read())
-                        {
-                            buffer.Load(reader);
-                        }
-
                         reader.Close();
                     }
                 }

@@ -40,12 +40,17 @@ namespace DaJet.Metadata
 
         internal static void InitializeDataType(Guid uuid, ReadOnlySpan<byte> file, MetadataRegistry registry)
         {
+            ConfigFileReader reader = new(file);
+
+            if (uuid == Guid.Empty) // Объект расширения (собственный или заимствованный)
+            {
+                uuid = reader[2][14][2][2][3].SeekUuid(); // Идентификатор объекта метаданных
+            }
+
             if (!registry.TryGetEntry(uuid, out Characteristic metadata))
             {
                 return; //NOTE: сюда не предполагается попадать!
             }
-
-            ConfigFileReader reader = new(file);
 
             if (reader[2][19][ConfigFileToken.StartObject].Seek())
             {

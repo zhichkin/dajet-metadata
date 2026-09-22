@@ -71,8 +71,11 @@ namespace DaJet.Metadata
         internal abstract string DataSource { get; }
         internal abstract string Database { get; }
         internal abstract DbConnection CreateConnection();
-        internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
+
+        internal abstract bool SchemaStorageExists();
+        internal abstract IEnumerable<ConfigFileBuffer> StreamSchemaStorage();
         internal abstract ConfigFileBuffer LoadSchemaStorage(int schema, in string fileName);
+        internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
         internal abstract EntityDefinition GetDbTableSchema(in string tableName);
@@ -121,6 +124,60 @@ namespace DaJet.Metadata
                 entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
+            // TryApplyExtensionsAndGetTableNameSuffix(in entry, in entity, in registry, in parser);
+
+            if (entry.IsMain && registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
+            {
+                tableName = ConfigTables.ConfigCAS;
+
+                // Заимствованные объекты метаданных (возможно требуется применение расширений)
+
+                foreach (Guid uuid in borrowed)
+                {
+                    fileName = uuid.ToString().ToLowerInvariant();
+
+                    if (!registry.TryGetFileName(in fileName, out fileName))
+                    {
+                        throw new InvalidOperationException();
+                    }
+
+                    EntityDefinition extension;
+
+                    using (ConfigFileBuffer file = Load(in tableName, in fileName))
+                    {
+                        extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
+                    }
+
+                    bool extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
+                }
+            }
+
+            Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
+
+            if (registry.TryGetTableNameExtension(entry.Code, out string suffix))
+            {
+                entity.DbName += suffix; // Использование таблицы SchemaStorage
+
+                foreach (EntityDefinition table in entity.Entities)
+                {
+                    table.DbName += suffix;
+                }
+            }
+            else if (entry.IsExtension) // Собственный объект расширения
+            {
+                entity.DbName += "x1";
+
+                foreach (EntityDefinition table in entity.Entities)
+                {
+                    table.DbName += "x1";
+                }
+            }
+
+            return entity;
+        }
+        [Obsolete("Старая версия алгоритма применения расширений и вычисления суффикса x1 в названии таблицы базы данных")]
+        private void TryApplyExtensionsAndGetTableNameSuffix(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry, in ConfigFileParser parser)
+        {
             if (entry.IsExtension) // Собственный объект расширения
             {
                 entity.DbName += "x1";
@@ -145,11 +202,11 @@ namespace DaJet.Metadata
                 {
                     bool extended = false;
 
-                    tableName = ConfigTables.ConfigCAS;
+                    string tableName = ConfigTables.ConfigCAS;
 
                     foreach (Guid uuid in borrowed)
                     {
-                        fileName = uuid.ToString().ToLowerInvariant();
+                        string fileName = uuid.ToString().ToLowerInvariant();
 
                         if (!registry.TryGetFileName(in fileName, out fileName))
                         {
@@ -177,12 +234,8 @@ namespace DaJet.Metadata
                     }
                 }
             }
-
-            Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
-
-            return entity;
         }
-        
+
         private sealed class ConfigFileBatchWork
         {
             internal Guid EntryType;
@@ -252,15 +305,7 @@ namespace DaJet.Metadata
 
             if (configuration.CompatibilityVersion >= 80312)
             {
-                List<int> lookup = new();
-
-                using (ConfigFileBuffer file = LoadSchemaStorage(1, "CurrentSchema"))
-                {
-                    if (file.Length > 0)
-                    {
-                        SchemaStorage.Parse(file.AsReadOnlySpan(), in registry, in lookup);
-                    }
-                }
+                InitializeSchemaStorage(in registry);
 
                 TryInitializeExtensions(in registry);
             }
@@ -307,6 +352,32 @@ namespace DaJet.Metadata
                 {
                     registry.RegisterMissedDbName(dbn.Uuid, dbn.Code, dbn.Name);
                 }
+            }
+        }
+        private void InitializeSchemaStorage(in MetadataRegistry registry)
+        {
+            if (!SchemaStorageExists())
+            {
+                return;
+            }
+
+            // initialize lookup for borrowed and extended metadata object type codes
+
+            int slot = 1;
+            HashSet<int> codes;
+
+            foreach (ConfigFileBuffer file in StreamSchemaStorage())
+            {
+                if (file.Length > 0)
+                {
+                    SchemaStorage.Parse(file.AsReadOnlySpan(), out codes);
+                }
+                else
+                {
+                    codes = new HashSet<int>(0);
+                }
+
+                registry.RegisterSchemaStorageEntries(slot++, in codes);
             }
         }
         private void InitializeMetadataRegistry(in string tableName, in Dictionary<Guid, string[]> metadata, in MetadataRegistry registry)
@@ -359,24 +430,20 @@ namespace DaJet.Metadata
 
             // Инициализация свойства "Type" характеристик зависит от предварительной
             // инициализации коллекции _references, так как тип данных характеристики
-            // может ссылаться сам на себя как на ссылочный тип.
+            // может ссылаться сам на себя как на ссылочный тип (рекурсивная зависимость).
 
             if (metadata.TryGetValue(MetadataTypes.Characteristic, out string[] fileNames))
             {
-                try
+                foreach (ConfigFileBuffer file in Stream(tableName, fileNames))
                 {
-                    foreach (ConfigFileBuffer file in Stream(tableName, fileNames))
-                    {
-                        ConfigFileReader reader = new(file.AsReadOnlySpan());
+                    ConfigFileReader reader = new(file.AsReadOnlySpan());
 
-                        Guid uuid = new(file.FileName);
+                    // Config    : FileName = uuid объекта метаданных
+                    // ConfigCAS : FileName = hash объекта метаданных
 
-                        Characteristic.InitializeDataType(uuid, file.AsReadOnlySpan(), registry);
-                    }
-                }
-                catch (Exception error)
-                {
-                    throw;
+                    Guid uuid = tableName == ConfigTables.Config ? new(file.FileName) : Guid.Empty;
+
+                    Characteristic.InitializeDataType(uuid, file.AsReadOnlySpan(), registry);
                 }
             }
 
@@ -422,18 +489,11 @@ namespace DaJet.Metadata
                 return; //TODO: что-то пошло не так
             }
 
-            try
+            foreach (ConfigFileBuffer file in Stream(work.TableName, work.FileNames))
             {
-                foreach (ConfigFileBuffer file in Stream(work.TableName, work.FileNames))
-                {
-                    ConfigFileReader reader = new(file.AsReadOnlySpan());
-                    
-                    parser.Initialize(file.AsReadOnlySpan(), in registry);
-                }
-            }
-            catch (Exception error)
-            {
-                throw;
+                ConfigFileReader reader = new(file.AsReadOnlySpan());
+
+                parser.Initialize(file.AsReadOnlySpan(), in registry);
             }
         }
 

@@ -14,6 +14,7 @@ namespace DaJet.Data.PostgreSql
         static PgDataSourceFactory()
         {
             AppContext.SetSwitch("Npgsql.EnableSqlRewriting", false);
+            AppContext.SetSwitch("Npgsql.DisableDateTimeInfinityConversions", true);
         }
         private static NpgsqlDataSource GetOrCreateDataSource(in string cacheKey, in string connectionString)
         {

@@ -25,6 +25,7 @@ namespace DaJet.Metadata
         private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
         private readonly Dictionary<string, string> _files = new();
         private readonly Dictionary<Guid, List<Guid>> _borrowed = new();
+        private readonly Dictionary<int, HashSet<int>> _schema_storage = new(1);
         private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
         {
             [MetadataNames.SharedProperty] = new Dictionary<string, Guid>(),
@@ -127,6 +128,10 @@ namespace DaJet.Metadata
             // Исправление нештатного поведения платформы 1С: порядок токенов основной-подчинённый нарушен
 
             entry.AddDbName(code, token); // Подчинённый объект метаданных добавляется в свой основной объект
+        }
+        internal void RegisterSchemaStorageEntries(int slot, in HashSet<int> codes)
+        {
+            _ = _schema_storage.TryAdd(slot, codes);
         }
         #endregion
 
@@ -251,6 +256,29 @@ namespace DaJet.Metadata
         internal bool TryGetRegisterRecorders(Guid register, [MaybeNullWhen(false)] out List<Guid> recorders)
         {
             return _register_recorders.TryGetValue(register, out recorders);
+        }
+        internal bool TryGetTableNameExtension(int typeCode, out string extension)
+        {
+            extension = string.Empty;
+
+            foreach (var slot in _schema_storage)
+            {
+                if (slot.Value.Contains(typeCode))
+                {
+                    if (slot.Key == 1)
+                    {
+                        extension = "x1";
+                    }
+                    else
+                    {
+                        extension = string.Format("x{0}", slot.Key.ToString());
+                    }
+                    
+                    return true;
+                }
+            }
+            
+            return false;
         }
 
         internal int GetTypeCode(Guid uuid)
