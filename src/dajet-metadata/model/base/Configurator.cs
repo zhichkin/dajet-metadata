@@ -2610,6 +2610,17 @@ namespace DaJet.Metadata
 
             return false;
         }
+        internal static string GetChangeTrackingTableSuffix(in MetadataObject entry, in MetadataRegistry registry)
+        {
+            // Таблица регистрации изменений имеет в SchemaStorage собственную запись (например, ChrcChngR3534),
+            // которая не зависит от основной таблицы объекта: ищем её по собственному коду ChngR.
+            if (registry.TryGetTableNameExtension(entry.ChangeTrackingCode, out string suffix))
+            {
+                return suffix; // Использование таблицы SchemaStorage
+            }
+
+            return ApplySuffixToChangeTrackingTable(in entry, in registry) ? "x1" : string.Empty;
+        }
         internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
             if (entry.IsBorrowed)
@@ -2702,10 +2713,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToChangeTrackingTable(in entry, in registry))
-            {
-                changes.DbName += "x1";
-            }
+            changes.DbName += GetChangeTrackingTableSuffix(in entry, in registry);
 
             return changes;
         }

@@ -718,12 +718,7 @@ namespace DaJet.Metadata
                     
                     if (entry.IsChangeTrackingEnabled)
                     {
-                        tableName = entry.GetTableNameИзменения();
-
-                        if (Configurator.ApplySuffixToChangeTrackingTable(in entry, in _registry))
-                        {
-                            tableName += "x1";
-                        }
+                        tableName = entry.GetTableNameИзменения() + Configurator.GetChangeTrackingTableSuffix(in entry, in _registry);
 
                         lookup.Add(tableName, $"{entityName}.Изменения");
                     }

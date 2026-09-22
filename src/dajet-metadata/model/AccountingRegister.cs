@@ -75,6 +75,7 @@ namespace DaJet.Metadata
         }
         internal bool IsExtDimValuesEnabled { get { return _AccRgED > 0; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
+        internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
