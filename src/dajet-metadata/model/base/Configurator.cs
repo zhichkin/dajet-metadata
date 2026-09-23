@@ -1,4 +1,5 @@
 ﻿using DaJet.TypeSystem;
+using Microsoft.Win32;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 
@@ -436,9 +437,11 @@ namespace DaJet.Metadata
         }
         internal static void ConfigurePropertyЭтоГруппа(in EntityDefinition table)
         {
+            // Инвертированное хранение в базе данных: ЭтоГруппа = 0x00, а элемент = 0x01
+
             PropertyDefinition property = new()
             {
-                Name = "ЭтоГруппа",
+                Name = "ЭтоЭлемент", // Решено переименовать "ЭтоГруппа" в "ЭтоЭлемент"
                 Purpose = PropertyPurpose.System
             };
             property.Type = DataType.Boolean;
@@ -448,7 +451,7 @@ namespace DaJet.Metadata
                 new ColumnDefinition()
                 {
                     Name = "_Folder",
-                    Type = DataType.Binary(1, false) // инвертировать: в БД ЭтоГруппа = 0x00, а элемент = 0x01
+                    Type = DataType.Binary(1, false)
                 }
             };
 
@@ -871,10 +874,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.InfoRgOpt);
 
             return table;
         }
@@ -935,10 +935,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.InfoRgSL);
 
             return table;
         }
@@ -982,10 +979,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.InfoRgSF);
 
             return table;
         }
@@ -1058,20 +1052,6 @@ namespace DaJet.Metadata
 
             table.Properties.Add(property);
         }
-        internal static bool ApplySuffixToServiceTable(in MetadataObject entry, in MetadataRegistry registry)
-        {
-            if (entry.IsExtension)
-            {
-                return true; // Собственный объект расширения
-            }
-
-            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
-            {
-                return false; // Объект основной конфигурации без заимствований
-            }
-
-            return false;
-        }
         internal static EntityDefinition GetRegisterTotalsTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
             if (entry is not AccumulationRegister register)
@@ -1120,23 +1100,23 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.GetTableCodeИтоги());
 
             return table;
         }
         internal static EntityDefinition GetRegisterSettingsTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
+            int settingsTableCode;
             string settingsTableName;
 
             if (entry is AccumulationRegister accumulation)
             {
+                settingsTableCode = accumulation.AccumRgOpt;
                 settingsTableName = accumulation.GetTableNameНастройки();
             }
             else if (entry is AccountingRegister accounting)
             {
+                settingsTableCode = accounting.AccRgOpt;
                 settingsTableName = accounting.GetTableNameНастройки();
             }
             else
@@ -1168,10 +1148,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, settingsTableCode);
 
             return table;
         }
@@ -1977,11 +1954,18 @@ namespace DaJet.Metadata
                 throw new InvalidOperationException();
             }
 
+            if (!register.IsExtDimValuesEnabled)
+            {
+                return null; // Таблица значений субконто не используется
+            }
+
             EntityDefinition table = new() // Таблица значений субконто регистра бухгалтерии
             {
                 Name = string.Format("{0}.{1}", entry.ToString(), "ЗначенияСубконто"),
                 DbName = register.GetTableNameЗначенияСубконто()
             };
+
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.AccRgED);
 
             ConfigurePropertyПериод(in table);
             ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
@@ -2071,12 +2055,7 @@ namespace DaJet.Metadata
                     table.Properties.Add(property);
                 }
             }
-
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
-
+            
             return table;
         }
         internal static EntityDefinition GetCrossAccountTurnovers(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
@@ -2128,10 +2107,7 @@ namespace DaJet.Metadata
                 ConfigurePropertySplitter(in table);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.AccRgCT);
 
             return table;
         }
@@ -2321,10 +2297,7 @@ namespace DaJet.Metadata
                 ConfigurePropertySplitter(in table);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.GetTableCodeИтогиПоСчетам());
 
             return table;
         }
@@ -2380,10 +2353,7 @@ namespace DaJet.Metadata
                 ConfigureAccountingDimensionValue(in table, ordinal, type, string.Empty, string.Empty);
             }
 
-            if (ApplySuffixToServiceTable(in entry, in registry))
-            {
-                table.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in table, in entry, in registry, register.GetTableCodeИтогиПоСубконто(dimension));
 
             return table;
         }
@@ -2585,31 +2555,6 @@ namespace DaJet.Metadata
         }
         #endregion
 
-        internal static bool ApplySuffixToChangeTrackingTable(in MetadataObject entry, in MetadataRegistry registry)
-        {
-            if (entry.IsExtension)
-            {
-                return true; // Собственный объект расширения
-            }
-
-            if (!registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
-            {
-                return false; // Объект основной конфигурации без заимствований
-            }
-
-            foreach (Guid uuid in borrowed)
-            {
-                if (registry.TryGetEntry(uuid, out MetadataObject extension))
-                {
-                    if (extension.IsChangeTrackingEnabled)
-                    {
-                        return true; // Заимствованный объект включён в состав плана обмена расширения
-                    }
-                }
-            }
-
-            return false;
-        }
         internal static EntityDefinition GetChangeTrackingTable(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry)
         {
             if (entry.IsBorrowed)
@@ -2617,7 +2562,7 @@ namespace DaJet.Metadata
                 throw new InvalidOperationException(); // Только для основных и собственных объектов
             }
 
-            if (!entry.IsChangeTrackingEnabled)
+            if (!entry.IsChangeTrackingEnabled) // 10 объектов из 14 поддерживаемых
             {
                 return null; // Данный объект не включён в состав какого-либо плана обмена
             }
@@ -2702,10 +2647,7 @@ namespace DaJet.Metadata
                 }
             }
 
-            if (ApplySuffixToChangeTrackingTable(in entry, in registry))
-            {
-                changes.DbName += "x1";
-            }
+            ApplyExtensionTableNameSuffix(in changes, in entry, in registry, entry.ChangeTrackingCode);
 
             return changes;
         }
@@ -2866,7 +2808,12 @@ namespace DaJet.Metadata
 
         #region "Логика расширения объектов основной конфигурации"
 
-        #region "Заимствованные объекты расширений"
+        /// <summary>
+        /// Дополняет объект основной конфигурации свойствами, добавленными в расширениях
+        /// </summary>
+        /// <param name="main">Объект основной конфигурации</param>
+        /// <param name="borrowed">Заимствованный объект расширения</param>
+        /// <returns></returns>
         internal static bool TryApplyBorrowedObject(in EntityDefinition main, in EntityDefinition borrowed)
         {
             bool extended = false;
@@ -2943,62 +2890,27 @@ namespace DaJet.Metadata
 
             return false;
         }
-        #endregion
 
-        //NOTE: Если объект основной конфигурации имеет реквизит (в том числе в табличной части),
-        //NOTE: значением которого является ЛюбаяСсылка или подобное, и имеются любые расширения, 
-        //NOTE: где есть СОБСТВЕННЫЕ ссылочные объекты метаданных, то используются x1-таблицы.
-        //NOTE: Это верно для такого объекта даже если он не заимствуется.
-        //NOTE: Логика здесь такая, что в реквизит могут записать значение ссылки из расширения,
-        //NOTE: а значит расширяют таким образом тип данных реквизита основного объекта.
-
-        internal static bool TryApplyGenericDataTypeExtension(in EntityDefinition main, in MetadataRegistry registry)
+        internal static void ApplyExtensionTableNameSuffix(in EntityDefinition entity, in MetadataObject entry, in MetadataRegistry registry, int typeCode)
         {
-            if (!registry.HasGenericExtensionFlag(ReferenceType.AnyReference))
+            if (registry.TryGetExtensionTableNameSuffix(typeCode, out string suffix))
             {
-                return false; // Собственных ссылочных объектов расширений нет
-            }
+                entity.DbName += suffix; // Использование таблицы SchemaStorage
 
-            List<Guid> references;
-
-            foreach (PropertyDefinition property in main.Properties)
-            {
-                references = property.References;
-
-                if (references is not null)
+                foreach (EntityDefinition table in entity.Entities)
                 {
-                    foreach (Guid reference in references)
-                    {
-                        if (ReferenceType.IsGenericReference(reference) &&
-                            registry.HasGenericExtensionFlag(reference))
-                        {
-                            return true;
-                        }
-                    }
+                    table.DbName += suffix;
                 }
             }
-
-            foreach (EntityDefinition table in main.Entities)
+            else if (entry.IsExtension) // Собственный объект расширения
             {
-                foreach (PropertyDefinition property in table.Properties)
-                {
-                    references = property.References;
+                entity.DbName += "x1";
 
-                    if (references is not null)
-                    {
-                        foreach (Guid reference in references)
-                        {
-                            if (ReferenceType.IsGenericReference(reference) &&
-                                registry.HasGenericExtensionFlag(reference))
-                            {
-                                return true;
-                            }
-                        }
-                    }
+                foreach (EntityDefinition table in entity.Entities)
+                {
+                    table.DbName += "x1";
                 }
             }
-
-            return false;
         }
 
         #endregion

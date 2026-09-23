@@ -31,8 +31,8 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.ChrcChngR, _ChngR);
         }
+        internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
-        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Characteristic, Name);
@@ -90,11 +90,6 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Characteristic, metadata.Name, uuid);
-
-                    if (metadata.IsExtension) // Собственный объект расширения
-                    {
-                        registry.SetGenericExtensionFlag(GenericExtensionFlags.Characteristic);
-                    }
                 }
                 else // Заимствованный объект расширения
                 {

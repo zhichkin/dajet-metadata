@@ -15,7 +15,6 @@ namespace DaJet.Metadata
         internal int Version { get; set; }
         internal int YearOffset { get; set; }
 
-        private uint _generic_extension_flags;
         private readonly Dictionary<int, Guid> _type_codes = new();
         private readonly Dictionary<Guid, MetadataObject> _registry = new();
         private readonly ConcurrentDictionary<Guid, Guid> _references = new();
@@ -56,7 +55,7 @@ namespace DaJet.Metadata
             return _files.TryGetValue(identifier, out fileName);
         }
 
-        #region "Инциализация реестра по данным DBNames"
+        #region "Инциализация реестра по данным DBNames и SchemaStorage"
         internal bool TryRegisterDbName(Guid uuid, int code, in string token)
         {
             // Токен главного объекта метаданных должен следовать первым в файле DBNames.
@@ -132,6 +131,29 @@ namespace DaJet.Metadata
         internal void RegisterSchemaStorageEntries(int slot, in HashSet<int> codes)
         {
             _ = _schema_storage.TryAdd(slot, codes);
+        }
+        internal bool TryGetExtensionTableNameSuffix(int typeCode, out string suffix)
+        {
+            suffix = string.Empty;
+
+            foreach (var slot in _schema_storage)
+            {
+                if (slot.Value.Contains(typeCode))
+                {
+                    if (slot.Key == 1)
+                    {
+                        suffix = "x1"; // main path (almost allways)
+                    }
+                    else
+                    {
+                        suffix = string.Format("x{0}", slot.Key.ToString());
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
         }
         #endregion
 
@@ -257,30 +279,7 @@ namespace DaJet.Metadata
         {
             return _register_recorders.TryGetValue(register, out recorders);
         }
-        internal bool TryGetTableNameExtension(int typeCode, out string extension)
-        {
-            extension = string.Empty;
-
-            foreach (var slot in _schema_storage)
-            {
-                if (slot.Value.Contains(typeCode))
-                {
-                    if (slot.Key == 1)
-                    {
-                        extension = "x1";
-                    }
-                    else
-                    {
-                        extension = string.Format("x{0}", slot.Key.ToString());
-                    }
-                    
-                    return true;
-                }
-            }
-            
-            return false;
-        }
-
+        
         internal int GetTypeCode(Guid uuid)
         {
             if (!_registry.TryGetValue(uuid, out MetadataObject entry))
@@ -333,23 +332,6 @@ namespace DaJet.Metadata
             return typeCode;
         }
         
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal void SetGenericExtensionFlag(GenericExtensionFlags flag)
-        {
-            _ = Interlocked.Or(ref _generic_extension_flags, (uint)flag);
-        }
-        internal bool HasGenericExtensionFlag(Guid generic)
-        {
-            if (generic == ReferenceType.AnyReference)
-            {
-                return _generic_extension_flags != (uint)GenericExtensionFlags.None;
-            }
-            
-            GenericExtensionFlags flag = ReferenceType.GetGenericExtensionFlag(generic);
-
-            return (_generic_extension_flags & (uint)flag) == (uint)flag;
-        }
-
         internal bool TryGetEntry(int code, [MaybeNullWhen(false)] out MetadataObject entry)
         {
             if (!_type_codes.TryGetValue(code, out Guid uuid))

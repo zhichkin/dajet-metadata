@@ -49,7 +49,7 @@ namespace DaJet
             //DumpRawFile(); return;
             //DumpSchemaStorage(); return;
             //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
-            //GetMetadataObject("РегистрБухгалтерии.Международный"); return; //МеждународныйБезКорреспонденции
+            GetMetadataObject("ПланВидовХарактеристик.ПланВидовХарактеристик1.Изменения"); return; //МеждународныйБезКорреспонденции
             //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
             //GetMetadataObject("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
             //GetMetadataObject("Документ.ЗаказКлиента"); return;
@@ -307,8 +307,9 @@ namespace DaJet
         {
             long start = Stopwatch.GetTimestamp();
 
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
             //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
+            //MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_ERP);
             //MetadataProvider provider = new(DataSourceType.PostgreSql, in PG_ERP);
 
             //EntityDefinition metadata = provider.GetMetadataObject(63);

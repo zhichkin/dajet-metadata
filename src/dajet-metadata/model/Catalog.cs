@@ -30,8 +30,8 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.ReferenceChngR, _ChngR);
         }
+        internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
-        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.Catalog, Name);
@@ -101,11 +101,6 @@ namespace DaJet.Metadata
                 {
                     // Объекты основной конфигурации и собственные объекты расширения
                     registry.AddMetadataName(MetadataNames.Catalog, metadata.Name, uuid);
-
-                    if (metadata.IsExtension) // Собственный объект расширения
-                    {
-                        registry.SetGenericExtensionFlag(GenericExtensionFlags.Catalog);
-                    }
                 }
                 else // Заимствованный объект расширения
                 {
@@ -118,7 +113,7 @@ namespace DaJet.Metadata
 
                     //if (registry.CompatibilityVersion >= 80314)
                     //{
-                    //    // Заимствованный объект
+                    //    // Заимствованный объект (parent)
                     //    uuid = reader[2][10][2][10].SeekUuid();
 
                     //    if (!registry.TryGetEntry(uuid, out Catalog parent))

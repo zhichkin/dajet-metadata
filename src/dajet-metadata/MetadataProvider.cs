@@ -540,6 +540,8 @@ namespace DaJet.Metadata
                 return entity; // Основная таблица объекта метаданных
             }
 
+            // Служебные таблицы объекта метаданных
+
             if (table == "Изменения") // Таблица регистрации изменений
             {
                 return Configurator.GetChangeTrackingTable(in entry, in entity, in _registry);
@@ -720,9 +722,9 @@ namespace DaJet.Metadata
                     {
                         tableName = entry.GetTableNameИзменения();
 
-                        if (Configurator.ApplySuffixToChangeTrackingTable(in entry, in _registry))
+                        if (_registry.TryGetExtensionTableNameSuffix(entry.ChangeTrackingCode, out string suffix))
                         {
-                            tableName += "x1";
+                            tableName += suffix;
                         }
 
                         lookup.Add(tableName, $"{entityName}.Изменения");

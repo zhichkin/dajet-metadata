@@ -16,7 +16,7 @@ namespace DaJet.Metadata
         private const string MS_CONFIG_CAS_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, FileName, BinaryData FROM ConfigCAS WHERE FileName = @FileName;";
         private const string MS_CONFIG_CAS_STREAM_SCRIPT = "SELECT (CASE WHEN SUBSTRING(BinaryData, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DataSize AS int) AS DataSize, ConfigCAS.FileName AS FileName, BinaryData FROM ConfigCAS INNER JOIN #ConfigFileNames AS T ON ConfigCAS.FileName = T.FileName;";
         private const string MS_SCHEMA_STORAGE_EXISTS = "SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = 'dbo' AND TABLE_NAME = 'SchemaStorage';";
-        private const string MS_STREAM_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, N'CurrentSchema', CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID > 0 AND Status = 100;";
+        private const string MS_STREAM_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, CONVERT(char(1), SchemaID) AS FileName, CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID > 0 AND Status = 100;";
         private const string MS_SELECT_CURRENT_SCHEMA_STORAGE = "SELECT (CASE WHEN SUBSTRING(CurrentSchema, 1, 3) = 0xEFBBBF THEN 1 ELSE 0 END) AS UTF8, CAST(DATALENGTH(CurrentSchema) AS int) AS DataSize, N'CurrentSchema', CurrentSchema AS BinaryData FROM SchemaStorage WHERE SchemaID = @SchemaID AND Status = 100;";
 
         private readonly string _connectionString;

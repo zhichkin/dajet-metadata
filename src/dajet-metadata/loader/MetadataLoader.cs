@@ -78,9 +78,9 @@ namespace DaJet.Metadata
         internal abstract ConfigFileBuffer Load(in string tableName, in string fileName);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string fileNamePattern);
         internal abstract IEnumerable<ConfigFileBuffer> Stream(string tableName, string[] fileNames);
-        internal abstract EntityDefinition GetDbTableSchema(in string tableName);
         internal abstract List<ExtensionInfo> GetExtensions();
         internal abstract T ExecuteScalar<T>(in string script, int timeout);
+        internal abstract EntityDefinition GetDbTableSchema(in string tableName);
 
         internal Guid GetRootFile()
         {
@@ -124,8 +124,6 @@ namespace DaJet.Metadata
                 entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
             }
 
-            // TryApplyExtensionsAndGetTableNameSuffix(in entry, in entity, in registry, in parser);
-
             if (entry.IsMain && registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
             {
                 tableName = ConfigTables.ConfigCAS;
@@ -154,86 +152,9 @@ namespace DaJet.Metadata
 
             Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
 
-            if (registry.TryGetTableNameExtension(entry.Code, out string suffix))
-            {
-                entity.DbName += suffix; // Использование таблицы SchemaStorage
-
-                foreach (EntityDefinition table in entity.Entities)
-                {
-                    table.DbName += suffix;
-                }
-            }
-            else if (entry.IsExtension) // Собственный объект расширения
-            {
-                entity.DbName += "x1";
-
-                foreach (EntityDefinition table in entity.Entities)
-                {
-                    table.DbName += "x1";
-                }
-            }
-
+            Configurator.ApplyExtensionTableNameSuffix(in entity, in entry, in registry, entry.Code);
+            
             return entity;
-        }
-        [Obsolete("Старая версия алгоритма применения расширений и вычисления суффикса x1 в названии таблицы базы данных")]
-        private void TryApplyExtensionsAndGetTableNameSuffix(in MetadataObject entry, in EntityDefinition entity, in MetadataRegistry registry, in ConfigFileParser parser)
-        {
-            if (entry.IsExtension) // Собственный объект расширения
-            {
-                entity.DbName += "x1";
-
-                foreach (EntityDefinition table in entity.Entities)
-                {
-                    table.DbName += "x1";
-                }
-            }
-            else if (entry.IsMain)
-            {
-                if (Configurator.TryApplyGenericDataTypeExtension(in entity, in registry))
-                {
-                    entity.DbName += "x1";
-
-                    foreach (EntityDefinition table in entity.Entities)
-                    {
-                        table.DbName += "x1";
-                    }
-                }
-                else if (registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
-                {
-                    bool extended = false;
-
-                    string tableName = ConfigTables.ConfigCAS;
-
-                    foreach (Guid uuid in borrowed)
-                    {
-                        string fileName = uuid.ToString().ToLowerInvariant();
-
-                        if (!registry.TryGetFileName(in fileName, out fileName))
-                        {
-                            throw new InvalidOperationException();
-                        }
-
-                        EntityDefinition extension;
-
-                        using (ConfigFileBuffer file = Load(in tableName, in fileName))
-                        {
-                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
-                        }
-
-                        extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
-                    }
-
-                    if (extended)
-                    {
-                        entity.DbName += "x1";
-
-                        foreach (EntityDefinition table in entity.Entities)
-                        {
-                            table.DbName += "x1";
-                        }
-                    }
-                }
-            }
         }
 
         private sealed class ConfigFileBatchWork
@@ -361,13 +282,14 @@ namespace DaJet.Metadata
                 return;
             }
 
-            // initialize lookup for borrowed and extended metadata object type codes
+            // initialize lookup for borrowed and extension metadata object type codes
 
-            int slot = 1;
             HashSet<int> codes;
 
             foreach (ConfigFileBuffer file in StreamSchemaStorage())
             {
+                int slot = int.Parse(file.FileName);
+
                 if (file.Length > 0)
                 {
                     SchemaStorage.Parse(file.AsReadOnlySpan(), out codes);
@@ -377,7 +299,7 @@ namespace DaJet.Metadata
                     codes = new HashSet<int>(0);
                 }
 
-                registry.RegisterSchemaStorageEntries(slot++, in codes);
+                registry.RegisterSchemaStorageEntries(slot, in codes);
             }
         }
         private void InitializeMetadataRegistry(in string tableName, in Dictionary<Guid, string[]> metadata, in MetadataRegistry registry)
@@ -415,7 +337,7 @@ namespace DaJet.Metadata
             {
                 Task.WaitAll(tasks);
             }
-            catch (Exception exception)
+            catch
             {
                 throw; //TODO: log and report errors
 
@@ -686,15 +608,7 @@ namespace DaJet.Metadata
 
             // Инициализация отслеживания изменений для заимствованных объектов расширений
 
-            for (int i = 1; i < registry.Configurations.Count; i++)
-            {
-                Configuration configuration = registry.Configurations[i];
-
-                if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
-                {
-                    InitializeExtensionChangeTracking(in publications, in registry);
-                }
-            }
+            // InitializeExtensionsChangeTracking(in registry);
         }
         private void ParseRootFile(in ExtensionInfo extension, in MetadataRegistry registry)
         {
@@ -804,12 +718,31 @@ namespace DaJet.Metadata
 
             return configuration;
         }
+
+
+        [Obsolete("Инициализация отслеживания изменений в расширениях для заимствованных объектов")]
+        private void InitializeExtensionsChangeTracking(in MetadataRegistry registry)
+        {
+            for (int i = 1; i < registry.Configurations.Count; i++)
+            {
+                Configuration configuration = registry.Configurations[i];
+
+                if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
+                {
+                    InitializeExtensionChangeTracking(in publications, in registry);
+                }
+            }
+        }
+        
+        [Obsolete("Чтение состава плана обмена расширения и поиск ссылки на объект метаданных")]
         private void InitializeExtensionChangeTracking(in Guid[] publications, in MetadataRegistry registry)
         {
             if (publications is null || publications.Length == 0)
             {
                 return;
             }
+
+            //NOTE: Состав плана обмена хранится в файле {metadata-object-uuid}.1
 
             List<string> fileList = new(publications.Length);
 
@@ -842,9 +775,13 @@ namespace DaJet.Metadata
                 {
                     if (registry.TryGetEntry(article, out MetadataObject entry))
                     {
-                        if (entry.IsBorrowed)
+                        if (entry.IsBorrowed) //NOTE: Оставлено для истории на память =)
                         {
-                            entry.SetBorrowedChangeTrackingFlag();
+                            // Устанавливаем флаг вхождения заимствованного объекта в состав плана обмена расширения
+
+                            // entry.SetBorrowedChangeTrackingFlag();
+
+                            // internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
                         }
                     }
                 }

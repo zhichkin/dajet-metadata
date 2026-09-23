@@ -45,6 +45,11 @@ namespace DaJet.Metadata
             else if (name == MetadataToken.AccRgAT4) { _AccRgAT[4] = code; }
             else if (name == MetadataToken.AccRgAT5) { _AccRgAT[5] = code; }
         }
+        internal int AccRgED { get { return _AccRgED; } }
+        internal int AccRgCT { get { return _AccRgCT; } }
+        internal int AccRgOpt { get { return _AccRgOpt; } }
+        internal int GetTableCodeИтогиПоСчетам() { return _AccRgAT[0]; }
+        internal int GetTableCodeИтогиПоСубконто(int ordinal) { return _AccRgAT[ordinal]; }
         internal override string GetMainDbName()
         {
             return string.Format("_{0}{1}", MetadataToken.AccRg, Code);
@@ -74,8 +79,8 @@ namespace DaJet.Metadata
             return string.Format("_{0}{1}", MetadataToken.AccRgChngR, _ChngR);
         }
         internal bool IsExtDimValuesEnabled { get { return _AccRgED > 0; } }
+        internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
-        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.AccountingRegister, Name);

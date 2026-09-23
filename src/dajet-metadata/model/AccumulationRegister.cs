@@ -43,6 +43,21 @@ namespace DaJet.Metadata
                 _ChngR = code;
             }
         }
+        internal int AccumRgOpt { get { return _AccumRgOpt; } }
+        internal int GetTableCodeИтоги()
+        {
+            if (Purpose == RegisterKind.Balance)
+            {
+                return _AccumRgT;
+            }
+
+            if (Purpose == RegisterKind.Turnovers)
+            {
+                return _AccumRgTn;
+            }
+
+            return 0; // Таблица итогов отсутствует
+        }
         internal override string GetMainDbName()
         {
             return string.Format("_{0}{1}", MetadataToken.AccumRg, Code);
@@ -70,8 +85,8 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.AccumRgChngR, _ChngR);
         }
+        internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
-        internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
         public override string ToString()
         {
             return string.Format("{0}.{1}", MetadataNames.AccumulationRegister, Name);
