@@ -528,13 +528,30 @@ namespace DaJet.Metadata
             string name = count > 1 ? fullName[names[1]] : string.Empty;
             string table = count > 2 ? fullName[names[2]] : string.Empty;
 
-            if (!_registry.TryGetEntry(in type, in name, out MetadataObject entry))
+            bool success = false;
+            MetadataObject entry;
+
+            if (type == "Характеристика") // Особый случай: разрешение ссылок (описание типа) для свойства объекта метаданных
+            {
+                success = _registry.TryGetEntry(MetadataNames.Characteristic, in name, out entry);
+            }
+            else // Стандартный объект из реестра метаданных
+            {
+                success = _registry.TryGetEntry(in type, in name, out entry);
+            }
+
+            if (!success)
             {
                 return _loader.GetDbTableSchema(fullName); // Обычная таблица базы данных
             }
-
+            
+            if (type == "Характеристика")
+            {
+                return _loader.Load("Характеристика", in entry, in _registry);
+            }
+            
             EntityDefinition entity = _loader.Load(in type, in entry, in _registry);
-
+            
             if (string.IsNullOrEmpty(table))
             {
                 return entity; // Основная таблица объекта метаданных
@@ -582,7 +599,7 @@ namespace DaJet.Metadata
                 else if (table.StartsWith("ИтогиПоСубконто")) // _AccRgAT[n]
                 {
                     string number = table["ИтогиПоСубконто".Length..];
-                    
+
                     if (!int.TryParse(number, out int dimension))
                     {
                         return null; //NOTE: Таблица отсутствует
@@ -620,6 +637,13 @@ namespace DaJet.Metadata
                 {
                     return null; //NOTE: Таблицы срезов не поддерживаются
                 }
+            }
+            else if (entry is Publication)
+            {
+                if (table == "Состав") // Состав плана обмена
+                {
+                    return _loader.GetPublicationArticles(in entry, in _registry);
+                }    
             }
 
             // Табличная часть объекта метаданных

@@ -49,7 +49,10 @@ namespace DaJet
             //DumpRawFile(); return;
             //DumpSchemaStorage(); return;
             //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
-            GetMetadataObject("ПланВидовХарактеристик.ПланВидовХарактеристик1.Изменения"); return; //МеждународныйБезКорреспонденции
+            GetMetadataObject("ПланОбмена.ПланОбмена1.Состав"); return; // Расш1_ПланОбмена1
+            //GetMetadataObjectReferences("ПланОбмена.ПланОбмена1.Состав"); return;
+            //GetMetadataObject("Характеристика.ПланВидовХарактеристик1"); return; // ОпределяемыйТип.ОпределяемыйТип1 Характеристика.ПланВидовХарактеристик1
+            //GetMetadataObjectReferences("Справочник.Тестовый"); return; // РегистрНакопления.ОстаткиТовара
             //GetMetadataObject("РегистрНакопления.КнигаУчетаДоходовИРасходов.Итоги"); return;
             //GetMetadataObject("РегистрСведений.ЦеныНоменклатуры.СрезПоследних"); return;
             //GetMetadataObject("Документ.ЗаказКлиента"); return;
@@ -321,6 +324,46 @@ namespace DaJet
             }
 
             ShowEhtityDefinition(in metadata, in provider);
+
+            long end = Stopwatch.GetTimestamp();
+
+            TimeSpan elapsed = Stopwatch.GetElapsedTime(start, end);
+
+            Console.WriteLine();
+            Console.WriteLine($"[{metadata.DbName}] {metadata.Name} loaded in {elapsed.TotalMilliseconds} ms");
+        }
+        private static void GetMetadataObjectReferences(in string metadataFullName)
+        {
+            long start = Stopwatch.GetTimestamp();
+
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
+
+            EntityDefinition metadata = provider.GetMetadataObject(in metadataFullName);
+
+            if (metadata is null)
+            {
+                Console.WriteLine($"Объект метаданных [{metadataFullName}] не найден."); return;
+            }
+
+            Console.WriteLine($"Name: {metadata.Name}");
+            Console.WriteLine($"DbName: {metadata.DbName}");
+
+            List<Guid> references = new();
+
+            foreach (PropertyDefinition property in metadata.Properties)
+            {
+                if (property.References.Count > 0)
+                {
+                    references.AddRange(property.References);
+                }
+            }
+
+            List<string> types = provider.ResolveReferences(references);
+
+            foreach (string type in types)
+            {
+                Console.WriteLine($"- {type}");
+            }
 
             long end = Stopwatch.GetTimestamp();
 

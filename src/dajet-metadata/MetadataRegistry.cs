@@ -439,24 +439,17 @@ namespace DaJet.Metadata
             {
                 Guid reference = references[i];
 
-                if (i == 0) // Единственно допустимая ссылка данного типа
+                if (TryGetDefinedType(reference, out DefinedType defined))
                 {
-                    if (TryGetDefinedType(reference, out DefinedType defined))
-                    {
-                        types.Add(string.Format("ОпределяемыйТип.{0}", defined.Name)); break;
-                    }
-
-                    if (TryGetCharacteristic(reference, out Characteristic characteristic))
-                    {
-                        types.Add(string.Format("Характеристика.{0}", characteristic.Name)); break;
-                    }
+                    types.Add(string.Format("ОпределяемыйТип.{0}", defined.Name));
                 }
-
-                // Конкретный ссылочный тип
-
-                if (TryGetReference(reference, out MetadataObject entry))
+                else if (TryGetCharacteristic(reference, out Characteristic characteristic))
                 {
-                    types.Add(entry.ToString());
+                    types.Add(string.Format("Характеристика.{0}", characteristic.Name));
+                }
+                else if (TryGetReference(reference, out MetadataObject entry))
+                {
+                    types.Add(entry.ToString()); // Конкретный ссылочный тип
                 }
                 else if (TryGetEntry(reference, out entry))
                 {
@@ -467,7 +460,7 @@ namespace DaJet.Metadata
 
                     types.Add(entry.ToString());
                 }
-                else // Общий ссылочный тип
+                else // Обобщённый ссылочный тип
                 {
                     if (reference == ReferenceType.AnyReference)
                     {

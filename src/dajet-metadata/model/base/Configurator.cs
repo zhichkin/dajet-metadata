@@ -1,5 +1,4 @@
 ﻿using DaJet.TypeSystem;
-using Microsoft.Win32;
 using System.Collections.Frozen;
 using System.Runtime.CompilerServices;
 

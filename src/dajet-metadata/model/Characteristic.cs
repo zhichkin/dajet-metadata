@@ -59,6 +59,40 @@ namespace DaJet.Metadata
                 metadata.Type = DataTypeParser.Parse(ref reader, root, in registry, out _);
             }
         }
+        internal static EntityDefinition GetDataTypeDefinition(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
+        {
+            if (!registry.TryGetEntry(uuid, out Characteristic entry))
+            {
+                throw new InvalidOperationException($"Metadata object \"Характеристика\" not found by UUID {{{uuid}}}");
+            }
+
+            ConfigFileReader reader = new(file);
+
+            EntityDefinition entity = new()
+            {
+                Uuid = entry.Uuid,
+                Name = entry.Name,
+                DbName = "Характеристика" // Характеристика не имеет таблиц для хранения данных
+            };
+
+            PropertyDefinition property = new()
+            {
+                Name = "Type"
+            };
+
+            entity.Properties.Add(property);
+
+            if (reader[2][19][ConfigFileToken.StartObject].Seek())
+            {
+                uint[] root = [2, 19];
+
+                property.Type = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);
+
+                property.References = references;
+            }
+
+            return entity;
+        }
 
         internal sealed class Parser : ConfigFileParser
         {
@@ -138,7 +172,7 @@ namespace DaJet.Metadata
 
                 ConfigFileReader reader = new(file);
 
-                // Флаг, является ли справочник иерархическим
+                // Флаг, является ли план видов характеристик иерархическим
                 bool IsHierarchical = reader[2][20].SeekNumber() != 0;
 
                 // Длина кода

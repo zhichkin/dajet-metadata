@@ -98,7 +98,19 @@ namespace DaJet.Metadata
         
         internal EntityDefinition Load(in string type, in MetadataObject entry, in MetadataRegistry registry)
         {
-            if (!ConfigFileParser.TryGetParser(in type, out ConfigFileParser parser))
+            bool success;
+            ConfigFileParser parser;
+            
+            if (type == "Характеристика") // Особый случай: разрешение ссылок (описание типа) для свойства объекта метаданных
+            {
+                success = ConfigFileParser.TryGetParser(MetadataNames.Characteristic, out parser);
+            }
+            else // Стандартный объект из реестра метаданных
+            {
+                success = ConfigFileParser.TryGetParser(in type, out parser);
+            }
+
+            if (!success)
             {
                 return null;
             }
@@ -121,7 +133,14 @@ namespace DaJet.Metadata
 
             using (ConfigFileBuffer file = Load(in tableName, in fileName))
             {
-                entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
+                if (type == "Характеристика")
+                {
+                    entity = Characteristic.GetDataTypeDefinition(entry.Uuid, file.AsReadOnlySpan(), in registry);
+                }
+                else
+                {
+                    entity = parser.Load(entry.Uuid, file.AsReadOnlySpan(), in registry);
+                }
             }
 
             if (entry.IsMain && registry.TryGetBorrowed(entry.Uuid, out List<Guid> borrowed))
@@ -143,17 +162,81 @@ namespace DaJet.Metadata
 
                     using (ConfigFileBuffer file = Load(in tableName, in fileName))
                     {
-                        extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
+                        if (type == "Характеристика")
+                        {
+                            extension = Characteristic.GetDataTypeDefinition(uuid, file.AsReadOnlySpan(), in registry);
+                        }
+                        else
+                        {
+                            extension = parser.Load(uuid, file.AsReadOnlySpan(), in registry);
+                        }
                     }
 
                     bool extended = Configurator.TryApplyBorrowedObject(in entity, in extension);
                 }
             }
 
-            Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
+            if (entry is DefinedType || type == "Характеристика")
+            {
+                return entity; // Объекты "ОпределяемыйТип" и "Характеристика" не используется для хранения данных
+            }
 
-            Configurator.ApplyExtensionTableNameSuffix(in entity, in entry, in registry, entry.Code);
+            Configurator.ConfigureSharedProperties(in registry, in entry, in entity);
             
+            Configurator.ApplyExtensionTableNameSuffix(in entity, in entry, in registry, entry.Code);
+
+            return entity;
+        }
+        internal EntityDefinition GetPublicationArticles(in MetadataObject entry, in MetadataRegistry registry)
+        {
+            // По умолчанию - объект основной конфигурации
+            string tableName = ConfigTables.Config;
+            string fileName = string.Format("{0}.1", entry.Uuid.ToString().ToLowerInvariant());
+
+            if (entry.IsExtension) // Собственный объект расширения
+            {
+                tableName = ConfigTables.ConfigCAS;
+
+                if (!registry.TryGetFileName(in fileName, out fileName))
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+
+            EntityDefinition entity = new()
+            {
+                Uuid = entry.Uuid,
+                Name = entry.Name,
+                DbName = "Состав" // Состав плана обмена не имеет таблиц для хранения данных
+            };
+
+            PropertyDefinition property = new()
+            {
+                Name = "Articles",
+                Type = DataType.Entity()
+            };
+
+            entity.Properties.Add(property);
+
+            Dictionary<Guid, AutoPublication> articles;
+
+            using (ConfigFileBuffer file = Load(in tableName, in fileName))
+            {
+                if (file.Length > 0)
+                {
+                    articles = Publication.ParsePublicationArticles(file.AsReadOnlySpan());
+                }
+                else
+                {
+                    articles = new Dictionary<Guid, AutoPublication>(0);
+                }
+            }
+
+            foreach (Guid article in articles.Keys)
+            {
+                property.References.Add(article);
+            }
+
             return entity;
         }
 

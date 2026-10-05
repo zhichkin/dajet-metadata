@@ -77,7 +77,37 @@ namespace DaJet.Metadata
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
-                throw new NotImplementedException();
+                if (!registry.TryGetEntry(uuid, out DefinedType entry))
+                {
+                    throw new InvalidOperationException($"Metadata object \"ОпределяемыйТип\" not found by UUID {{{uuid}}}");
+                }
+
+                ConfigFileReader reader = new(file);
+
+                EntityDefinition entity = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name,
+                    DbName = "ОпределяемыйТип" // Определяемый тип не имеет таблиц для хранения данных
+                };
+
+                PropertyDefinition property = new()
+                {
+                    Name = "Type"
+                };
+
+                entity.Properties.Add(property);
+
+                if (reader[2][5][ConfigFileToken.StartObject].Seek())
+                {
+                    uint[] root = [2, 5];
+
+                    property.Type = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);
+
+                    property.References = references;
+                }
+                
+                return entity;
             }
         }
     }
