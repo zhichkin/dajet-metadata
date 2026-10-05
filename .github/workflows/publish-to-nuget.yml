@@ -7,7 +7,7 @@ env:
   DOTNET_TARGET: 'net10.0'
 
 jobs:
-  build--pack-and-push:
+  build-pack-and-push:
     runs-on: ubuntu-latest
     
     permissions:
