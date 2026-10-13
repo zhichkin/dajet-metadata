@@ -8,6 +8,8 @@ namespace DaJet.Metadata
 {
     internal abstract class MetadataLoader
     {
+        private const string ERROR_LOAD_EXTENSIONS = "[ERROR][{0}][{1}] Failed to load extensions:";
+
         internal static MetadataLoader Create(DataSourceType dataSource, in string connectionString)
         {
             if (dataSource == DataSourceType.SqlServer)
@@ -416,22 +418,7 @@ namespace DaJet.Metadata
                 index++;
             }
 
-            try
-            {
-                Task.WaitAll(tasks);
-            }
-            catch
-            {
-                throw; //TODO: log and report errors
-
-                //if (exception is AggregateException errors)
-                //{
-                //    foreach (Exception error in errors.InnerExceptions)
-                //    {
-                //
-                //    }
-                //}
-            }
+            Task.WaitAll(tasks); // Обработка ошибок выполняется выше по стеку вызывающим кодом
 
             // Инициализация свойства "Type" характеристик зависит от предварительной
             // инициализации коллекции _references, так как тип данных характеристики
@@ -623,10 +610,18 @@ namespace DaJet.Metadata
             {
                 InitializeExtensions(in registry);
             }
+            catch (AggregateException errors)
+            {
+                MetadataLogger.Write(string.Format(ERROR_LOAD_EXTENSIONS, DataSource, Database));
+
+                foreach (Exception inner in errors.Flatten().InnerExceptions)
+                {
+                    MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(inner));
+                }
+            }
             catch (Exception error)
             {
-                string message = $"[ERROR][{DataSource}][{Database}] Initialize extensions: unhandled error.";
-                MetadataLogger.Write(message);
+                MetadataLogger.Write(string.Format(ERROR_LOAD_EXTENSIONS, DataSource, Database));
                 MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
             }
         }
@@ -686,12 +681,13 @@ namespace DaJet.Metadata
                 // Инициализация объектов реестра метаданных зависит
                 // от предварительной загрузки кодов ссылочных типов
 
+                // Важно! Загрузка и инициализация расширений выполняется строго последовательно,
+                // так как порядок применения расширений к основной конфигурации имеет значение!
+
+                /// Смотри также <see cref=MetadataRegistry.AddBorrowed(Guid, Guid) />
+
                 InitializeMetadataRegistry(ConfigTables.ConfigCAS, in fileNames, in registry);
             }
-
-            // Инициализация отслеживания изменений для заимствованных объектов расширений
-
-            // InitializeExtensionsChangeTracking(in registry);
         }
         private void ParseRootFile(in ExtensionInfo extension, in MetadataRegistry registry)
         {
@@ -800,75 +796,6 @@ namespace DaJet.Metadata
             }
 
             return configuration;
-        }
-
-
-        [Obsolete("Инициализация отслеживания изменений в расширениях для заимствованных объектов")]
-        private void InitializeExtensionsChangeTracking(in MetadataRegistry registry)
-        {
-            for (int i = 1; i < registry.Configurations.Count; i++)
-            {
-                Configuration configuration = registry.Configurations[i];
-
-                if (configuration.Metadata.TryGetValue(MetadataTypes.Publication, out Guid[] publications))
-                {
-                    InitializeExtensionChangeTracking(in publications, in registry);
-                }
-            }
-        }
-        
-        [Obsolete("Чтение состава плана обмена расширения и поиск ссылки на объект метаданных")]
-        private void InitializeExtensionChangeTracking(in Guid[] publications, in MetadataRegistry registry)
-        {
-            if (publications is null || publications.Length == 0)
-            {
-                return;
-            }
-
-            //NOTE: Состав плана обмена хранится в файле {metadata-object-uuid}.1
-
-            List<string> fileList = new(publications.Length);
-
-            for (int i = 0; i < publications.Length; i++)
-            {
-                Guid publication = publications[i];
-
-                string fileName = string.Format("{0}.1", publication.ToString().ToLowerInvariant());
-
-                if (registry.TryGetFileName(in fileName, out fileName))
-                {
-                    fileList.Add(fileName);
-                }
-            }
-
-            if (fileList.Count == 0)
-            {
-                return; // Заимствованные планы обмена без расширения состава не имеют соответствующих файлов
-            }
-
-            string[] fileNames = fileList.ToArray();
-
-            Dictionary<Guid, AutoPublication> articles;
-
-            foreach (ConfigFileBuffer file in Stream(ConfigTables.ConfigCAS, fileNames))
-            {
-                articles = Publication.ParsePublicationArticles(file.AsReadOnlySpan());
-
-                foreach (Guid article in articles.Keys)
-                {
-                    if (registry.TryGetEntry(article, out MetadataObject entry))
-                    {
-                        if (entry.IsBorrowed) //NOTE: Оставлено для истории на память =)
-                        {
-                            // Устанавливаем флаг вхождения заимствованного объекта в состав плана обмена расширения
-
-                            // entry.SetBorrowedChangeTrackingFlag();
-
-                            // internal override void SetBorrowedChangeTrackingFlag() { _ChngR = int.MaxValue; }
-                        }
-                    }
-                }
-            }
         }
     }
 }

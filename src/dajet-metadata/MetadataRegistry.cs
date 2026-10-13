@@ -23,7 +23,7 @@ namespace DaJet.Metadata
         private readonly Dictionary<Guid, List<Guid>> _task_processes = new();
         private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
         private readonly Dictionary<string, string> _files = new();
-        private readonly Dictionary<Guid, List<Guid>> _borrowed = new();
+        private readonly ConcurrentDictionary<Guid, List<Guid>> _borrowed = new();
         private readonly Dictionary<int, HashSet<int>> _schema_storage = new(1);
         private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
         {
@@ -184,17 +184,14 @@ namespace DaJet.Metadata
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddBorrowed(Guid parent, Guid extension)
         {
-            //NOTE: Важно! Данный код выполняется однопоточно инициализатором реестра
-            //NOTE: метаданных для объектов одного и того же типа, например, справочников
+            // Важно! Данный код выполняется инициализатором реестра метаданных
+            // однопоточно для объектов одного и того же типа, например, справочников.
+            // Используется только для загрузки расширений. Расширения загружаются строго последовательно,
+            // так как порядок применения расширений к основной конфигурации имеет важное значение!
 
-            if (_borrowed.TryGetValue(parent, out List<Guid> borrowed))
-            {
-                borrowed.Add(extension);
-            }
-            else
-            {
-                _borrowed.Add(parent, new List<Guid>() { extension });
-            }
+            List<Guid> borrowed = _borrowed.GetOrAdd(parent, static _ => new List<Guid>(1));
+
+            borrowed.Add(extension); // Один объект основной конфигурации - много расширений
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void AddDefinedType(Guid uuid, Guid reference)

@@ -11,6 +11,8 @@ namespace DaJet.Metadata
 {
     public sealed class MetadataProvider
     {
+        private const string ERROR_CREATE_REGISTRY = "[ERROR][{0}][{1}] Failed to create main metadata registry:";
+
         #region "STATIC CACHE"
 
         private static readonly object _cache_lock = new();
@@ -277,10 +279,18 @@ namespace DaJet.Metadata
 
                 RefreshLastUpdateValue();
             }
+            catch (AggregateException errors)
+            {
+                MetadataLogger.Write(string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database));
+
+                foreach (Exception inner in errors.Flatten().InnerExceptions)
+                {
+                    MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(inner));
+                }
+            }
             catch (Exception error)
             {
-                string message = $"[ERROR][{_loader.DataSource}][{_loader.Database}] Initialize metadata: failed to create metadata registry.";
-                MetadataLogger.Write(message);
+                MetadataLogger.Write(string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database));
                 MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
             }
             finally
