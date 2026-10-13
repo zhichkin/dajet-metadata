@@ -161,22 +161,27 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyПериод(in table);
-                Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
-                Configurator.ConfigurePropertyНомерЗаписи(in table);
-                Configurator.ConfigurePropertyАктивность(in table);
-
-                if (entry.PeriodAdjustment > 0)
+                EntityDefinition table = new()
                 {
-                    Configurator.ConfigurePropertyУточнениеПериода(in table);
-                }
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
+                if (!entry.IsBorrowed)
+                {
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyПериод(in table);
+                    Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
+                    Configurator.ConfigurePropertyНомерЗаписи(in table);
+                    Configurator.ConfigurePropertyАктивность(in table);
+
+                    if (entry.PeriodAdjustment > 0)
+                    {
+                        Configurator.ConfigurePropertyУточнениеПериода(in table);
+                    }
+                }
+                
                 ConfigFileReader reader = new(file);
 
                 uint[] root = [4]; // Коллекция измерений
@@ -199,13 +204,17 @@ namespace DaJet.Metadata
                 {
                     Property.Parse(ref reader, root, in registry, entry, in table);
                 }
-
-                //NOTE: для таблицы ЗначенияСубконто (_AccRgED) обратная логика:
-                //NOTE: если UseCorrespondence == true, то есть поле _Correspond
-                //NOTE: (ВидДвижения: 0 - Дебет, 1 - Кредит)
-                if (!entry.UseCorrespondence)
+                
+                if (!entry.IsBorrowed)
                 {
-                    Configurator.ConfigurePropertyВидДвиженияБухгалтерии(in table);
+                    //NOTE: для таблицы ЗначенияСубконто (_AccRgED) обратная логика:
+                    //NOTE: если UseCorrespondence == true, то есть поле _Correspond
+                    //NOTE: (ВидДвижения: 0 - Дебет, 1 - Кредит)
+
+                    if (!entry.UseCorrespondence)
+                    {
+                        Configurator.ConfigurePropertyВидДвиженияБухгалтерии(in table);
+                    }
                 }
 
                 if (registry.TryGetEntry(entry.ChartOfAccounts, out Account account))

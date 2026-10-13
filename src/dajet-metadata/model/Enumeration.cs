@@ -101,9 +101,13 @@ namespace DaJet.Metadata
                 EntityDefinition entity = new()
                 {
                     Uuid = entry.Uuid,
-                    Name = entry.Name,
-                    DbName = entry.GetMainDbName()
+                    Name = entry.Name
                 };
+
+                if (!entry.IsBorrowed)
+                {
+                    entity.DbName = entry.GetMainDbName();
+                }
 
                 PropertyDefinition property;
 

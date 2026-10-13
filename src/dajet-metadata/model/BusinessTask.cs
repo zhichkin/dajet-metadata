@@ -88,48 +88,53 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
-                Configurator.ConfigurePropertyДата(in table);
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                // Тип номера (строка или число)
-                NumberType numberType = (NumberType)reader[2][19].SeekNumber();
-
-                // Длина номера
-                int numberLength = reader[2][20].SeekNumber();
-
-                // Длина имени
-                int nameLength = reader[2][23].SeekNumber();
-
-                //_converter[1][25] += RoutingTable; // Идентификатор регистра сведений, используемого для адресации задачи
-                //_converter[1][26] += MainRoutingProperty; // Основной реквизит адресации задачи
-
-                if (numberLength > 0)
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+                    Configurator.ConfigurePropertyДата(in table);
+
+                    // Тип номера (строка или число)
+                    NumberType numberType = (NumberType)reader[2][19].SeekNumber();
+
+                    // Длина номера
+                    int numberLength = reader[2][20].SeekNumber();
+
+                    // Длина имени
+                    int nameLength = reader[2][23].SeekNumber();
+
+                    //_converter[1][25] += RoutingTable; // Идентификатор регистра сведений, используемого для адресации задачи
+                    //_converter[1][26] += MainRoutingProperty; // Основной реквизит адресации задачи
+
+                    if (numberLength > 0)
+                    {
+                        Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
+                    }
+
+                    if (nameLength > 0)
+                    {
+                        Configurator.ConfigurePropertyИмя(in table, nameLength);
+                    }
+
+                    Configurator.ConfigurePropertyВыполнена(in table);
+
+                    //TODO: Поиск бизнес-процессов в расширении не реализован
+                    //NOTE: Необходимо заполнить коллекцию _tasks провайдера метаданных расширения
+
+                    Configurator.ConfigurePropertyБизнесПроцесс(in table, uuid, in registry);
+                    Configurator.ConfigurePropertyТочкаМаршрута(in table, uuid, in registry);
                 }
-
-                if (nameLength > 0)
-                {
-                    Configurator.ConfigurePropertyИмя(in table, nameLength);
-                }
-
-                Configurator.ConfigurePropertyВыполнена(in table);
-
-                //TODO: Поиск бизнес-процессов в расширении не реализован
-                //NOTE: Необходимо заполнить коллекцию _tasks провайдера метаданных расширения
-
-                Configurator.ConfigurePropertyБизнесПроцесс(in table, uuid, in registry);
-                Configurator.ConfigurePropertyТочкаМаршрута(in table, uuid, in registry);
 
                 uint[] root = [6]; // Коллекция реквизитов
 

@@ -150,22 +150,27 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                if (entry.UseRecorder)
+                EntityDefinition table = new()
                 {
-                    Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
-                    Configurator.ConfigurePropertyАктивность(in table);
-                    Configurator.ConfigurePropertyНомерЗаписи(in table);
-                }
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
-                if (entry.Periodicity != RegisterPeriodicity.None)
+                if (!entry.IsBorrowed)
                 {
-                    Configurator.ConfigurePropertyПериод(in table);
+                    table.DbName = entry.GetMainDbName();
+
+                    if (entry.UseRecorder)
+                    {
+                        Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
+                        Configurator.ConfigurePropertyАктивность(in table);
+                        Configurator.ConfigurePropertyНомерЗаписи(in table);
+                    }
+
+                    if (entry.Periodicity != RegisterPeriodicity.None)
+                    {
+                        Configurator.ConfigurePropertyПериод(in table);
+                    }
                 }
 
                 ConfigFileReader reader = new(file);

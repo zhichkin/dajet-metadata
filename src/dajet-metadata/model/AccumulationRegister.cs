@@ -145,24 +145,29 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
-                Configurator.ConfigurePropertyАктивность(in table);
-                Configurator.ConfigurePropertyПериод(in table);
-                Configurator.ConfigurePropertyНомерЗаписи(in table);
-
-                if (entry.Purpose == RegisterKind.Balance) // Регистр накопления остатков
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    Configurator.ConfigurePropertyВидДвиженияНакопления(in table);
-                }
+                    table.DbName = entry.GetMainDbName();
 
+                    Configurator.ConfigurePropertyРегистратор(in table, entry.Uuid, in registry);
+                    Configurator.ConfigurePropertyАктивность(in table);
+                    Configurator.ConfigurePropertyПериод(in table);
+                    Configurator.ConfigurePropertyНомерЗаписи(in table);
+
+                    if (entry.Purpose == RegisterKind.Balance) // Регистр накопления остатков
+                    {
+                        Configurator.ConfigurePropertyВидДвиженияНакопления(in table);
+                    }
+                }
+                
                 uint[] root = [6]; // Коллекция ресурсов
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())

@@ -105,9 +105,9 @@ namespace DaJet.Metadata
                     }
                 }
 
-                //if (options.IsExtension)
+                //if (_cache != null && _cache.Extension != null) // 1.9.1.8 = 0 если заимствование отстутствует
                 //{
-                //    _converter[1][9][1][9] += Parent;
+                //    _converter[1][9][1][9] += Parent; // uuid расширяемого объекта метаданных
                 //}
 
                 // Регистры движения документа (uuid'ы объектов метаданных)
@@ -123,44 +123,44 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
-                Configurator.ConfigurePropertyДата(in table);
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                //if (_cache != null && _cache.Extension != null) // 1.9.1.8 = 0 если заимствование отстутствует
-                //{
-                //    _converter[1][9][1][9] += Parent; // uuid расширяемого объекта метаданных
-                //}
-
-                // Тип номера документа (строка или число)
-                NumberType numberType = (NumberType)reader[2][12].SeekNumber();
-
-                // Длина номера документа
-                int numberLength = reader[2][13].SeekNumber();
-
-                // Периодичность даты документа
-                Periodicity periodicity = (Periodicity)reader[2][14].SeekNumber();
-
-                if (numberLength > 0)
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    if (periodicity != Periodicity.None)
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+                    Configurator.ConfigurePropertyДата(in table);
+
+                    // Тип номера документа (строка или число)
+                    NumberType numberType = (NumberType)reader[2][12].SeekNumber();
+
+                    // Длина номера документа
+                    int numberLength = reader[2][13].SeekNumber();
+
+                    // Периодичность даты документа
+                    Periodicity periodicity = (Periodicity)reader[2][14].SeekNumber();
+
+                    if (numberLength > 0)
                     {
-                        Configurator.ConfigurePropertyПериодНомера(in table);
+                        if (periodicity != Periodicity.None)
+                        {
+                            Configurator.ConfigurePropertyПериодНомера(in table);
+                        }
+
+                        Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
                     }
 
-                    Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
+                    Configurator.ConfigurePropertyПроведён(in table);
                 }
-
-                Configurator.ConfigurePropertyПроведён(in table);
 
                 uint root = 4; // Коллекция табличных частей объекта
 

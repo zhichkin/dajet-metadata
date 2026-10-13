@@ -102,12 +102,17 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
+                if (!entry.IsBorrowed)
+                {
+                    table.DbName = entry.GetMainDbName();
+                }
+                
                 Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                 Configurator.ConfigurePropertyВерсияДанных(in table);
                 Configurator.ConfigurePropertyПометкаУдаления(in table);
@@ -127,21 +132,24 @@ namespace DaJet.Metadata
                 // Длина значения "Порядок"
                 int AutoOrderLength = reader[2][26].SeekNumber();
 
-                if (CodeLength > 0)
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    Configurator.ConfigurePropertyКод(in table, CodeType.String, CodeLength);
-                }
+                    if (CodeLength > 0)
+                    {
+                        Configurator.ConfigurePropertyКод(in table, CodeType.String, CodeLength);
+                    }
 
-                if (DescriptionLength > 0)
-                {
-                    Configurator.ConfigurePropertyНаименование(in table, DescriptionLength);
-                }
+                    if (DescriptionLength > 0)
+                    {
+                        Configurator.ConfigurePropertyНаименование(in table, DescriptionLength);
+                    }
 
-                if (UseAutoOrder)
-                {
-                    Configurator.ConfigurePropertyАвтоПорядок(in table, AutoOrderLength);
+                    if (UseAutoOrder)
+                    {
+                        Configurator.ConfigurePropertyАвтоПорядок(in table, AutoOrderLength);
+                    }
                 }
-
+                
                 Configurator.ConfigurePropertyВидСчёта(in table);
                 Configurator.ConfigurePropertyЗабалансовый(in table);
                 Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);

@@ -107,47 +107,52 @@ namespace DaJet.Metadata
                 //TODO: Зарегистрировать точки маршрута бизнес-процесса в реестре метаданных
                 //NOTE: Могут использоваться в качестве значений реквизитов объектов (ссылка)
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
-                Configurator.ConfigurePropertyДата(in table);
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                // Тип номера (строка или число)
-                NumberType numberType = (NumberType)reader[2][17].SeekNumber();
-
-                // Периодичность даты документа
-                Periodicity periodicity = (Periodicity)reader[2][18].SeekNumber();
-                
-                // Длина номера
-                int numberLength = reader[2][19].SeekNumber();
-
-                if (numberLength > 0)
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    if (periodicity != Periodicity.None)
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+                    Configurator.ConfigurePropertyДата(in table);
+
+                    // Тип номера (строка или число)
+                    NumberType numberType = (NumberType)reader[2][17].SeekNumber();
+
+                    // Периодичность даты документа
+                    Periodicity periodicity = (Periodicity)reader[2][18].SeekNumber();
+
+                    // Длина номера
+                    int numberLength = reader[2][19].SeekNumber();
+
+                    if (numberLength > 0)
                     {
-                        Configurator.ConfigurePropertyПериодНомера(in table);
+                        if (periodicity != Periodicity.None)
+                        {
+                            Configurator.ConfigurePropertyПериодНомера(in table);
+                        }
+
+                        Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
                     }
 
-                    Configurator.ConfigurePropertyНомер(in table, numberType, numberLength);
-                }
+                    // Ведущая задача бизнес-процесса
+                    if (reader[2][26].Seek())
+                    {
+                        Guid task = reader.ValueAsUuid;
+                        Configurator.ConfigurePropertyВедущаяЗадача(in table, task, in registry);
+                    }
 
-                // Ведущая задача бизнес-процесса
-                if (reader[2][26].Seek())
-                {
-                    Guid task = reader.ValueAsUuid;
-                    Configurator.ConfigurePropertyВедущаяЗадача(in table, task, in registry);
+                    Configurator.ConfigurePropertyСтартован(in table);
+                    Configurator.ConfigurePropertyЗавершён(in table);
                 }
-
-                Configurator.ConfigurePropertyСтартован(in table);
-                Configurator.ConfigurePropertyЗавершён(in table);
 
                 uint[] root = [7]; // Коллекция реквизитов
 

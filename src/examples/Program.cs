@@ -47,9 +47,10 @@ namespace DaJet
 
             //DumpFile(); return;
             //DumpRawFile(); return;
+            //DumpExtensionFile(); return;
             //DumpSchemaStorage(); return;
             //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
-            GetMetadataObject("ПланОбмена.ПланОбмена1.Состав"); return; // Расш1_ПланОбмена1
+            //GetMetadataObject("Справочник.Заимствованный"); return; // Расш1_ПланОбмена1
             //GetMetadataObjectReferences("ПланОбмена.ПланОбмена1.Состав"); return;
             //GetMetadataObject("Характеристика.ПланВидовХарактеристик1"); return; // ОпределяемыйТип.ОпределяемыйТип1 Характеристика.ПланВидовХарактеристик1
             //GetMetadataObjectReferences("Справочник.Тестовый"); return; // РегистрНакопления.ОстаткиТовара
@@ -133,6 +134,8 @@ namespace DaJet
 
         private static void DumpFile()
         {
+            // 77fd3ba219b74fa3e80275a4134d0ef0785cedd6
+
             // 8e54bb3b-2103-4fd7-be38-d2f082828348 Международный
             // 73a02607-36df-4a7e-822c-f4a96c99f0a6 МеждународныйБезКорреспонденции
             // 7b248429-2107-4371-b371-a099028cd179 Хозрасчетный
@@ -174,6 +177,13 @@ namespace DaJet
             string outputPath = $"C:\\temp\\1c-dump\\SchemaStorage.txt";
 
             MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "SchemaStorage", in fileName, in outputPath);
+        }
+        private static void DumpExtensionFile()
+        {
+            string fileName = "77fd3ba219b74fa3e80275a4134d0ef0785cedd6";
+            string outputPath = $"C:\\temp\\1c-dump\\Справочник.Заимствованнный.txt";
+
+            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "ConfigCAS", in fileName, in outputPath);
         }
 
         private static void GetMetadataEntry(int typeCode)

@@ -114,33 +114,38 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                // Длина кода (всегда строка и минимум 1 символ)
-                int codeLength = reader[2][16].SeekNumber();
-
-                // Длина наименования (всегда строка и минимум 1 символ)
-                int nameLength = reader[2][18].SeekNumber();
-
-                Configurator.ConfigurePropertyКод(in table, CodeType.String, codeLength);
-                Configurator.ConfigurePropertyНаименование(in table, nameLength);
-                Configurator.ConfigurePropertyНомерОтправленного(in table);
-                Configurator.ConfigurePropertyНомерПринятого(in table);
-                Configurator.ConfigurePropertyПредопределённый(in table, true, registry.Version);
-
-                if (registry.Version >= 80323)
+                if (!entry.IsBorrowed)
                 {
-                    Configurator.ConfigurePropertyДатаОбмена(in table);
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+
+                    // Длина кода (всегда строка и минимум 1 символ)
+                    int codeLength = reader[2][16].SeekNumber();
+
+                    // Длина наименования (всегда строка и минимум 1 символ)
+                    int nameLength = reader[2][18].SeekNumber();
+
+                    Configurator.ConfigurePropertyКод(in table, CodeType.String, codeLength);
+                    Configurator.ConfigurePropertyНаименование(in table, nameLength);
+                    Configurator.ConfigurePropertyНомерОтправленного(in table);
+                    Configurator.ConfigurePropertyНомерПринятого(in table);
+                    Configurator.ConfigurePropertyПредопределённый(in table, true, registry.Version);
+
+                    if (registry.Version >= 80323)
+                    {
+                        Configurator.ConfigurePropertyДатаОбмена(in table);
+                    }
                 }
                 
                 uint root = 4; // Коллекция свойств объекта

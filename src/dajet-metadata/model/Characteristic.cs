@@ -160,47 +160,51 @@ namespace DaJet.Metadata
                     return null; //NOTE: сюда не предполагается попадать!
                 }
 
-                EntityDefinition table = new();
-
-                table.Uuid = entry.Uuid;
-                table.Name = entry.Name;
-                table.DbName = entry.GetMainDbName();
-
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
+                EntityDefinition table = new()
+                {
+                    Uuid = entry.Uuid,
+                    Name = entry.Name
+                };
 
                 ConfigFileReader reader = new(file);
 
-                // Флаг, является ли план видов характеристик иерархическим
-                bool IsHierarchical = reader[2][20].SeekNumber() != 0;
-
-                // Длина кода
-                int codeLength = reader[2][22].SeekNumber();
-
-                // Длина наименования
-                int nameLength = reader[2][24].SeekNumber();
-
-                if (IsHierarchical) // Тип иерархии всегда группы
+                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
                 {
-                    Configurator.ConfigurePropertyРодитель(in table, entry.Code);
-                    Configurator.ConfigurePropertyЭтоГруппа(in table);
-                    
+                    table.DbName = entry.GetMainDbName();
+
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+
+                    // Флаг, является ли план видов характеристик иерархическим
+                    bool IsHierarchical = reader[2][20].SeekNumber() != 0;
+
+                    // Длина кода
+                    int codeLength = reader[2][22].SeekNumber();
+
+                    // Длина наименования
+                    int nameLength = reader[2][24].SeekNumber();
+
+                    if (IsHierarchical) // Тип иерархии всегда группы
+                    {
+                        Configurator.ConfigurePropertyРодитель(in table, entry.Code);
+                        Configurator.ConfigurePropertyЭтоГруппа(in table); // ЭтоЭлемент
+                    }
+
+                    if (codeLength > 0) // Тип кода всегда строка
+                    {
+                        Configurator.ConfigurePropertyКод(in table, CodeType.String, codeLength);
+                    }
+
+                    if (nameLength > 0)
+                    {
+                        Configurator.ConfigurePropertyНаименование(in table, nameLength);
+                    }
+
+                    Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
+
+                    Configurator.ConfigurePropertyТипЗначения(in table);
                 }
-
-                if (codeLength > 0) // Тип кода всегда строка
-                {
-                    Configurator.ConfigurePropertyКод(in table, CodeType.String, codeLength);
-                }
-
-                if (nameLength > 0)
-                {
-                    Configurator.ConfigurePropertyНаименование(in table, nameLength);
-                }
-
-                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
-
-                Configurator.ConfigurePropertyТипЗначения(in table);
 
                 uint root = 4; // Коллекция свойств объекта
 
