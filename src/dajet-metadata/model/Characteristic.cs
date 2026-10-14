@@ -160,15 +160,15 @@ namespace DaJet.Metadata
                     return null; //NOTE: сюда не предполагается попадать!
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
                     Name = entry.Name
                 };
-
-                ConfigFileReader reader = new(file);
-
-                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
+                
+                if (!entry.IsBorrowed)
                 {
                     table.DbName = entry.GetMainDbName();
 

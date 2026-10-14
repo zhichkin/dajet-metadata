@@ -150,6 +150,8 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
@@ -172,9 +174,7 @@ namespace DaJet.Metadata
                         Configurator.ConfigurePropertyПериод(in table);
                     }
                 }
-
-                ConfigFileReader reader = new(file);
-
+                
                 uint[] root = [4]; // Коллекция ресурсов
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())

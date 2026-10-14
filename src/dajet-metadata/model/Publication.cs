@@ -114,14 +114,14 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
                     Name = entry.Name
                 };
-
-                ConfigFileReader reader = new(file);
-
+                
                 if (!entry.IsBorrowed)
                 {
                     table.DbName = entry.GetMainDbName();

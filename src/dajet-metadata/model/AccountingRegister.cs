@@ -161,6 +161,8 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
@@ -180,10 +182,24 @@ namespace DaJet.Metadata
                     {
                         Configurator.ConfigurePropertyУточнениеПериода(in table);
                     }
+
+                    // Для таблицы ЗначенияСубконто (_AccRgED) обратная логика:
+                    // если UseCorrespondence == true, то есть поле _Correspond
+                    // (ВидДвижения: 0 - Дебет, 1 - Кредит)
+
+                    if (!entry.UseCorrespondence)
+                    {
+                        Configurator.ConfigurePropertyВидДвиженияБухгалтерии(in table);
+                    }
+
+                    if (registry.TryGetEntry(entry.ChartOfAccounts, out Account account))
+                    {
+                        Configurator.ConfigurePropertyСчёт(in entry, in account, in table);
+                    }
+
+                    Configurator.ConfigureAccountingDimensions(in table, in entry, in registry);
                 }
                 
-                ConfigFileReader reader = new(file);
-
                 uint[] root = [4]; // Коллекция измерений
 
                 if (reader[root][ConfigFileToken.StartObject].Seek())
@@ -205,25 +221,6 @@ namespace DaJet.Metadata
                     Property.Parse(ref reader, root, in registry, entry, in table);
                 }
                 
-                if (!entry.IsBorrowed)
-                {
-                    //NOTE: для таблицы ЗначенияСубконто (_AccRgED) обратная логика:
-                    //NOTE: если UseCorrespondence == true, то есть поле _Correspond
-                    //NOTE: (ВидДвижения: 0 - Дебет, 1 - Кредит)
-
-                    if (!entry.UseCorrespondence)
-                    {
-                        Configurator.ConfigurePropertyВидДвиженияБухгалтерии(in table);
-                    }
-                }
-
-                if (registry.TryGetEntry(entry.ChartOfAccounts, out Account account))
-                {
-                    Configurator.ConfigurePropertyСчёт(in entry, in account, in table);
-                }
-
-                Configurator.ConfigureAccountingDimensions(in table, in entry, in registry);
-
                 //TODO: _EDHashDt
                 //TODO: _EDHashCt
 

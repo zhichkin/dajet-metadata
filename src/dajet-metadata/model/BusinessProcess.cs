@@ -104,6 +104,8 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 //TODO: Зарегистрировать точки маршрута бизнес-процесса в реестре метаданных
                 //NOTE: Могут использоваться в качестве значений реквизитов объектов (ссылка)
 
@@ -112,10 +114,8 @@ namespace DaJet.Metadata
                     Uuid = entry.Uuid,
                     Name = entry.Name
                 };
-
-                ConfigFileReader reader = new(file);
-
-                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
+                
+                if (!entry.IsBorrowed)
                 {
                     table.DbName = entry.GetMainDbName();
 

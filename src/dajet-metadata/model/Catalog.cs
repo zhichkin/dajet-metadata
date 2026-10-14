@@ -131,20 +131,20 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
                     Name = entry.Name
                 };
-
-                ConfigFileReader reader = new(file);
-
+                
                 if (!entry.IsBorrowed) // Заимствованные объекты наследуют стандартные реквизиты из основной конфигурации
                 {
                     table.DbName = entry.GetMainDbName(); // Заимствованные объекты не имеют собственных таблиц в базе данных
 
                     // Объекты основной конфигурации и собственные объекты расширения
-                    // Расширение типов данных стандартных реквизитов DaJet не анализирует
+                    // Расширение типов данных стандартных реквизитов DaJet не анализирует!
 
                     Configurator.ConfigurePropertyСсылка(in table, entry.Code);
                     Configurator.ConfigurePropertyВерсияДанных(in table);

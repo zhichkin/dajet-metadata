@@ -90,6 +90,8 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
@@ -102,9 +104,7 @@ namespace DaJet.Metadata
                 }
                 
                 string columnName = entry.GetColumnNameЗначение();
-
-                ConfigFileReader reader = new(file);
-
+                
                 uint[] root = [2, 2, 2, 3]; // Описание типа значения константы
 
                 DataType constantType = DataTypeParser.Parse(ref reader, root, in registry, out List<Guid> references);

@@ -102,38 +102,35 @@ namespace DaJet.Metadata
                     return null; // Идентификатор объекта не найден или не соответствует его типу
                 }
 
+                ConfigFileReader reader = new(file);
+
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,
                     Name = entry.Name
                 };
-
+                
                 if (!entry.IsBorrowed)
                 {
                     table.DbName = entry.GetMainDbName();
-                }
-                
-                Configurator.ConfigurePropertyСсылка(in table, entry.Code);
-                Configurator.ConfigurePropertyВерсияДанных(in table);
-                Configurator.ConfigurePropertyПометкаУдаления(in table);
-                Configurator.ConfigurePropertyРодитель(in table, entry.Code); // Всегда иерархический
 
-                ConfigFileReader reader = new(file);
+                    Configurator.ConfigurePropertyСсылка(in table, entry.Code);
+                    Configurator.ConfigurePropertyВерсияДанных(in table);
+                    Configurator.ConfigurePropertyПометкаУдаления(in table);
+                    Configurator.ConfigurePropertyРодитель(in table, entry.Code); // Всегда иерархический
 
-                // Длина кода (всегда строка)
-                int CodeLength = reader[2][23].SeekNumber();
+                    // Длина кода (всегда строка)
+                    int CodeLength = reader[2][23].SeekNumber();
 
-                // Длина наименования
-                int DescriptionLength = reader[2][24].SeekNumber();
+                    // Длина наименования
+                    int DescriptionLength = reader[2][24].SeekNumber();
 
-                // Автопорядок по коду
-                bool UseAutoOrder = (reader[2][25].SeekNumber() == 1);
+                    // Автопорядок по коду
+                    bool UseAutoOrder = (reader[2][25].SeekNumber() == 1);
 
-                // Длина значения "Порядок"
-                int AutoOrderLength = reader[2][26].SeekNumber();
+                    // Длина значения "Порядок"
+                    int AutoOrderLength = reader[2][26].SeekNumber();
 
-                if (!entry.IsBorrowed) // Игнорируем стандартные реквизиты для заимствованных объектов
-                {
                     if (CodeLength > 0)
                     {
                         Configurator.ConfigurePropertyКод(in table, CodeType.String, CodeLength);
@@ -148,11 +145,11 @@ namespace DaJet.Metadata
                     {
                         Configurator.ConfigurePropertyАвтоПорядок(in table, AutoOrderLength);
                     }
+
+                    Configurator.ConfigurePropertyВидСчёта(in table);
+                    Configurator.ConfigurePropertyЗабалансовый(in table);
+                    Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
                 }
-                
-                Configurator.ConfigurePropertyВидСчёта(in table);
-                Configurator.ConfigurePropertyЗабалансовый(in table);
-                Configurator.ConfigurePropertyПредопределённый(in table, false, registry.Version);
 
                 uint root = 6; // Коллекция табличных частей
 
