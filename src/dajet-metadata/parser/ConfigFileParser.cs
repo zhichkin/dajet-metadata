@@ -22,6 +22,7 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Enumeration, new Enumeration.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Publication, new Publication.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Characteristic, new Characteristic.Parser()),
+                new KeyValuePair<Guid, ConfigFileParser>(CalculationType.MetadataType, new CalculationType.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.InformationRegister, new InformationRegister.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.AccumulationRegister, new AccumulationRegister.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Account, new Account.Parser()),

@@ -90,6 +90,7 @@ namespace DaJet.Metadata
                 { MetadataTypes.Document,             Array.Empty<Guid>() }, // Документы
                 { MetadataTypes.Enumeration,          Array.Empty<Guid>() }, // Перечисления
                 { MetadataTypes.Characteristic,       Array.Empty<Guid>() }, // Планы видов характеристик
+                { CalculationType.MetadataType,       Array.Empty<Guid>() }, // Планы видов расчёта (только ссылочный тип)
                 { MetadataTypes.Account,              Array.Empty<Guid>() }, // Планы счетов
                 { MetadataTypes.InformationRegister,  Array.Empty<Guid>() }, // Регистры сведений
                 { MetadataTypes.AccumulationRegister, Array.Empty<Guid>() }, // Регистры накопления
@@ -223,6 +224,10 @@ namespace DaJet.Metadata
                 ParseOperationsMetadataObjects(ref reader, component, in metadata);
             }
             else if (uuid == Components.Accounting) // [6][1] Идентификатор компоненты "Бухгалтерский учёт"
+            {
+                ParseComponentMetadataObjects(ref reader, component, in metadata);
+            }
+            else if (uuid == Components.Calculation) // [7][1] Идентификатор компоненты "Расчёт"
             {
                 ParseComponentMetadataObjects(ref reader, component, in metadata);
             }

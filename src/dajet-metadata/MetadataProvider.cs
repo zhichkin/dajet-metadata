@@ -517,6 +517,11 @@ namespace DaJet.Metadata
                 return null;
             }
 
+            if (entry is CalculationType)
+            {
+                return null; // План видов расчёта загружается только как ссылочный тип
+            }
+
             return GetMetadataObject(entry.ToString());
         }
         public EntityDefinition GetMetadataObject(in string fullName)

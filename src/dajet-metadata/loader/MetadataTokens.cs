@@ -81,6 +81,8 @@
         public const string Node = "Node";
         ///<summary>Хранилище метаданных конфигурации 1С</summary>
         public const string Config = "Config";
+        ///<summary>План видов расчёта (ссылочный тип данных)</summary>
+        public const string CKinds = "CKinds";
         ///<summary>Бизнес-процесс</summary>
         public const string BPr = "BPr";
         ///<summary>Точки маршрута бизнес-процесса</summary>
