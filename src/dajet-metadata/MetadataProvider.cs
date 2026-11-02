@@ -730,6 +730,7 @@ namespace DaJet.Metadata
             return entry.Values;
         }
 
+        [Obsolete("Is not in use.")]
         public Dictionary<string, string> CreateDbNameToEntityLookup()
         {
             ThrowIfNotInitialized();

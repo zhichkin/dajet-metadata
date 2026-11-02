@@ -70,6 +70,11 @@ namespace DaJet.Metadata
         ///<summary>Идентификатор коллекции табличных частей бизнес-процесса</summary>
         internal static Guid BusinessProcess_TableParts = new("a3fe6537-d787-40f7-8a06-419d2f0c1cfd");
 
+        ///<summary>Идентификатор коллекции реквизитов плана видов расчёта</summary>
+        internal static Guid Calculation_Properties = new("0dc22ad2-476a-4794-afae-cfa7ed251752");
+        ///<summary>Идентификатор коллекции табличных частей плана видов расчёта</summary>
+        internal static Guid Calculation_TableParts = new("054aa8cf-faa6-4634-aef4-1087ca0d88fc");
+
         ///<summary>Идентификатор коллекции макетов объекта метаданных</summary>
         internal static Guid Template_Collection = new("3daea016-69b7-4ed4-9453-127911372fe6");
 

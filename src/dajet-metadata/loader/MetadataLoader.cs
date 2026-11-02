@@ -389,7 +389,7 @@ namespace DaJet.Metadata
         }
         private void InitializeMetadataRegistry(in string tableName, in Dictionary<Guid, string[]> metadata, in MetadataRegistry registry)
         {
-            Task[] tasks = new Task[metadata.Keys.Count - 2]; // Всего 14 объектов метаданных
+            Task[] tasks = new Task[metadata.Keys.Count - 2]; // Всего 15 объектов метаданных
 
             int index = 0;
 

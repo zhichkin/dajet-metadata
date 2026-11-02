@@ -90,12 +90,22 @@ namespace DaJet.Metadata
                     registry.AddReference(uuid, reference);
                 }
 
+                // Идентификатор ссылочного типа данных, например, "ТочкаМаршрутаБизнесПроцессаСсылка.Согласование"
+                if (reader[2][14].Seek())
+                {
+                    Guid point = reader.ValueAsUuid; // 11e5f865-1501-40c6-b4d4-022095a296a5 ТочкаМаршрутаБизнесПроцессаСсылка (любая - общий тип)
+                    registry.AddReference(uuid, point); //TODO: registry.AddBusinessPoint !?
+                }
+
                 // Ссылка на объект метаданных "Задача", используемый бизнес-процессом
                 if (reader[2][26].Seek())
                 {
                     Guid task = reader.ValueAsUuid;
                     registry.AddBusinessProcessToTask(task, uuid);
                 }
+
+                //TODO: Зарегистрировать точки маршрута бизнес-процесса в реестре метаданных
+                //NOTE: Могут использоваться в качестве значений реквизитов объектов (ссылка)
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {
@@ -105,10 +115,7 @@ namespace DaJet.Metadata
                 }
 
                 ConfigFileReader reader = new(file);
-
-                //TODO: Зарегистрировать точки маршрута бизнес-процесса в реестре метаданных
-                //NOTE: Могут использоваться в качестве значений реквизитов объектов (ссылка)
-
+                
                 EntityDefinition table = new()
                 {
                     Uuid = entry.Uuid,

@@ -25,7 +25,7 @@ namespace DaJet.Metadata
         private readonly Dictionary<string, string> _files = new();
         private readonly ConcurrentDictionary<Guid, List<Guid>> _borrowed = new();
         private readonly Dictionary<int, HashSet<int>> _schema_storage = new(1);
-        private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(14)
+        private readonly Dictionary<string, Dictionary<string, Guid>> _names = new(15)
         {
             [MetadataNames.SharedProperty] = new Dictionary<string, Guid>(),
             [MetadataNames.Publication] = new Dictionary<string, Guid>(),
@@ -40,7 +40,8 @@ namespace DaJet.Metadata
             [MetadataNames.AccumulationRegister] = new Dictionary<string, Guid>(),
             [MetadataNames.AccountingRegister] = new Dictionary<string, Guid>(),
             [MetadataNames.BusinessProcess] = new Dictionary<string, Guid>(),
-            [MetadataNames.BusinessTask] = new Dictionary<string, Guid>()
+            [MetadataNames.BusinessTask] = new Dictionary<string, Guid>(),
+            [MetadataNames.Calculation] = new Dictionary<string, Guid>()
         };
         internal List<Configuration> Configurations { get; } = new();
 

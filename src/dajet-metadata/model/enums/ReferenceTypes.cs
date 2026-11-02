@@ -24,6 +24,8 @@ namespace DaJet.Metadata
         internal static readonly Guid BusinessTask = new("6291e9b3-8df5-44e1-b6b2-d9fe008016c0");
         ///<summary>БизнесПроцессСсылка</summary>
         internal static readonly Guid BusinessProcess = new("214fa4d8-6ba4-4748-a5e1-6332b5887780");
+        ///<summary>ПланВидовРасчетаСсылка</summary>
+        internal static readonly Guid Calculation = new("593cd424-0877-470d-91f9-b90a982059b4");
 
         internal static readonly List<Guid> AllReferenceTypes = new()
         {
@@ -34,7 +36,8 @@ namespace DaJet.Metadata
             Publication,
             Characteristic,
             BusinessTask,
-            BusinessProcess
+            BusinessProcess,
+            Calculation
         };
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool IsGenericReference(Guid reference)
@@ -54,7 +57,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, string>(Publication, MetadataNames.Publication),
                 new KeyValuePair<Guid, string>(Characteristic, MetadataNames.Characteristic),
                 new KeyValuePair<Guid, string>(BusinessTask, MetadataNames.BusinessTask),
-                new KeyValuePair<Guid, string>(BusinessProcess, MetadataNames.BusinessProcess)
+                new KeyValuePair<Guid, string>(BusinessProcess, MetadataNames.BusinessProcess),
+                new KeyValuePair<Guid, string>(Calculation, MetadataNames.Calculation)
             };
             return FrozenDictionary.ToFrozenDictionary(list);
         }

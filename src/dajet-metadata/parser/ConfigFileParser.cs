@@ -27,7 +27,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Account, new Account.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.AccountingRegister, new AccountingRegister.Parser()),
                 new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.BusinessTask, new BusinessTask.Parser()),
-                new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.BusinessProcess, new BusinessProcess.Parser())
+                new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.BusinessProcess, new BusinessProcess.Parser()),
+                new KeyValuePair<Guid, ConfigFileParser>(MetadataTypes.Calculation, new Calculation.Parser())
             ];
             return list.ToFrozenDictionary();
         }

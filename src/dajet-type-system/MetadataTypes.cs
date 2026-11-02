@@ -17,5 +17,6 @@
         public static readonly Guid AccountingRegister = new("2deed9b8-0056-4ffe-a473-c20a6c32a0bc"); // Регистры бухгатерии
         public static readonly Guid BusinessTask = new("3e63355c-1378-4953-be9b-1deb5fb6bec5"); // Задача бизнес-процесса
         public static readonly Guid BusinessProcess = new("fcd3404e-1523-48ce-9bc0-ecdb822684a1"); // Бизнес-процесс
+        public static readonly Guid Calculation = new("30b100d6-b29f-47ac-aec7-cb8ca8a54767"); // Планы видов расчета
     }
 }

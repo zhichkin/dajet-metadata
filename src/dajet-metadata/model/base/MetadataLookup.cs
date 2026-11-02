@@ -23,7 +23,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<string, Guid>(MetadataNames.AccumulationRegister, MetadataTypes.AccumulationRegister),
                 new KeyValuePair<string, Guid>(MetadataNames.AccountingRegister, MetadataTypes.AccountingRegister),
                 new KeyValuePair<string, Guid>(MetadataNames.BusinessProcess, MetadataTypes.BusinessProcess),
-                new KeyValuePair<string, Guid>(MetadataNames.BusinessTask, MetadataTypes.BusinessTask)
+                new KeyValuePair<string, Guid>(MetadataNames.BusinessTask, MetadataTypes.BusinessTask),
+                new KeyValuePair<string, Guid>(MetadataNames.Calculation, MetadataTypes.Calculation)
             ];
             return FrozenDictionary.ToFrozenDictionary(list, StringComparer.Ordinal);
         }
@@ -55,7 +56,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, string>(MetadataTypes.AccumulationRegister, MetadataNames.AccumulationRegister),
                 new KeyValuePair<Guid, string>(MetadataTypes.AccountingRegister, MetadataNames.AccountingRegister),
                 new KeyValuePair<Guid, string>(MetadataTypes.BusinessProcess, MetadataNames.BusinessProcess),
-                new KeyValuePair<Guid, string>(MetadataTypes.BusinessTask, MetadataNames.BusinessTask)
+                new KeyValuePair<Guid, string>(MetadataTypes.BusinessTask, MetadataNames.BusinessTask),
+                new KeyValuePair<Guid, string>(MetadataTypes.Calculation, MetadataNames.Calculation)
             ];
             return FrozenDictionary.ToFrozenDictionary(list);
         }
@@ -87,7 +89,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<Type, string>(typeof(AccumulationRegister), MetadataNames.AccumulationRegister),
                 new KeyValuePair<Type, string>(typeof(AccountingRegister), MetadataNames.AccountingRegister),
                 new KeyValuePair<Type, string>(typeof(BusinessProcess), MetadataNames.BusinessProcess),
-                new KeyValuePair<Type, string>(typeof(BusinessTask), MetadataNames.BusinessTask)
+                new KeyValuePair<Type, string>(typeof(BusinessTask), MetadataNames.BusinessTask),
+                new KeyValuePair<Type, string>(typeof(Calculation), MetadataNames.Calculation)
             ];
             return FrozenDictionary.ToFrozenDictionary(list);
         }

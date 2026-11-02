@@ -46,11 +46,13 @@ namespace DaJet
             //TestDataObjectJsonConverter(); return;
 
             //DumpFile(); return;
+            //DumpRootFile(); return;
             //DumpRawFile(); return;
             //DumpExtensionFile(); return;
             //DumpSchemaStorage(); return;
-            //GetMetadataNames(); return;           // .ИтогиМеждуСчетами
-            //GetMetadataObject("Справочник.Заимствованный"); return; // Расш1_ПланОбмена1
+            //GetMetadataNames(); return;
+            //DumpMetadataObjectFile(); return;
+            GetMetadataObject("Справочник.Справочник1"); return; // БизнесПроцесс.БизнесПроцесс1 Расш1_ПланОбмена1 ПланВидовРасчета.ПланВидовРасчета1
             //GetMetadataObjectReferences("ПланОбмена.ПланОбмена1.Состав"); return;
             //GetMetadataObject("Характеристика.ПланВидовХарактеристик1"); return; // ОпределяемыйТип.ОпределяемыйТип1 Характеристика.ПланВидовХарактеристик1
             //GetMetadataObjectReferences("Справочник.Тестовый"); return; // РегистрНакопления.ОстаткиТовара
@@ -60,7 +62,7 @@ namespace DaJet
             //GetMetadataObject("РегистрБухгалтерии.Международный.ИтогиПоСубконто3"); return;
 
             //GetMetadataEntry(53);
-            //GetMetadataEntry("Справочник.Номенклатура");
+            //GetMetadataEntry("БизнесПроцесс.БизнесПроцесс1"); return;
             //GetMetadataEntry(new Guid("e8eec380-7851-4d79-9105-84ea876e9c53"));
             //GetEnumerationEntity("Перечисление.ВидНоменклатуры.Товар");
             //return;
@@ -142,6 +144,8 @@ namespace DaJet
 
             // cf0c90da-010f-4356-a8b6-d050279c90d9 РегистрБухгалтерии1
 
+            // 4316aa50-8a30-4c2c-b2cf-b020383a4de3 ПланВидовРасчетаСсылка
+
             //string fileName = "cf0c90da-010f-4356-a8b6-d050279c90d9";
             //string outputPath = $"C:\\temp\\1c-dump\\РегистрБухгалтерии.РегистрБухгалтерии1.txt";
 
@@ -149,20 +153,27 @@ namespace DaJet
 
             //MetadataProvider.Dump(DataSourceType.SqlServer, in MS_ERP, "Params", "DBNames", $"C:\\temp\\1c-dump\\DBNames.txt");
 
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
 
-            EntityDefinition metadata = provider.GetMetadataObject("РегистрНакопления.Обороты");
+            EntityDefinition metadata = provider.GetMetadataObject("Справочник.Справочник1");
 
             if (metadata is null)
             {
-                Console.WriteLine("Таблица \"РегистрНакопления.Обороты\" не найдена.");
+                Console.WriteLine("Таблица \"Справочник.Справочник1\" не найдена.");
             }
             else
             {
                 string fileName = metadata.Uuid.ToString().ToLower(CultureInfo.InvariantCulture);
-                string outputPath = $"C:\\temp\\1c-dump\\РегистрНакопления.Обороты.txt";
-                MetadataProvider.Dump(DataSourceType.SqlServer, in MS_METADATA, "Config", in fileName, in outputPath);
+                string outputPath = $"C:\\temp\\1c-dump\\Справочник.Справочник1.txt";
+                MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "Config", in fileName, in outputPath);
             }
+        }
+        private static void DumpRootFile()
+        {
+            string fileName = "70c9c478-a149-4dce-b3f2-a36ae573d0fa"; //"root";
+            string outputPath = $"C:\\temp\\1c-dump\\root.txt";
+
+            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "Config", in fileName, in outputPath);
         }
         private static void DumpRawFile()
         {
@@ -170,6 +181,13 @@ namespace DaJet
             MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
             provider.DumpRaw("Config", fileName, $"C:\\temp\\1c-dump\\{fileName}_raw.txt");
             return;
+        }
+        private static void DumpMetadataObjectFile()
+        {
+            string fileName = "33e9ee83-6091-4fea-9204-bd3dd7748255"; // .7
+            string outputPath = $"C:\\temp\\1c-dump\\БизнесПроцесс.БизнесПроцесс1.txt"; // .ТочкиМаршрута
+
+            MetadataProvider.Dump(DataSourceType.SqlServer, in MS_TEST, "Config", in fileName, in outputPath);
         }
         private static void DumpSchemaStorage()
         {
@@ -407,9 +425,9 @@ namespace DaJet
 
         private static void GetMetadataNames()
         {
-            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_METADATA);
+            MetadataProvider provider = MetadataProvider.Create(DataSourceType.SqlServer, in MS_TEST);
 
-            List<string> names = provider.GetMetadataNames(MetadataNames.AccountingRegister);
+            List<string> names = provider.GetMetadataNames(MetadataNames.Calculation);
             //List<string> names = provider.GetMetadataNames("Расширение1", MetadataNames.Catalog);
 
             foreach (string name in names)
@@ -864,7 +882,8 @@ namespace DaJet
                 MetadataNames.BusinessTask,
                 MetadataNames.BusinessProcess,
                 MetadataNames.Account,
-                MetadataNames.AccountingRegister
+                MetadataNames.AccountingRegister,
+                MetadataNames.Calculation
             };
 
             string report = provider.CompareMetadataToDatabase(metadataNames);

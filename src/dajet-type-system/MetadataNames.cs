@@ -16,10 +16,11 @@
         public static readonly string AccountingRegister = "РегистрБухгалтерии";
         public static readonly string BusinessProcess = "БизнесПроцесс";
         public static readonly string BusinessTask = "Задача";
+        public static readonly string Calculation = "ПланВидовРасчета";
 
         public static List<string> GetApplicationObjectNames()
         {
-            return new List<string>(12)
+            return new List<string>(13)
             {
                 Publication,
                 Constant,
@@ -32,7 +33,8 @@
                 Account,
                 AccountingRegister,
                 BusinessTask,
-                BusinessProcess
+                BusinessProcess,
+                Calculation
             };
         }
     }

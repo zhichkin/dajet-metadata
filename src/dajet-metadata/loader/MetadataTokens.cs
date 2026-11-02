@@ -87,6 +87,8 @@
         public const string BPrPoints = "BPrPoints";
         ///<summary>Задача бизнес-процесса</summary>
         public const string Task = "Task";
+        ///<summary>План видов расчёта (ссылочный тип данных)</summary>
+        public const string CKinds = "CKinds";
 
         ///<summary>Таблицы регистрации изменений планов обмена (одна на каждый объект метаданных)</summary>
         public const string AccChngR = "AccChngR";
@@ -99,6 +101,7 @@
         public const string ConstChngR = "ConstChngR";
         public const string DocumentChngR = "DocumentChngR";
         public const string InfoRgChngR = "InfoRgChngR";
+        public const string CKindsChngR = "CKindsChngR";
 
         #endregion
 

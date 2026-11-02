@@ -86,7 +86,8 @@ namespace DaJet.Metadata
                             type == PropertyTypes.BusinessTask_TableParts ||
                             type == PropertyTypes.BusinessProcess_TableParts ||
                             type == PropertyTypes.Publication_TableParts ||
-                            type == PropertyTypes.Account_TableParts)
+                            type == PropertyTypes.Account_TableParts ||
+                            type == PropertyTypes.Calculation_TableParts)
                         {
                             length = reader[root][N][1][3].SeekNumber();
                         }

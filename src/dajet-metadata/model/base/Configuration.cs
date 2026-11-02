@@ -80,7 +80,7 @@ namespace DaJet.Metadata
         private readonly Dictionary<Guid, Guid[]> _metadata = CreateMetadataRegistry();
         private static Dictionary<Guid, Guid[]> CreateMetadataRegistry()
         {
-            return new(14)
+            return new(15)
             {
                 { MetadataTypes.SharedProperty,       Array.Empty<Guid>() }, // Общие реквизиты
                 { MetadataTypes.Publication,          Array.Empty<Guid>() }, // Планы обмена
@@ -95,7 +95,8 @@ namespace DaJet.Metadata
                 { MetadataTypes.AccumulationRegister, Array.Empty<Guid>() }, // Регистры накопления
                 { MetadataTypes.AccountingRegister,   Array.Empty<Guid>() }, // Регистры бухгалтерии
                 { MetadataTypes.BusinessProcess,      Array.Empty<Guid>() }, // Бизнес-процесс
-                { MetadataTypes.BusinessTask,         Array.Empty<Guid>() }  // Задача
+                { MetadataTypes.BusinessTask,         Array.Empty<Guid>() }, // Задача
+                { MetadataTypes.Calculation,          Array.Empty<Guid>() }  // Планы видов расчета
             };
         }
         public Dictionary<Guid, Guid[]> Metadata { get { return _metadata; } }
@@ -226,7 +227,11 @@ namespace DaJet.Metadata
             {
                 ParseComponentMetadataObjects(ref reader, component, in metadata);
             }
-            else if (uuid == Components.BusinessProcess) // [7][1] Идентификатор компоненты "Бизнес-процессы"
+            else if (uuid == Components.Calculation) // [7][1] Идентификатор компоненты "Расчёт"
+            {
+                ParseComponentMetadataObjects(ref reader, component, in metadata);
+            }
+            else if (uuid == Components.BusinessProcess) // [8][1] Идентификатор компоненты "Бизнес-процессы"
             {
                 ParseComponentMetadataObjects(ref reader, component, in metadata);
             }

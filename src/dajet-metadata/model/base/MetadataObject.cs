@@ -24,7 +24,7 @@
         internal abstract string GetMainDbName();
         internal abstract string GetTableNameИзменения();
         internal virtual int ChangeTrackingCode { get { return 0; } } // Код таблицы регистрации изменений (ChngR)
-        internal virtual bool IsChangeTrackingEnabled { get { return false; } } // 10 объектов из 14 поддерживаемых
+        internal virtual bool IsChangeTrackingEnabled { get { return false; } } // 11 объектов из 14 поддерживаемых
         public override string ToString()
         {
             return string.Format("{0}.{1}", GetType().Name, Name);

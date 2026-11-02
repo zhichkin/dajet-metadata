@@ -53,7 +53,9 @@ namespace DaJet.Metadata
             MetadataToken.ChrcChngR,
             MetadataToken.ConstChngR,
             MetadataToken.DocumentChngR,
-            MetadataToken.InfoRgChngR
+            MetadataToken.InfoRgChngR,
+            MetadataToken.CKinds,
+            MetadataToken.CKindsChngR
         ], StringComparer.Ordinal);
         private static readonly FrozenSet<string>.AlternateLookup<ReadOnlySpan<char>> SupportedTokensLookup = SupportedTokens.GetAlternateLookup<ReadOnlySpan<char>>();
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -71,7 +73,8 @@ namespace DaJet.Metadata
             MetadataToken.BPr,
             MetadataToken.Task,
             MetadataToken.Document,
-            MetadataToken.Reference
+            MetadataToken.Reference,
+            MetadataToken.CKinds
         ], StringComparer.Ordinal);
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool IsReferenceTypeToken(in string token)
@@ -97,7 +100,8 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Catalog, Catalog.Create),
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.AccountingRegister, AccountingRegister.Create),
                 new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.InformationRegister, InformationRegister.Create),
-                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.AccumulationRegister, AccumulationRegister.Create)
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.AccumulationRegister, AccumulationRegister.Create),
+                new KeyValuePair<Guid, Func<Guid, MetadataObject>>(MetadataTypes.Calculation, Calculation.Create)
             ];
             return FrozenDictionary.ToFrozenDictionary(list);
         }
@@ -2358,6 +2362,29 @@ namespace DaJet.Metadata
         }
         #endregion
 
+        #region "План видов расчёта"
+        internal static void ConfigurePropertyИспользуетПериодДействия(in EntityDefinition table)
+        {
+            PropertyDefinition property = new()
+            {
+                Name = "ИспользованиеПериодаДействия",
+                Purpose = PropertyPurpose.System
+            };
+            property.Type = DataType.Boolean;
+
+            property.Columns = new List<ColumnDefinition>(1)
+            {
+                new ColumnDefinition()
+                {
+                    Name = "_BaseAsAct",
+                    Type = DataType.Binary(1, false)
+                }
+            };
+
+            table.Properties.Add(property);
+        }
+        #endregion
+
         #region "Табличная часть"
         internal static void ConfigureTablePart(in EntityDefinition table, in TablePart metadata, in MetadataObject owner)
         {
@@ -2561,7 +2588,7 @@ namespace DaJet.Metadata
                 throw new InvalidOperationException(); // Только для основных и собственных объектов
             }
 
-            if (!entry.IsChangeTrackingEnabled) // 10 объектов из 14 поддерживаемых
+            if (!entry.IsChangeTrackingEnabled) // 11 объектов из 14 поддерживаемых
             {
                 return null; // Данный объект не включён в состав какого-либо плана обмена
             }
