@@ -215,6 +215,18 @@ namespace DaJet.Metadata
                             typeCode = entry.Code;
                         }
                     }
+                    else if (registry.TryGetBusinessPoint(reference, out BusinessProcess owner))
+                    {
+                        if ((types & DataTypeFlags.Entity) == DataTypeFlags.Entity) // Ранее минимум одна ссылка уже была найдена
+                        {
+                            typeCode = 0; break; // Составной ссылочный тип (дальше не ищем)
+                        }
+                        else // Пока что единственный найденный ссылочный тип (ищем дальше)
+                        {
+                            types |= DataTypeFlags.Entity;
+                            typeCode = owner.BPrPointsCode;
+                        }
+                    }
                     else // Общий ссылочный тип
                     {
                         int result; // Результат поиска конкретных ссылочных типов

@@ -15,6 +15,7 @@
         public static readonly string AccumulationRegister = "РегистрНакопления";
         public static readonly string AccountingRegister = "РегистрБухгалтерии";
         public static readonly string BusinessProcess = "БизнесПроцесс";
+        public static readonly string BusinessPoint = "ТочкаМаршрутаБизнесПроцесса";
         public static readonly string BusinessTask = "Задача";
         public static readonly string Calculation = "ПланВидовРасчета";
 

@@ -22,6 +22,8 @@ namespace DaJet.Metadata
         internal static readonly Guid Characteristic = new("99892482-ed55-4fb5-a7f7-20888820a758");
         ///<summary>ЗадачаСсылка</summary>
         internal static readonly Guid BusinessTask = new("6291e9b3-8df5-44e1-b6b2-d9fe008016c0");
+        ///<summary>ТочкаМаршрутаБизнесПроцессаСсылка</summary>
+        internal static readonly Guid BusinessPoint = new("11e5f865-1501-40c6-b4d4-022095a296a5");
         ///<summary>БизнесПроцессСсылка</summary>
         internal static readonly Guid BusinessProcess = new("214fa4d8-6ba4-4748-a5e1-6332b5887780");
         ///<summary>ПланВидовРасчетаСсылка</summary>
@@ -36,6 +38,7 @@ namespace DaJet.Metadata
             Publication,
             Characteristic,
             BusinessTask,
+            BusinessPoint,
             BusinessProcess,
             Calculation
         };
@@ -57,6 +60,7 @@ namespace DaJet.Metadata
                 new KeyValuePair<Guid, string>(Publication, MetadataNames.Publication),
                 new KeyValuePair<Guid, string>(Characteristic, MetadataNames.Characteristic),
                 new KeyValuePair<Guid, string>(BusinessTask, MetadataNames.BusinessTask),
+                new KeyValuePair<Guid, string>(BusinessPoint, MetadataNames.BusinessPoint),
                 new KeyValuePair<Guid, string>(BusinessProcess, MetadataNames.BusinessProcess),
                 new KeyValuePair<Guid, string>(Calculation, MetadataNames.Calculation)
             };

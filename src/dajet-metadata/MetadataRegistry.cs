@@ -20,6 +20,7 @@ namespace DaJet.Metadata
         private readonly ConcurrentDictionary<Guid, Guid> _references = new();
         private readonly Dictionary<Guid, Guid> _defined_types = new();
         private readonly Dictionary<Guid, Guid> _characteristics = new();
+        private readonly Dictionary<Guid, Guid> _business_points = new();
         private readonly Dictionary<Guid, List<Guid>> _task_processes = new();
         private readonly Dictionary<Guid, List<Guid>> _register_recorders = new();
         private readonly Dictionary<string, string> _files = new();
@@ -232,6 +233,11 @@ namespace DaJet.Metadata
                 processes = new List<Guid>(1) { process };
             }
         }
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        internal void AddBusinessPoint(Guid uuid, Guid point)
+        {
+            _ = _business_points.TryAdd(point, uuid);
+        }
         #endregion
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -269,6 +275,16 @@ namespace DaJet.Metadata
 
             return TryGetEntry(uuid, out entry);
         }
+        internal bool TryGetBusinessPoint(Guid point, [MaybeNullWhen(false)] out BusinessProcess entry)
+        {
+            if (!_business_points.TryGetValue(point, out Guid uuid))
+            {
+                entry = null;
+                return false;
+            }
+
+            return TryGetEntry(uuid, out entry);
+        }
         internal bool TryGetBusinessProcesses(Guid task, [MaybeNullWhen(false)] out List<Guid> processes)
         {
             return _task_processes.TryGetValue(task, out processes);
@@ -289,7 +305,16 @@ namespace DaJet.Metadata
         }
         internal int GetGenericTypeCode(Guid generic)
         {
-            string name = ReferenceType.GetMetadataName(generic);
+            string name;
+
+            if (generic != ReferenceType.BusinessPoint)
+            {
+                name = ReferenceType.GetMetadataName(generic);
+            }
+            else
+            {
+                name = ReferenceType.GetMetadataName(ReferenceType.BusinessProcess);
+            }
 
             if (!_names.TryGetValue(name, out Dictionary<string, Guid> items))
             {
@@ -307,7 +332,15 @@ namespace DaJet.Metadata
 
                 if (TryGetEntry(uuid, out MetadataObject entry))
                 {
-                    return entry.Code;
+                    if (generic != ReferenceType.BusinessPoint)
+                    {
+                        return entry.Code;
+                    }
+
+                    if (entry is BusinessProcess owner)
+                    {
+                        return owner.BPrPointsCode;
+                    }
                 }
             }
 
@@ -448,6 +481,10 @@ namespace DaJet.Metadata
                 else if (TryGetReference(reference, out MetadataObject entry))
                 {
                     types.Add(entry.ToString()); // Конкретный ссылочный тип
+                }
+                else if (TryGetBusinessPoint(reference, out BusinessProcess process))
+                {
+                    types.Add(string.Format("ТочкаМаршрутаБизнесПроцесса.{0}", process.Name));
                 }
                 else if (TryGetEntry(reference, out entry))
                 {

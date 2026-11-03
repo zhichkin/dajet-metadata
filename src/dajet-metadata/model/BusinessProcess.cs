@@ -39,6 +39,7 @@ namespace DaJet.Metadata
         {
             return string.Format("_{0}{1}", MetadataToken.BPrChngR, _ChngR);
         }
+        internal int BPrPointsCode { get { return _BPrPoints; } }
         internal override int ChangeTrackingCode { get { return _ChngR; } }
         internal override bool IsChangeTrackingEnabled { get { return _ChngR > 0; } }
         public override string ToString()
@@ -93,8 +94,8 @@ namespace DaJet.Metadata
                 // Идентификатор ссылочного типа данных, например, "ТочкаМаршрутаБизнесПроцессаСсылка.Согласование"
                 if (reader[2][14].Seek())
                 {
-                    Guid point = reader.ValueAsUuid; // 11e5f865-1501-40c6-b4d4-022095a296a5 ТочкаМаршрутаБизнесПроцессаСсылка (любая - общий тип)
-                    registry.AddReference(uuid, point); //TODO: registry.AddBusinessPoint !?
+                    Guid point = reader.ValueAsUuid;
+                    registry.AddBusinessPoint(uuid, point);
                 }
 
                 // Ссылка на объект метаданных "Задача", используемый бизнес-процессом
@@ -103,9 +104,6 @@ namespace DaJet.Metadata
                     Guid task = reader.ValueAsUuid;
                     registry.AddBusinessProcessToTask(task, uuid);
                 }
-
-                //TODO: Зарегистрировать точки маршрута бизнес-процесса в реестре метаданных
-                //NOTE: Могут использоваться в качестве значений реквизитов объектов (ссылка)
             }
             internal override EntityDefinition Load(Guid uuid, ReadOnlySpan<byte> file, in MetadataRegistry registry)
             {

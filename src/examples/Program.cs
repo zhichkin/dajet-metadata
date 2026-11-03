@@ -52,7 +52,7 @@ namespace DaJet
             //DumpSchemaStorage(); return;
             //GetMetadataNames(); return;
             //DumpMetadataObjectFile(); return;
-            GetMetadataObject("Справочник.Справочник1"); return; // БизнесПроцесс.БизнесПроцесс1 Расш1_ПланОбмена1 ПланВидовРасчета.ПланВидовРасчета1
+            //GetMetadataObject("Справочник.Тестовый"); return; // БизнесПроцесс.БизнесПроцесс1 Расш1_ПланОбмена1 ПланВидовРасчета.ПланВидовРасчета1
             //GetMetadataObjectReferences("ПланОбмена.ПланОбмена1.Состав"); return;
             //GetMetadataObject("Характеристика.ПланВидовХарактеристик1"); return; // ОпределяемыйТип.ОпределяемыйТип1 Характеристика.ПланВидовХарактеристик1
             //GetMetadataObjectReferences("Справочник.Тестовый"); return; // РегистрНакопления.ОстаткиТовара
