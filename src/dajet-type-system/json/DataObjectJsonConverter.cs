@@ -1,5 +1,6 @@
 ﻿using DaJet.TypeSystem;
 using System.Collections;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -30,12 +31,11 @@ namespace DaJet.Json
                 else if (value is ushort uint2) { writer.WriteNumber(name, uint2); }
                 else if (value is uint uint4) { writer.WriteNumber(name, uint4); }
                 else if (value is ulong uint8) { writer.WriteNumber(name, uint8); }
-                else if (value is DateTime dateTime) { writer.WriteString(name, dateTime.ToString("yyyy-MM-ddTHH:mm:ss")); }
+                else if (value is DateTime dateTime) { writer.WriteString(name, dateTime.ToString("yyyy-MM-dd HH:mm:ss")); }
                 else if (value is string text) { writer.WriteString(name, text); }
                 else if (value is byte[] binary) { writer.WriteString(name, Convert.ToBase64String(binary)); }
                 else if (value is Guid uuid) { writer.WriteString(name, uuid); }
                 else if (value is Entity entity) { writer.WriteString(name, entity.ToString()); }
-                else if (value is DataType type) { writer.WriteString(name, type.ToString()); }
                 else if (value is Union union)
                 {
                     if (union.Tag == UnionTag.Undefined)
@@ -52,7 +52,7 @@ namespace DaJet.Json
                     }
                     else if (union.Tag == UnionTag.DateTime)
                     {
-                        writer.WriteString(name, union.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss"));
+                        writer.WriteString(name, union.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss"));
                     }
                     else if (union.Tag == UnionTag.String)
                     {
@@ -185,7 +185,7 @@ namespace DaJet.Json
                     writer.WriteStartArray();
                     foreach (DateTime item_datetime in array_dateTime)
                     {
-                        writer.WriteStringValue(item_datetime.ToString("yyyy-MM-ddTHH:mm:ss"));
+                        writer.WriteStringValue(item_datetime.ToString("yyyy-MM-dd HH:mm:ss"));
                     }
                     writer.WriteEndArray();
                 }
@@ -229,16 +229,6 @@ namespace DaJet.Json
                     }
                     writer.WriteEndArray();
                 }
-                else if (value is List<DataType> array_type)
-                {
-                    writer.WritePropertyName(name);
-                    writer.WriteStartArray();
-                    foreach (DataType item_type in array_type)
-                    {
-                        writer.WriteStringValue(item_type.ToString());
-                    }
-                    writer.WriteEndArray();
-                }
                 else if (value is List<Union> array_union)
                 {
                     writer.WritePropertyName(name);
@@ -259,7 +249,7 @@ namespace DaJet.Json
                         }
                         else if (item_union.Tag == UnionTag.DateTime)
                         {
-                            writer.WriteString(name, item_union.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss"));
+                            writer.WriteString(name, item_union.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss"));
                         }
                         else if (item_union.Tag == UnionTag.String)
                         {
@@ -338,17 +328,13 @@ namespace DaJet.Json
                     {
                         value = uuid;
                     }
-                    else if (DateTime.TryParse(input, out DateTime date))
+                    else if (DateTime.TryParseExact(input, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
                     {
                         value = date;
                     }
                     else if (Entity.TryParse(input, out Entity entity))
                     {
                         value = entity;
-                    }
-                    else if (DataType.TryParse(in input, out DataType type, out _))
-                    {
-                        value = type;
                     }
                     else
                     {
@@ -418,17 +404,13 @@ namespace DaJet.Json
                     {
                         array ??= new List<Guid>(); array.Add(uuid);
                     }
-                    else if (DateTime.TryParse(text, out DateTime date))
+                    else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
                     {
                         array ??= new List<DateTime>(); array.Add(date);
                     }
                     else if (Entity.TryParse(text, out Entity entity))
                     {
                         array ??= new List<Entity>(); array.Add(entity);
-                    }
-                    else if (DataType.TryParse(in text, out DataType type, out _))
-                    {
-                        array ??= new List<DataType>(); array.Add(type);
                     }
                     else
                     {
