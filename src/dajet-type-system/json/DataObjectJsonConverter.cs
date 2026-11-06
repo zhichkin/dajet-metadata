@@ -8,6 +8,7 @@ namespace DaJet.Json
 {
     public sealed class DataObjectJsonConverter : JsonConverter<DataObject>
     {
+        private readonly static string[] DATETIME_FORMATS = ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-ddTHH:mm:ss"];
         public override void Write(Utf8JsonWriter writer, DataObject source, JsonSerializerOptions options)
         {
             string name;
@@ -31,7 +32,7 @@ namespace DaJet.Json
                 else if (value is ushort uint2) { writer.WriteNumber(name, uint2); }
                 else if (value is uint uint4) { writer.WriteNumber(name, uint4); }
                 else if (value is ulong uint8) { writer.WriteNumber(name, uint8); }
-                else if (value is DateTime dateTime) { writer.WriteString(name, dateTime.ToString("yyyy-MM-dd HH:mm:ss")); }
+                else if (value is DateTime dateTime) { writer.WriteString(name, dateTime.ToString("yyyy-MM-ddTHH:mm:ss")); }
                 else if (value is string text) { writer.WriteString(name, text); }
                 else if (value is byte[] binary) { writer.WriteString(name, Convert.ToBase64String(binary)); }
                 else if (value is Guid uuid) { writer.WriteString(name, uuid); }
@@ -52,7 +53,7 @@ namespace DaJet.Json
                     }
                     else if (union.Tag == UnionTag.DateTime)
                     {
-                        writer.WriteString(name, union.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss"));
+                        writer.WriteString(name, union.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss"));
                     }
                     else if (union.Tag == UnionTag.String)
                     {
@@ -185,7 +186,7 @@ namespace DaJet.Json
                     writer.WriteStartArray();
                     foreach (DateTime item_datetime in array_dateTime)
                     {
-                        writer.WriteStringValue(item_datetime.ToString("yyyy-MM-dd HH:mm:ss"));
+                        writer.WriteStringValue(item_datetime.ToString("yyyy-MM-ddTHH:mm:ss"));
                     }
                     writer.WriteEndArray();
                 }
@@ -237,36 +238,39 @@ namespace DaJet.Json
                     {
                         if (item_union.Tag == UnionTag.Undefined)
                         {
-                            writer.WriteNull(name);
+                            writer.WriteNullValue();
                         }
                         else if (item_union.Tag == UnionTag.Boolean)
                         {
-                            writer.WriteBoolean(name, item_union.GetBoolean());
+                            writer.WriteBooleanValue(item_union.GetBoolean());
                         }
                         else if (item_union.Tag == UnionTag.Decimal)
                         {
-                            writer.WriteNumber(name, item_union.GetDecimal());
+                            writer.WriteNumberValue(item_union.GetDecimal());
                         }
                         else if (item_union.Tag == UnionTag.DateTime)
                         {
-                            writer.WriteString(name, item_union.GetDateTime().ToString("yyyy-MM-dd HH:mm:ss"));
+                            writer.WriteStringValue(item_union.GetDateTime().ToString("yyyy-MM-ddTHH:mm:ss"));
                         }
                         else if (item_union.Tag == UnionTag.String)
                         {
-                            writer.WriteString(name, item_union.GetString());
+                            writer.WriteStringValue(item_union.GetString());
                         }
                         else if (item_union.Tag == UnionTag.Entity)
                         {
-                            writer.WriteString(name, item_union.GetEntity().ToString());
+                            writer.WriteStringValue(item_union.GetEntity().ToString());
                         }
                     }
                     writer.WriteEndArray();
+                }
+                else
+                {
+                    throw new JsonException($"[{nameof(DataObjectJsonConverter)}] Unsupported data type {value.GetType()}");
                 }
             }
 
             writer.WriteEndObject();
         }
-
         public override DataObject Read(ref Utf8JsonReader reader, Type type, JsonSerializerOptions options)
         {
             return ParseObject(ref reader);
@@ -328,7 +332,7 @@ namespace DaJet.Json
                     {
                         value = uuid;
                     }
-                    else if (DateTime.TryParseExact(input, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+                    else if (DateTime.TryParseExact(input, DATETIME_FORMATS, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
                     {
                         value = date;
                     }
@@ -404,7 +408,7 @@ namespace DaJet.Json
                     {
                         array ??= new List<Guid>(); array.Add(uuid);
                     }
-                    else if (DateTime.TryParseExact(text, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
+                    else if (DateTime.TryParseExact(text, DATETIME_FORMATS, CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime date))
                     {
                         array ??= new List<DateTime>(); array.Add(date);
                     }
