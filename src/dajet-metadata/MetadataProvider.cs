@@ -268,6 +268,7 @@ namespace DaJet.Metadata
             if (!reset && IsInitialized) { return; }
 
             bool locked = false;
+            string error = null;
 
             try
             {
@@ -281,17 +282,21 @@ namespace DaJet.Metadata
             }
             catch (AggregateException errors)
             {
-                MetadataLogger.Write(string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database));
+                error = string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database);
+
+                MetadataLogger.Write(error);
 
                 foreach (Exception inner in errors.Flatten().InnerExceptions)
                 {
                     MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(inner));
                 }
             }
-            catch (Exception error)
+            catch (Exception exception)
             {
-                MetadataLogger.Write(string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database));
-                MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(error));
+                error = string.Format(ERROR_CREATE_REGISTRY, _loader.DataSource, _loader.Database);
+
+                MetadataLogger.Write(error);
+                MetadataLogger.Write(ExceptionHelper.GetErrorMessageAndStackTrace(exception));
             }
             finally
             {
@@ -299,6 +304,11 @@ namespace DaJet.Metadata
                 {
                     Monitor.Exit(this);
                 }
+            }
+
+            if (error is not null)
+            {
+                throw new InvalidOperationException(error);
             }
         }
         private bool IsInitialized { get { return _registry is not null; } }
